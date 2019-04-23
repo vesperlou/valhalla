@@ -1264,6 +1264,11 @@ function filter_tags_generic(kv)
        end
   end
 
+  --if no bike access then toss
+  if kv["bike_backward"] == "false" and kv["bike_forward"] == "false" then
+     return 1
+  end
+  
    --toss actual areas
    if kv["area"] == "yes" then
      return 1
