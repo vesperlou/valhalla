@@ -24,3 +24,4 @@
 -j '{"locations":[{"lat":39.827732,"lon":-104.995842,"street":"US 36 East"},{"lat":39.840054,"lon":-104.983635,"street":"I 25"}],"costing":"auto","directions_options":{"units":"miles"}}'
 -j '{"locations":[{"lat":37.743607,"lon":-122.406067,"street":"US 101"},{"lat":37.732414,"lon":-122.414543,"street":"I 280"}],"costing":"auto","directions_options":{"units":"miles"}}'
 -j '{"locations":[{"lat":37.731773,"lon":-122.427757,"street":"I 280"},{"lat":37.743019,"lon":-122.406334,"street":"US 101"}],"costing":"auto","directions_options":{"units":"miles"}}'
+-j '{"locations":[{"lat":30.395716,"lon":-97.732071,"street":"North MoPac Expressway"},{"lat":30.403431,"lon":-97.727058,"street":"Loop 1"}],"costing":"auto","directions_options":{"units":"miles"}}'

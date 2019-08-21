@@ -211,7 +211,6 @@ void FormTilesInNewLevel(GraphReader& reader,
       LOG_INFO("HIERARCHYBUILDER: tile_id:: " + std::to_string(tile_id));
       LOG_INFO("HIERARCHYBUILDER: tile_id.tileid()" + std::to_string(tile_id.tileid()));
       LOG_INFO("HIERARCHYBUILDER: current_level:: " + std::to_string(current_level));
-      LOG_INFO("HIERARCHYBUILDER: baseni.admin_index:: " + std::to_string(baseni.admin_index()));
       LOG_INFO("HIERARCHYBUILDER: baseni.edge_index():: " + std::to_string(baseni.edge_index()));
       LOG_INFO("HIERARCHYBUILDER: base_ll():: " + std::to_string(base_ll.second) + ", " +
                std::to_string(base_ll.first));
@@ -221,6 +220,11 @@ void FormTilesInNewLevel(GraphReader& reader,
     }
     tilebuilder->nodes().push_back(baseni);
     const auto& admin = tile->admininfo(baseni.admin_index());
+    LOG_INFO("HIERARCHYBUILDER: baseni.admin_index:: " + std::to_string(baseni.admin_index()));
+    LOG_INFO("HIERARCHYBUILDER: admin.country_iso:: " + admin.country_iso());
+    LOG_INFO("HIERARCHYBUILDER: admin.country_text:: " + admin.country_text());
+    LOG_INFO("HIERARCHYBUILDER: admin.state_iso:: " + admin.state_iso());
+    LOG_INFO("HIERARCHYBUILDER: admin.state_text:: " + admin.state_text());
     NodeInfo& node = tilebuilder->nodes().back();
     node.set_latlng(base_ll, baseni.latlng(tile->header()->base_ll()));
     node.set_edge_index(tilebuilder->directededges().size());
