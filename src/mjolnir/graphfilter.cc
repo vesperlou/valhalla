@@ -168,6 +168,7 @@ void FilterTiles(GraphReader& reader,
         node.set_edge_count(edge_count);
         node.set_edge_index(edge_index);
         const auto& admin = tile->admininfo(nodeinfo->admin_index());
+
         node.set_admin_index(tilebuilder.AddAdmin(admin.country_text(), admin.state_text(),
                                                   admin.country_iso(), admin.state_iso()));
 

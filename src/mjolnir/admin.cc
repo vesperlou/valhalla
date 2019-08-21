@@ -118,7 +118,9 @@ std::unordered_multimap<uint32_t, multi_polygon_type> GetTimeZones(sqlite3* db_h
 
 // Get the admin polys that intersect with the tile bounding box.
 std::unordered_multimap<uint32_t, multi_polygon_type>
-GetAdminInfo(sqlite3* db_handle,
+GetAdminInfo(GraphId tile_id,
+             PointLL base_ll,
+             sqlite3* db_handle,
              std::unordered_map<uint32_t, bool>& drive_on_right,
              const AABB2<PointLL>& aabb,
              GraphTileBuilder& tilebuilder) {
@@ -204,8 +206,11 @@ GetAdminInfo(sqlite3* db_handle,
       if (sqlite3_column_type(stmt, 5) == SQLITE_TEXT) {
         geom = (char*)sqlite3_column_text(stmt, 5);
       }
-
+      LOG_INFO("COUNTRY_ISO:: " + country_iso);
+      LOG_INFO("STATE_ISO:: " + state_iso);
       uint32_t index = tilebuilder.AddAdmin(country_name, state_name, country_iso, state_iso);
+      LOG_INFO("INDEX:: " + std::to_string(index));
+
       multi_polygon_type multi_poly;
       boost::geometry::read_wkt(geom, multi_poly);
       polys.emplace(index, multi_poly);
@@ -214,6 +219,7 @@ GetAdminInfo(sqlite3* db_handle,
       result = sqlite3_step(stmt);
     }
   }
+
   if (stmt) {
     sqlite3_finalize(stmt);
     stmt = 0;

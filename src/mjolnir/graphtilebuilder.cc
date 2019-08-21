@@ -719,12 +719,17 @@ uint32_t GraphTileBuilder::AddAdmin(const std::string& country_name,
                                     const std::string& state_name,
                                     const std::string& country_iso,
                                     const std::string& state_iso) {
+
   // Check if admin already exists
   auto existing_admin_info_offset_item = admin_info_offset_map_.find(country_iso + state_name);
   if (existing_admin_info_offset_item == admin_info_offset_map_.end()) {
+    LOG_INFO("GraphTileBuilder::AddAdmin:country_name:: " + country_name);
+    LOG_INFO("GraphTileBuilder::AddAdmin:state_name:: " + state_name);
+
     // Add names and add to the admin builder
     uint32_t country_offset = AddName(country_name);
     uint32_t state_offset = AddName(state_name);
+
     admins_builder_.emplace_back(country_offset, state_offset, country_iso, state_iso);
 
     // Add to the map

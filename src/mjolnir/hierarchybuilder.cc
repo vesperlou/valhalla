@@ -149,6 +149,7 @@ void FormTilesInNewLevel(GraphReader& reader,
       } else if (f.highway_node.Is_Valid()) {
         lowest_level = 0;
       }
+      LOG_INFO("LOWEST LEVEL:: " + std::to_string(lowest_level));
       return (lowest_level == current_level);
     } else {
       return (TileHierarchy::get_level(directededge->classification()) == current_level);
@@ -202,12 +203,29 @@ void FormTilesInNewLevel(GraphReader& reader,
 
     // Copy node information and set the node lat,lon offsets within the new tile
     NodeInfo baseni = *(tile->node(base_node.id()));
+
+    // NOTE: Level 2 doesn't exist
+    if ( //(base_node == 675913626 && base_node.id() == 20) ||
+        (base_node == 575250330 && base_node.id() == 17)) {
+      LOG_INFO("HIERARCHYBUILDER: base_node:: " + std::to_string(base_node));
+      LOG_INFO("HIERARCHYBUILDER: tile_id:: " + std::to_string(tile_id));
+      LOG_INFO("HIERARCHYBUILDER: tile_id.tileid()" + std::to_string(tile_id.tileid()));
+      LOG_INFO("HIERARCHYBUILDER: current_level:: " + std::to_string(current_level));
+      LOG_INFO("HIERARCHYBUILDER: baseni.admin_index:: " + std::to_string(baseni.admin_index()));
+      LOG_INFO("HIERARCHYBUILDER: baseni.edge_index():: " + std::to_string(baseni.edge_index()));
+      LOG_INFO("HIERARCHYBUILDER: base_ll():: " + std::to_string(base_ll.second) + ", " +
+               std::to_string(base_ll.first));
+      LOG_INFO("HIERARCHYBUILDER: base node id:: " + std::to_string(base_node.id()));
+      LOG_INFO("HIERARCHYBUILDER: dataset_id:: " + std::to_string(tile->header()->dataset_id()) +
+               '\n');
+    }
     tilebuilder->nodes().push_back(baseni);
     const auto& admin = tile->admininfo(baseni.admin_index());
     NodeInfo& node = tilebuilder->nodes().back();
     node.set_latlng(base_ll, baseni.latlng(tile->header()->base_ll()));
     node.set_edge_index(tilebuilder->directededges().size());
     node.set_timezone(baseni.timezone());
+
     node.set_admin_index(tilebuilder->AddAdmin(admin.country_text(), admin.state_text(),
                                                admin.country_iso(), admin.state_iso()));
 

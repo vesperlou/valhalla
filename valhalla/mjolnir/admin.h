@@ -57,7 +57,9 @@ std::unordered_multimap<uint32_t, multi_polygon_type> GetTimeZones(sqlite3* db_h
  * @param  tilebuilder      Graph tile builder
  */
 std::unordered_multimap<uint32_t, multi_polygon_type>
-GetAdminInfo(sqlite3* db_handle,
+GetAdminInfo(GraphId id,
+             PointLL base_ll,
+             sqlite3* db_handle,
              std::unordered_map<uint32_t, bool>& drive_on_right,
              const AABB2<PointLL>& aabb,
              GraphTileBuilder& tilebuilder);

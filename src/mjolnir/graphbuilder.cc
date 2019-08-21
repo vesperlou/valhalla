@@ -452,14 +452,22 @@ void BuildTileSet(const std::string& ways_file,
       uint32_t id = tile_id.tileid();
       PointLL base_ll = tiling.Base(id);
       graphtile.header_builder().set_base_ll(base_ll);
-
+      if (id == 603123 && tile_id.id() == 17) {
+        LOG_INFO("tile id:: " + std::to_string(id));
+        LOG_INFO("id:: " + std::to_string(tile_id.id()));
+        LOG_INFO("value:: " + std::to_string(tile_id.value));
+        LOG_INFO("level:: " + std::to_string(tile_id.level()));
+        LOG_INFO("base_ll:: " + std::to_string(base_ll.second) + ", " +
+                 std::to_string(base_ll.first));
+      };
       // Get the admin polygons. If only one exists for the tile check if the
       // tile is entirely inside the polygon
       bool tile_within_one_admin = false;
       std::unordered_multimap<uint32_t, multi_polygon_type> admin_polys;
       std::unordered_map<uint32_t, bool> drive_on_right;
       if (admin_db_handle) {
-        admin_polys = GetAdminInfo(admin_db_handle, drive_on_right, tiling.TileBounds(id), graphtile);
+        admin_polys = GetAdminInfo(tile_id, base_ll, admin_db_handle, drive_on_right,
+                                   tiling.TileBounds(id), graphtile);
         if (admin_polys.size() == 1) {
           // TODO - check if tile bounding box is entirely inside the polygon...
           tile_within_one_admin = true;
