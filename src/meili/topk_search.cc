@@ -3,25 +3,28 @@
 namespace valhalla {
 namespace meili {
 
+EnlargedEmissionCostModel::EnlargedEmissionCostModel(const EnlargedViterbiSearch& evs) : evs_(evs) {
+}
+
 float EnlargedEmissionCostModel::operator()(const StateId& stateid) {
   // If this was a removed state bail
   const auto& original_stateid = evs_.GetOrigin(stateid);
-  if (evs_.IsRemoved(original_stateid)) {
+  if (!original_stateid.IsValid() || evs_.IsRemoved(original_stateid)) {
     return -1.0;
   }
 
   // Check for cache and compute if its not there
-  auto c = cached_costs_.find(stateid);
-  if (c == cached_costs_.cend()) {
-    c = cached_costs_.emplace(stateid, calculate_cost(stateid, original_stateid)).first;
+  auto iter = cached_costs_.find(stateid);
+  if (iter == cached_costs_.cend()) {
+    iter = cached_costs_.emplace(stateid, calculate_cost(stateid, original_stateid)).first;
   }
-  return c->second;
+  return iter->second;
 }
 
 // a state has three status in the enlarged graph model:
 // 1. clone (evs_.GetOrigin(stateid).IsValid())
-// 2. origin that is been cloned (evs_.GetClone(stateid).IsValid())
-// 3. origin that is not been cloned (otherwise)
+// 2. origin that has been cloned (evs_.GetClone(stateid).IsValid())
+// 3. origin that has not been cloned (otherwise)
 float EnlargedEmissionCostModel::calculate_cost(const StateId& stateid,
                                                 const StateId& original_stateid) const {
   const auto& model = evs_.original_emission_cost_model();

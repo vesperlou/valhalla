@@ -16,8 +16,7 @@ class EnlargedViterbiSearch;
 
 class EnlargedEmissionCostModel {
 public:
-  EnlargedEmissionCostModel(const EnlargedViterbiSearch& evs) : evs_(evs) {
-  }
+  EnlargedEmissionCostModel(const EnlargedViterbiSearch& evs);
 
   float operator()(const StateId& stateid);
 
