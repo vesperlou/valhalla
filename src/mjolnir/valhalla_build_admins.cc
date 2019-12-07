@@ -1,4 +1,5 @@
 #include <cstdint>
+#include <stdexcept>
 #include <string>
 #include <vector>
 
@@ -17,8 +18,9 @@
 /* Need to know which geos version we have to work out which headers to include */
 #include <geos/version.h>
 
+#include <geos_c.h>
+
 #include <geos/geom/CoordinateSequenceFactory.h>
-#include <geos/geom/Geometry.h>
 #include <geos/geom/GeometryFactory.h>
 #include <geos/geom/LineString.h>
 #include <geos/geom/LinearRing.h>
@@ -117,8 +119,8 @@ bool ParseArguments(int argc, char* argv[]) {
 namespace {
 
 struct polygondata {
-  Polygon* polygon;
-  LinearRing* ring;
+  GEOSGeometry* polygon;
+  GEOSGeometry* ring;
   double area;
   int iscontained;
   unsigned containedbyid;
@@ -138,26 +140,24 @@ int polygondata_comparearea(const void* vp1, const void* vp2) {
 }
 } // anonymous namespace
 
-std::vector<std::string> GetWkts(std::unique_ptr<Geometry>& mline) {
+std::vector<std::string> GetWkts(const std::vector<const GEOSGeometry*>& lines) {
   std::vector<std::string> wkts;
 
-#if 3 == GEOS_VERSION_MAJOR && 6 <= GEOS_VERSION_MINOR
-  auto gf = GeometryFactory::create();
-#else
-  std::unique_ptr<GeometryFactory> gf(new GeometryFactory());
-#endif
+  GEOSGeometry* merged = GEOSLineMerge(&lines[0]);
+  unsigned int num_merged = 0;
+  for (GEOSGeometry* pline = &merged[0]; pline != NULL; ++pline) {
+    num_merged += 1;
+  }
 
-  LineMerger merger;
-  merger.add(mline.get());
-  std::unique_ptr<std::vector<LineString*>> merged(merger.getMergedLineStrings());
+  // std::unique_ptr<std::vector<LineString*>> merged(merger.getMergedLineStrings());
   WKTWriter writer;
 
   // Procces ways into lines or simple polygon list
-  polygondata* polys = new polygondata[merged->size()];
+  polygondata* polys = new polygondata[num_merged];
 
   unsigned totalpolys = 0;
-  for (unsigned i = 0; i < merged->size(); ++i) {
-    std::unique_ptr<LineString> pline((*merged)[i]);
+  for (auto pline = merged[0]; pline != NULL; ++pline) {
+    // std::unique_ptr<LineString> pline((*merged)[i]);
     if (pline->getNumPoints() > 3 && pline->isClosed()) {
       polys[totalpolys].polygon = gf->createPolygon(gf->createLinearRing(pline->getCoordinates()), 0);
       polys[totalpolys].ring = gf->createLinearRing(pline->getCoordinates());
@@ -249,6 +249,13 @@ std::vector<std::string> GetWkts(std::unique_ptr<Geometry>& mline) {
   delete[](polys);
 
   return wkts;
+}
+
+void geos_notice_function(const char* fmt, ...) {
+  printf("TODO: GEOS said something");
+}
+void geos_error_function(const char* fmt, ...) {
+  printf("TODO: GEOS said something");
 }
 
 /**
@@ -426,13 +433,14 @@ void BuildAdminFromPBF(const boost::property_tree::ptree& pt,
 #else
   std::unique_ptr<GeometryFactory> gf(new GeometryFactory());
 #endif
+  initGEOS(geos_notice_function, geos_error_function);
 
   try {
 
     for (const auto& admin : osm_admin_data.admins_) {
 
-      std::unique_ptr<Geometry> geom;
-      std::unique_ptr<std::vector<Geometry*>> lines(new std::vector<Geometry*>);
+      std::unique_ptr<GEOSGeometry> geom;
+      std::vector<GEOSGeometry*> lines;
       has_data = true;
 
       for (const auto memberid : admin.ways()) {
@@ -446,31 +454,35 @@ void BuildAdminFromPBF(const boost::property_tree::ptree& pt,
           break;
         }
 
-        std::unique_ptr<CoordinateSequence> coords(
-            gf->getCoordinateSequenceFactory()->create((size_t)0, (size_t)2));
+        const unsigned int num_samples = itr->second.size();
+        const unsigned int num_dims = 2;
+        GEOSCoordSequence* coords = GEOSCoordSeq_create(num_samples, num_dims);
         size_t j = 0;
 
+        unsigned int sample = 0;
         for (const auto ref_id : itr->second) {
-
           const PointLL ll = osm_admin_data.shape_map.at(ref_id);
 
-          Coordinate c;
-          c.x = ll.lng();
-          c.y = ll.lat();
-          coords->add(c, 0);
+          if (!GEOSCoordSeq_setXY(coords, sample, ll.lng(), ll.lat()) {
+            throw std::runtime_error("GEOSCoordSeq_setXY failed");
+          }
+          sample += 1;
         }
 
-        if (coords->getSize() > 1) {
-          geom = std::unique_ptr<Geometry>(gf->createLineString(coords.release()));
-          lines->push_back(geom.release());
+        if (num_samples > 1) {
+          auto line = GEOSGeom_createLineString(coords);
+          if (line == NULL) {
+            throw std::runtime_error("Creating linestring failed");
+          }
+          lines.push_back(line);
         }
+        lines.push_back(NULL);
 
       } // member loop
 
       if (has_data) {
 
-        std::unique_ptr<Geometry> mline(gf->createMultiLineString(lines.release()));
-        std::vector<std::string> wkts = GetWkts(mline);
+        std::vector<std::string> wkts = GetWkts(lines);
         std::string name;
         std::string name_en;
         std::string iso;
