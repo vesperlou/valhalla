@@ -22,7 +22,7 @@ struct interpolation_t {
 
 std::list<std::vector<interpolation_t>>
 interpolate_matches(const std::vector<meili::MatchResult>& matches,
-                    const std::vector<meili::EdgeSegment>& edges,
+                    const std::vector<meili::NG_edge_segment>& edges,
                     meili::MapMatcher* matcher) {
   // TODO: backtracking could have happened. maybe it really happened but maybe there were
   // positional inaccuracies. for now we should detect when there are backtracks and give up
@@ -126,7 +126,7 @@ interpolate_matches(const std::vector<meili::MatchResult>& matches,
 std::vector<PathInfo>
 MapMatcher::FormPath(meili::MapMatcher* matcher,
                      const std::vector<meili::MatchResult>& results,
-                     const std::vector<meili::EdgeSegment>& edge_segments,
+                     const std::vector<meili::NG_edge_segment>& edge_segments,
                      const std::shared_ptr<sif::DynamicCost>* mode_costing,
                      const sif::TravelMode mode,
                      std::vector<std::pair<GraphId, GraphId>>& disconnected_edges,

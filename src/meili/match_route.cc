@@ -124,7 +124,7 @@ bool ValidateRoute(baldr::GraphReader& graphreader,
 }
 
 template <typename segment_iterator_t>
-void MergeEdgeSegments(std::vector<EdgeSegment>& route,
+void MergeEdgeSegments(std::vector<NG_edge_segment>& route,
                        segment_iterator_t segment_begin,
                        segment_iterator_t segment_end) {
   for (auto segment = segment_begin; segment != segment_end; segment++) {
@@ -147,7 +147,7 @@ void MergeEdgeSegments(std::vector<EdgeSegment>& route,
 namespace valhalla {
 namespace meili {
 
-EdgeSegment::EdgeSegment(baldr::GraphId the_edgeid, float the_source, float the_target)
+NG_edge_segment::NG_edge_segment(baldr::GraphId the_edgeid, float the_source, float the_target)
     : edgeid(the_edgeid), source(the_source), target(the_target) {
   if (!edgeid.Is_Valid()) {
     throw std::invalid_argument("Invalid edgeid");
@@ -159,7 +159,7 @@ EdgeSegment::EdgeSegment(baldr::GraphId the_edgeid, float the_source, float the_
   }
 }
 
-std::vector<midgard::PointLL> EdgeSegment::Shape(baldr::GraphReader& graphreader) const {
+std::vector<midgard::PointLL> NG_edge_segment::shape(baldr::GraphReader& graphreader) const {
   const baldr::GraphTile* tile = nullptr;
   const auto edge = graphreader.directededge(edgeid, tile);
   if (edge) {
@@ -174,7 +174,8 @@ std::vector<midgard::PointLL> EdgeSegment::Shape(baldr::GraphReader& graphreader
   return {};
 }
 
-bool EdgeSegment::Adjoined(baldr::GraphReader& graphreader, const EdgeSegment& other) const {
+bool NG_edge_segment::is_adjoined(baldr::GraphReader& graphreader,
+                                  const NG_edge_segment& other) const {
   if (edgeid != other.edgeid) {
     if (target == 1.f && other.source == 0.f) {
       return graphreader.AreEdgesConnectedForward(edgeid, other.edgeid);
@@ -186,73 +187,73 @@ bool EdgeSegment::Adjoined(baldr::GraphReader& graphreader, const EdgeSegment& o
   }
 }
 
-NG_edge_segment::NG_edge_segment(baldr::GraphId edgeid,
-                                 float source,
-                                 float target,
-                                 std::vector<MatchResult>::const_iterator first_match,
-                                 std::vector<MatchResult>::const_iterator last_match,
-                                 baldr::GraphReader& graph_reader)
-    : edgeid_(edgeid_), source_(source), target_(target), first_match_(first_match),
-      last_match_(last_match), graph_reader_(&graph_reader), discontinuity_(false) {
-  if (!edgeid.Is_Valid()) {
-    throw std::invalid_argument("Invalid edgeid");
-  }
+// NG_edge_segment::NG_edge_segment(baldr::GraphId edgeid,
+//                                 float source,
+//                                 float target,
+//                                 std::vector<MatchResult>::const_iterator first_match,
+//                                 std::vector<MatchResult>::const_iterator last_match,
+//                                 baldr::GraphReader& graph_reader)
+//    : edgeid_(edgeid_), source_(source), target_(target), first_match_(first_match),
+//      last_match_(last_match), graph_reader_(&graph_reader), discontinuity_(false) {
+//  if (!edgeid.Is_Valid()) {
+//    throw std::invalid_argument("Invalid edgeid");
+//  }
+//
+//  if (!(0.f <= source && source <= target && target <= 1.f)) {
+//    throw std::invalid_argument("Expect 0.f <= source <= target <= 1.f, but you got source = " +
+//                                std::to_string(source) + " and target = " + std::to_string(target));
+//  }
+//}
+//
+// NG_edge_segment::NG_edge_segment(baldr::GraphId edgeid, baldr::GraphReader& graph_reader)
+//    : edgeid_(edgeid), graph_reader_(&graph_reader) {
+//  if (!edgeid.Is_Valid()) {
+//    throw std::invalid_argument("Invalid edgeid");
+//  }
+//}
+//
+// std::vector<midgard::PointLL> NG_edge_segment::shape() const {
+//  const baldr::GraphTile* tile = nullptr;
+//  const baldr::DirectedEdge* edge = graph_reader_->directededge(edgeid_, tile);
+//  if (edge == nullptr) {
+//    return {};
+//  }
+//
+//  const baldr::EdgeInfo edge_info = tile->edgeinfo(edge->edgeinfo_offset());
+//  const auto& shape = edge_info.shape();
+//  if (!edge->forward()) {
+//    return midgard::trim_polyline(shape.crbegin(), shape.crend(), source_, target_);
+//  }
+//
+//  return midgard::trim_polyline(shape.cbegin(), shape.cend(), source_, target_);
+//}
+//
+// bool NG_edge_segment::is_adjoined(const NG_edge_segment& other) const {
+//  if (edgeid_ == other.edgeid_) {
+//    return target_ == other.source_;
+//  }
+//
+//  if (target_ == 1.f && other.source_ == 0.f) {
+//    return graph_reader_->AreEdgesConnectedForward(edgeid_, other.edgeid_);
+//  }
+//
+//  return false;
+//}
+//
+// std::pair<std::vector<MatchResult>::const_iterator, std::vector<MatchResult>::const_iterator>
+// NG_edge_segment::matched_results() const noexcept {
+//  return {first_match_, last_match_};
+//}
+//
+// void NG_edge_segment::set_discontinuity() noexcept {
+//  discontinuity_ = true;
+//}
+//
+// bool NG_edge_segment::has_discontinuity() const noexcept {
+//  return discontinuity_;
+//}
 
-  if (!(0.f <= source && source <= target && target <= 1.f)) {
-    throw std::invalid_argument("Expect 0.f <= source <= target <= 1.f, but you got source = " +
-                                std::to_string(source) + " and target = " + std::to_string(target));
-  }
-}
-
-NG_edge_segment::NG_edge_segment(baldr::GraphId edgeid, baldr::GraphReader& graph_reader)
-    : edgeid_(edgeid), graph_reader_(&graph_reader) {
-  if (!edgeid.Is_Valid()) {
-    throw std::invalid_argument("Invalid edgeid");
-  }
-}
-
-std::vector<midgard::PointLL> NG_edge_segment::shape() const {
-  const baldr::GraphTile* tile = nullptr;
-  const baldr::DirectedEdge* edge = graph_reader_->directededge(edgeid_, tile);
-  if (edge == nullptr) {
-    return {};
-  }
-
-  const baldr::EdgeInfo edge_info = tile->edgeinfo(edge->edgeinfo_offset());
-  const auto& shape = edge_info.shape();
-  if (edge->forward()) {
-    return midgard::trim_polyline(shape.cbegin(), shape.cend(), source_, target_);
-  }
-
-  return midgard::trim_polyline(shape.crbegin(), shape.crend(), source_, target_);
-}
-
-bool NG_edge_segment::is_adjoined(const NG_edge_segment& other) const {
-  if (edgeid_ == other.edgeid_) {
-    return target_ == other.source_;
-  }
-
-  if (target_ == 1.f && other.source_ == 0.f) {
-    return graph_reader_->AreEdgesConnectedForward(edgeid_, other.edgeid_);
-  }
-
-  return false;
-}
-
-std::pair<std::vector<MatchResult>::const_iterator, std::vector<MatchResult>::const_iterator>
-NG_edge_segment::matched_results() const noexcept {
-  return {first_match_, last_match_};
-}
-
-void NG_edge_segment::set_discontinuity() noexcept {
-  discontinuity_ = true;
-}
-
-bool NG_edge_segment::has_discontinuity() const noexcept {
-  return discontinuity_;
-}
-
-bool MergeRoute(std::vector<EdgeSegment>& route, const State& source, const State& target) {
+bool MergeRoute(std::vector<NG_edge_segment>& route, const State& source, const State& target) {
   const auto route_rbegin = source.RouteBegin(target), route_rend = source.RouteEnd();
 
   // No route, discontinuity
@@ -260,7 +261,7 @@ bool MergeRoute(std::vector<EdgeSegment>& route, const State& source, const Stat
     return false;
   }
 
-  std::vector<EdgeSegment> segments;
+  std::vector<NG_edge_segment> segments;
 
   auto label = route_rbegin;
 
@@ -278,23 +279,23 @@ bool MergeRoute(std::vector<EdgeSegment>& route, const State& source, const Stat
   return true;
 }
 
-std::vector<EdgeSegment> MergeRoute(const State& source, const State& target) {
-  std::vector<EdgeSegment> route;
+std::vector<NG_edge_segment> MergeRoute(const State& source, const State& target) {
+  std::vector<NG_edge_segment> route;
   MergeRoute(route, source, target);
   return route;
 }
 
-std::vector<EdgeSegment> ConstructRoute(const MapMatcher& mapmatcher,
-                                        std::vector<MatchResult>::const_iterator begin,
-                                        std::vector<MatchResult>::const_iterator end) {
+std::vector<NG_edge_segment> ConstructRoute(const MapMatcher& mapmatcher,
+                                            std::vector<MatchResult>::const_iterator begin,
+                                            std::vector<MatchResult>::const_iterator end) {
   if (begin == end) {
     return {};
   }
 
-  std::vector<EdgeSegment> route;
+  std::vector<NG_edge_segment> route;
   const baldr::GraphTile* tile = nullptr;
 
-  std::vector<EdgeSegment> segments;
+  std::vector<NG_edge_segment> segments;
   // Merge segments into route
   for (auto prev_match = end, match = begin; match != end; match++) {
     if (!match->HasState()) {
@@ -327,10 +328,10 @@ std::vector<EdgeSegment> ConstructRoute(const MapMatcher& mapmatcher,
   return route;
 }
 
-template <typename segment_iterator_t>
-std::vector<std::vector<midgard::PointLL>> ConstructRouteShapes(baldr::GraphReader& graphreader,
-                                                                segment_iterator_t begin,
-                                                                segment_iterator_t end) {
+std::vector<std::vector<midgard::PointLL>>
+ConstructRouteShapes(baldr::GraphReader& graphreader,
+                     std::vector<NG_edge_segment>::const_iterator begin,
+                     std::vector<NG_edge_segment>::const_iterator end) {
   if (begin == end) {
     return {};
   }
@@ -338,13 +339,13 @@ std::vector<std::vector<midgard::PointLL>> ConstructRouteShapes(baldr::GraphRead
   std::vector<std::vector<midgard::PointLL>> shapes;
 
   for (auto segment = begin, prev_segment = end; segment != end; segment++) {
-    const auto& shape = segment->Shape(graphreader);
+    const auto& shape = segment->shape(graphreader);
     if (shape.empty()) {
       continue;
     }
 
     auto shape_begin = shape.begin();
-    if (prev_segment != end && prev_segment->Adjoined(graphreader, *segment)) {
+    if (prev_segment != end && prev_segment->is_adjoined(graphreader, *segment)) {
       // The beginning vertex has been written. Hence skip
       std::advance(shape_begin, 1);
     } else {
@@ -361,16 +362,5 @@ std::vector<std::vector<midgard::PointLL>> ConstructRouteShapes(baldr::GraphRead
 
   return shapes;
 }
-
-template std::vector<std::vector<midgard::PointLL>>
-ConstructRouteShapes<std::vector<EdgeSegment>::const_iterator>(
-    baldr::GraphReader&,
-    std::vector<EdgeSegment>::const_iterator,
-    std::vector<EdgeSegment>::const_iterator);
-
-template std::vector<std::vector<midgard::PointLL>>
-ConstructRouteShapes<std::vector<EdgeSegment>::iterator>(baldr::GraphReader&,
-                                                         std::vector<EdgeSegment>::iterator,
-                                                         std::vector<EdgeSegment>::iterator);
 } // namespace meili
 } // namespace valhalla

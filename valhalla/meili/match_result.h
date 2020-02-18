@@ -32,12 +32,12 @@ struct MatchResult {
   }
 };
 
-struct EdgeSegment {
-  EdgeSegment(baldr::GraphId the_edgeid, float the_source = 0.f, float the_target = 1.f);
+struct NG_edge_segment {
+  NG_edge_segment(baldr::GraphId the_edgeid, float the_source = 0.f, float the_target = 1.f);
 
-  std::vector<midgard::PointLL> Shape(baldr::GraphReader& graphreader) const;
+  std::vector<midgard::PointLL> shape(baldr::GraphReader& graphreader) const;
 
-  bool Adjoined(baldr::GraphReader& graphreader, const EdgeSegment& other) const;
+  bool is_adjoined(baldr::GraphReader& graphreader, const NG_edge_segment& other) const;
 
   // TODO make them private
   baldr::GraphId edgeid;
@@ -47,40 +47,42 @@ struct EdgeSegment {
   float target;
 };
 
-class NG_edge_segment {
-public:
-  NG_edge_segment(baldr::GraphId edgeid,
-                  float source,
-                  float target,
-                  std::vector<MatchResult>::const_iterator first_match,
-                  std::vector<MatchResult>::const_iterator last_match,
-                  baldr::GraphReader& graph_reader);
-  NG_edge_segment(baldr::GraphId edgeid, baldr::GraphReader& graphreader);
-  NG_edge_segment(const NG_edge_segment&) = default;
-  NG_edge_segment(NG_edge_segment&&) = default;
-  NG_edge_segment& operator=(const NG_edge_segment&) = default;
-  NG_edge_segment& operator=(NG_edge_segment&&) = default;
-  ~NG_edge_segment() = default;
-
-  std::vector<midgard::PointLL> shape() const;
-  bool is_adjoined(const NG_edge_segment& other) const;
-  std::pair<std::vector<MatchResult>::const_iterator, std::vector<MatchResult>::const_iterator>
-  matched_results() const noexcept;
-  void set_discontinuity() noexcept;
-  bool has_discontinuity() const noexcept;
-
-private:
-  std::vector<MatchResult>::const_iterator first_match_;
-  std::vector<MatchResult>::const_iterator last_match_;
-  baldr::GraphReader* graph_reader_{nullptr};
-  baldr::GraphId edgeid_{baldr::kInvalidGraphId};
-  float source_{0.f};
-  float target_{1.f};
-  bool discontinuity_{false};
-};
+// class NG_edge_segment {
+// public:
+//  NG_edge_segment(baldr::GraphId edgeid,
+//                  float source,
+//                  float target,
+//                  std::vector<MatchResult>::const_iterator first_match,
+//                  std::vector<MatchResult>::const_iterator last_match,
+//                  baldr::GraphReader& graph_reader);
+//  NG_edge_segment(baldr::GraphId edgeid, baldr::GraphReader& graphreader);
+//  NG_edge_segment(const NG_edge_segment&) = default;
+//  NG_edge_segment(NG_edge_segment&&) = default;
+//  NG_edge_segment& operator=(const NG_edge_segment&) = default;
+//  NG_edge_segment& operator=(NG_edge_segment&&) = default;
+//  ~NG_edge_segment() = default;
+//
+//  std::vector<midgard::PointLL> shape() const;
+//  bool is_adjoined(const NG_edge_segment& other) const;
+//  std::pair<std::vector<MatchResult>::const_iterator, std::vector<MatchResult>::const_iterator>
+//  matched_results() const noexcept;
+//  void set_discontinuity() noexcept;
+//  bool has_discontinuity() const noexcept;
+//
+// private:
+//  std::vector<MatchResult>::const_iterator first_match_;
+//  std::vector<MatchResult>::const_iterator last_match_;
+//  baldr::GraphReader* graph_reader_{nullptr};
+//  baldr::GraphId edgeid_{baldr::kInvalidGraphId};
+//  float source_{0.f};
+//  float target_{1.f};
+//  bool discontinuity_{false};
+//};
 
 struct MatchResults {
-  MatchResults(std::vector<MatchResult>&& results, std::vector<EdgeSegment>&& segments, float score)
+  MatchResults(std::vector<MatchResult>&& results,
+               std::vector<NG_edge_segment>&& segments,
+               float score)
       : results(results), segments(segments), score(score) {
     edges.reserve(this->segments.size());
     for (const auto& segment : this->segments)
@@ -128,7 +130,7 @@ struct MatchResults {
   }
 
   std::vector<MatchResult> results;
-  std::vector<EdgeSegment> segments;
+  std::vector<NG_edge_segment> segments;
   std::vector<uint64_t> edges;
   float score;
   std::vector<uint64_t>::const_iterator e1;

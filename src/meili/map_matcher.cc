@@ -59,8 +59,8 @@ inline MatchResult CreateMatchResult(const Measurement& measurement, const Inter
 // emission cost is minimal
 Interpolation InterpolateMeasurement(const MapMatcher& mapmatcher,
                                      const Measurement& measurement,
-                                     std::vector<EdgeSegment>::const_iterator begin,
-                                     std::vector<EdgeSegment>::const_iterator end,
+                                     std::vector<NG_edge_segment>::const_iterator begin,
+                                     std::vector<NG_edge_segment>::const_iterator end,
                                      float match_measurement_distance,
                                      float match_measurement_time) {
   const baldr::GraphTile* tile(nullptr);
@@ -148,8 +148,8 @@ std::vector<MatchResult> InterpolateMeasurements(const MapMatcher& mapmatcher,
     return results;
   }
 
-  std::vector<EdgeSegment> route = MergeRoute(mapmatcher.state_container().state(stateid),
-                                              mapmatcher.state_container().state(next_stateid));
+  std::vector<NG_edge_segment> route = MergeRoute(mapmatcher.state_container().state(stateid),
+                                                  mapmatcher.state_container().state(next_stateid));
 
   // for each point that needs interpolated
   for (const auto& measurement : measurements) {
@@ -164,9 +164,10 @@ std::vector<MatchResult> InterpolateMeasurements(const MapMatcher& mapmatcher,
     if (interp.edgeid.Is_Valid()) {
       // dont allow subsequent points to get interpolated before this point
       // we do this by editing the route to start where this point was interpolated
-      auto itr = std::find_if(route.begin(), route.end(),
-                              [&interp](const EdgeSegment& e) { return e.edgeid == interp.edgeid; });
-      itr = std::find_if(itr, route.end(), [&interp](const EdgeSegment& e) {
+      auto itr = std::find_if(route.begin(), route.end(), [&interp](const NG_edge_segment& e) {
+        return e.edgeid == interp.edgeid;
+      });
+      itr = std::find_if(itr, route.end(), [&interp](const NG_edge_segment& e) {
         return e.edgeid == interp.edgeid && e.target > interp.edge_distance;
       });
       if (itr != route.end()) {
@@ -281,7 +282,7 @@ std::vector<MatchResult> FindMatchResults(const MapMatcher& mapmatcher,
 }
 
 struct path_t {
-  path_t(const std::vector<EdgeSegment>& segments) {
+  path_t(const std::vector<NG_edge_segment>& segments) {
     edges.reserve(segments.size());
     for (const auto& segment : segments) {
       if (edges.empty() || edges.back() != segment.edgeid) {
@@ -355,7 +356,7 @@ void MapMatcher::RemoveRedundancies(const std::vector<StateId>& result) {
     auto left_used_candidate = container_.state(*left_state_id_itr);
     std::unordered_map<StateId, path_t> paths_from_winner;
     for (const auto& right_candidate : container_.column(time + 1)) {
-      std::vector<EdgeSegment> edges;
+      std::vector<NG_edge_segment> edges;
       if (!ts_.IsRemoved(right_candidate.stateid()) &&
           MergeRoute(edges, left_used_candidate, right_candidate)) {
         paths_from_winner.emplace(right_candidate.stateid(), std::move(edges));
@@ -395,7 +396,7 @@ void MapMatcher::RemoveRedundancies(const std::vector<StateId>& result) {
         */
 
         // If there is no route its not really unique since we dont need discontinuities
-        std::vector<EdgeSegment> edges;
+        std::vector<NG_edge_segment> edges;
         if (ts_.IsRemoved(right_candidate.stateid()) ||
             !MergeRoute(edges, left_unused_candidate, right_candidate)) {
           continue;
@@ -553,7 +554,7 @@ std::vector<MatchResults> MapMatcher::OfflineMatch(const std::vector<Measurement
 
   // Nothing to do
   if (measurements.empty()) {
-    best_paths.emplace_back(std::vector<MatchResult>{}, std::vector<EdgeSegment>{}, 0);
+    best_paths.emplace_back(std::vector<MatchResult>{}, std::vector<NG_edge_segment>{}, 0);
     return best_paths;
   }
 

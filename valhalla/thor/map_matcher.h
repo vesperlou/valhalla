@@ -25,7 +25,7 @@ public:
   static std::vector<PathInfo>
   FormPath(meili::MapMatcher* matcher,
            const std::vector<meili::MatchResult>& results,
-           const std::vector<meili::EdgeSegment>& edge_segments,
+           const std::vector<meili::NG_edge_segment>& edge_segments,
            const std::shared_ptr<sif::DynamicCost>* mode_costing,
            const sif::TravelMode mode,
            std::vector<std::pair<baldr::GraphId, baldr::GraphId>>& disconnected_edges,
