@@ -111,18 +111,18 @@ private:
   TransitionCostModel transition_cost_model_;
 };
 
-bool MergeRoute(std::vector<NG_edge_segment>& route, const State& source, const State& target);
+bool MergeRoute(std::vector<EdgeSegment>& route, const State& source, const State& target);
 
-std::vector<NG_edge_segment> MergeRoute(const State& source, const State& target);
+std::vector<EdgeSegment> MergeRoute(const State& source, const State& target);
 
-std::vector<NG_edge_segment> ConstructRoute(const MapMatcher& mapmatcher,
-                                            std::vector<MatchResult>::const_iterator begin,
-                                            std::vector<MatchResult>::const_iterator end);
+std::vector<EdgeSegment> ConstructRoute(const MapMatcher& mapmatcher,
+                                        std::vector<MatchResult>::const_iterator begin,
+                                        std::vector<MatchResult>::const_iterator end);
 
 std::vector<std::vector<midgard::PointLL>>
 ConstructRouteShapes(baldr::GraphReader& graphreader,
-                     std::vector<NG_edge_segment>::const_iterator begin,
-                     std::vector<NG_edge_segment>::const_iterator end);
+                     std::vector<EdgeSegment>::const_iterator begin,
+                     std::vector<EdgeSegment>::const_iterator end);
 
 } // namespace meili
 } // namespace valhalla

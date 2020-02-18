@@ -91,7 +91,7 @@ protected:
    */
   virtual std::list<std::vector<interpolation_t>>
   interpolate_matches(const std::vector<MatchResult>& matches,
-                      std::vector<NG_edge_segment>& edges,
+                      std::vector<EdgeSegment>& edges,
                       const std::shared_ptr<MapMatcher>& matcher) const;
 
   /**
