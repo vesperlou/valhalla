@@ -47,6 +47,38 @@ struct EdgeSegment {
   float target;
 };
 
+class NG_edge_segment {
+public:
+  NG_edge_segment(baldr::GraphId edgeid,
+                  float source,
+                  float target,
+                  std::vector<MatchResult>::const_iterator first_match,
+                  std::vector<MatchResult>::const_iterator last_match,
+                  baldr::GraphReader& graph_reader);
+  NG_edge_segment(baldr::GraphId edgeid, baldr::GraphReader& graphreader);
+  NG_edge_segment(const NG_edge_segment&) = default;
+  NG_edge_segment(NG_edge_segment&&) = default;
+  NG_edge_segment& operator=(const NG_edge_segment&) = default;
+  NG_edge_segment& operator=(NG_edge_segment&&) = default;
+  ~NG_edge_segment() = default;
+
+  std::vector<midgard::PointLL> shape() const;
+  bool is_adjoined(const NG_edge_segment& other) const;
+  std::pair<std::vector<MatchResult>::const_iterator, std::vector<MatchResult>::const_iterator>
+  matched_results() const noexcept;
+  void set_discontinuity() noexcept;
+  bool has_discontinuity() const noexcept;
+
+private:
+  std::vector<MatchResult>::const_iterator first_match_;
+  std::vector<MatchResult>::const_iterator last_match_;
+  baldr::GraphReader* graph_reader_{nullptr};
+  baldr::GraphId edgeid_{baldr::kInvalidGraphId};
+  float source_{0.f};
+  float target_{1.f};
+  bool discontinuity_{false};
+};
+
 struct MatchResults {
   MatchResults(std::vector<MatchResult>&& results, std::vector<EdgeSegment>&& segments, float score)
       : results(results), segments(segments), score(score) {

@@ -186,6 +186,72 @@ bool EdgeSegment::Adjoined(baldr::GraphReader& graphreader, const EdgeSegment& o
   }
 }
 
+NG_edge_segment::NG_edge_segment(baldr::GraphId edgeid,
+                                 float source,
+                                 float target,
+                                 std::vector<MatchResult>::const_iterator first_match,
+                                 std::vector<MatchResult>::const_iterator last_match,
+                                 baldr::GraphReader& graph_reader)
+    : edgeid_(edgeid_), source_(source), target_(target), first_match_(first_match),
+      last_match_(last_match), graph_reader_(&graph_reader), discontinuity_(false) {
+  if (!edgeid.Is_Valid()) {
+    throw std::invalid_argument("Invalid edgeid");
+  }
+
+  if (!(0.f <= source && source <= target && target <= 1.f)) {
+    throw std::invalid_argument("Expect 0.f <= source <= target <= 1.f, but you got source = " +
+                                std::to_string(source) + " and target = " + std::to_string(target));
+  }
+}
+
+NG_edge_segment::NG_edge_segment(baldr::GraphId edgeid, baldr::GraphReader& graph_reader)
+    : edgeid_(edgeid), graph_reader_(&graph_reader) {
+  if (!edgeid.Is_Valid()) {
+    throw std::invalid_argument("Invalid edgeid");
+  }
+}
+
+std::vector<midgard::PointLL> NG_edge_segment::shape() const {
+  const baldr::GraphTile* tile = nullptr;
+  const baldr::DirectedEdge* edge = graph_reader_->directededge(edgeid_, tile);
+  if (edge == nullptr) {
+    return {};
+  }
+
+  const baldr::EdgeInfo edge_info = tile->edgeinfo(edge->edgeinfo_offset());
+  const auto& shape = edge_info.shape();
+  if (edge->forward()) {
+    return midgard::trim_polyline(shape.cbegin(), shape.cend(), source_, target_);
+  }
+
+  return midgard::trim_polyline(shape.crbegin(), shape.crend(), source_, target_);
+}
+
+bool NG_edge_segment::is_adjoined(const NG_edge_segment& other) const {
+  if (edgeid_ == other.edgeid_) {
+    return target_ == other.source_;
+  }
+
+  if (target_ == 1.f && other.source_ == 0.f) {
+    return graph_reader_->AreEdgesConnectedForward(edgeid_, other.edgeid_);
+  }
+
+  return false;
+}
+
+std::pair<std::vector<MatchResult>::const_iterator, std::vector<MatchResult>::const_iterator>
+NG_edge_segment::matched_results() const noexcept {
+  return {first_match_, last_match_};
+}
+
+void NG_edge_segment::set_discontinuity() noexcept {
+  discontinuity_ = true;
+}
+
+bool NG_edge_segment::has_discontinuity() const noexcept {
+  return discontinuity_;
+}
+
 bool MergeRoute(std::vector<EdgeSegment>& route, const State& source, const State& target) {
   const auto route_rbegin = source.RouteBegin(target), route_rend = source.RouteEnd();
 
@@ -218,9 +284,9 @@ std::vector<EdgeSegment> MergeRoute(const State& source, const State& target) {
   return route;
 }
 
-template <typename match_iterator_t>
-std::vector<EdgeSegment>
-ConstructRoute(const MapMatcher& mapmatcher, match_iterator_t begin, match_iterator_t end) {
+std::vector<EdgeSegment> ConstructRoute(const MapMatcher& mapmatcher,
+                                        std::vector<MatchResult>::const_iterator begin,
+                                        std::vector<MatchResult>::const_iterator end) {
   if (begin == end) {
     return {};
   }
@@ -228,6 +294,7 @@ ConstructRoute(const MapMatcher& mapmatcher, match_iterator_t begin, match_itera
   std::vector<EdgeSegment> route;
   const baldr::GraphTile* tile = nullptr;
 
+  std::vector<EdgeSegment> segments;
   // Merge segments into route
   for (auto prev_match = end, match = begin; match != end; match++) {
     if (!match->HasState()) {
@@ -241,7 +308,7 @@ ConstructRoute(const MapMatcher& mapmatcher, match_iterator_t begin, match_itera
       // get the route between the two states by walking edge labels backwards
       // then reverse merge the segments together which are on the same edge so we have a
       // minimum number of segments. in this case we could at minimum end up with 1 segment
-      std::vector<EdgeSegment> segments;
+      segments.clear();
       MergeRoute(segments, prev_state, state);
 
       // TODO remove: the code is pretty mature we dont need this check its wasted cpu
@@ -259,17 +326,6 @@ ConstructRoute(const MapMatcher& mapmatcher, match_iterator_t begin, match_itera
   }
   return route;
 }
-
-// explicit instantiations
-template std::vector<EdgeSegment>
-ConstructRoute<std::vector<MatchResult>::iterator>(const MapMatcher&,
-                                                   std::vector<MatchResult>::iterator,
-                                                   std::vector<MatchResult>::iterator);
-
-template std::vector<EdgeSegment>
-ConstructRoute<std::vector<MatchResult>::const_iterator>(const MapMatcher&,
-                                                         std::vector<MatchResult>::const_iterator,
-                                                         std::vector<MatchResult>::const_iterator);
 
 template <typename segment_iterator_t>
 std::vector<std::vector<midgard::PointLL>> ConstructRouteShapes(baldr::GraphReader& graphreader,
