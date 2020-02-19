@@ -33,18 +33,18 @@ struct MatchResult {
 };
 
 struct EdgeSegment {
-  EdgeSegment(baldr::GraphId edgeid,
-              float source,
-              float target,
-              std::vector<MatchResult>::const_iterator firstMatch,
-              std::vector<MatchResult>::const_iterator lastMatch);
+  EdgeSegment(baldr::GraphId the_edgeid,
+              float the_source,
+              float the_target,
+              int the_first_match_idx,
+              int the_last_match_idx);
 
   std::vector<midgard::PointLL> Shape(baldr::GraphReader& graph_reader) const;
   bool Adjoined(baldr::GraphReader& graph_reader, const EdgeSegment& other) const;
 
-  std::vector<MatchResult>::const_iterator firstMatch;
-  std::vector<MatchResult>::const_iterator lastMatch;
   baldr::GraphId edgeid{baldr::kInvalidGraphId};
+  int first_match_idx{std::numeric_limits<int>::min()};
+  int last_match_idx{std::numeric_limits<int>::min()};
   float source{0.f};
   float target{1.f};
   bool discontinuity{false};

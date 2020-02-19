@@ -133,6 +133,7 @@ void MergeEdgeSegments(std::vector<EdgeSegment>& route,
       if (last_segment.edgeid == segment->edgeid && last_segment.target == segment->source) {
         // Extend last segment
         last_segment.target = segment->target;
+        last_segment.last_match_idx = segment->last_match_idx;
       } else {
         route.push_back(*segment);
       }
@@ -147,13 +148,13 @@ void MergeEdgeSegments(std::vector<EdgeSegment>& route,
 namespace valhalla {
 namespace meili {
 
-EdgeSegment::EdgeSegment(baldr::GraphId edgeid,
-                         float source,
-                         float target,
-                         std::vector<MatchResult>::const_iterator firstMatch,
-                         std::vector<MatchResult>::const_iterator lastMatch)
-    : edgeid(edgeid), source(source), target(target), firstMatch(firstMatch), lastMatch(lastMatch),
-      discontinuity(false) {
+EdgeSegment::EdgeSegment(baldr::GraphId the_edgeid,
+                         float the_source,
+                         float the_target,
+                         int the_first_match_idx,
+                         int the_last_match_idx)
+    : edgeid(the_edgeid), source(the_source), target(the_target),
+      first_match_idx(the_first_match_idx), last_match_idx(the_last_match_idx), discontinuity(false) {
   if (!edgeid.Is_Valid()) {
     throw std::invalid_argument("Invalid edgeid");
   }
@@ -192,7 +193,11 @@ bool EdgeSegment::Adjoined(baldr::GraphReader& graph_reader, const EdgeSegment& 
   return false;
 }
 
-bool MergeRoute(std::vector<EdgeSegment>& route, const State& source, const State& target) {
+bool MergeRoute(std::vector<EdgeSegment>& route,
+                const State& source,
+                const State& target,
+                int first_match_idx,
+                int last_match_idx) {
   const auto route_rbegin = source.RouteBegin(target), route_rend = source.RouteEnd();
 
   // No route, discontinuity
@@ -201,13 +206,18 @@ bool MergeRoute(std::vector<EdgeSegment>& route, const State& source, const Stat
   }
 
   std::vector<EdgeSegment> segments;
-
+  segments.reserve(10); // just an estimation reserve to avoid reallocation
   auto label = route_rbegin;
 
   // Skip the first dummy edge std::prev(route_rend)
-  std::vector<MatchResult>::const_iterator dummy;
   for (; std::next(label) != route_rend; label++) {
-    segments.emplace_back(label->edgeid(), label->source(), label->target(), dummy, dummy);
+    segments.emplace_back(label->edgeid(), label->source(), label->target(),
+                          std::numeric_limits<int>::min(), std::numeric_limits<int>::min());
+  }
+
+  if (!segments.empty()) {
+    segments.front().first_match_idx = first_match_idx;
+    segments.back().last_match_idx = last_match_idx;
   }
 
   // Make sure the first edge has an invalid predecessor
@@ -226,31 +236,36 @@ std::vector<EdgeSegment> MergeRoute(const State& source, const State& target) {
 }
 
 std::vector<EdgeSegment> ConstructRoute(const MapMatcher& mapmatcher,
-                                        std::vector<MatchResult>::const_iterator begin,
-                                        std::vector<MatchResult>::const_iterator end) {
-  if (begin == end) {
+                                        const std::vector<MatchResult>& matchResults,
+                                        baldr::GraphReader& graphReader) {
+  if (matchResults.empty()) {
     return {};
   }
 
   std::vector<EdgeSegment> route;
+  route.reserve(matchResults.size() * 4); // this is just an estimation reserve
   const baldr::GraphTile* tile = nullptr;
 
-  std::vector<EdgeSegment> segments;
   // Merge segments into route
-  for (auto prev_match = end, match = begin; match != end; match++) {
-    if (!match->HasState()) {
+  std::vector<EdgeSegment> segments;
+  segments.reserve(10); // this is just an estimation reserve
+  MatchResult prev_match;
+  int prev_idx = std::numeric_limits<int>::min();
+  for (int curr_idx = 0, n = static_cast<int>(matchResults.size()); curr_idx < n; ++curr_idx) {
+    MatchResult match = matchResults[curr_idx];
+    if (!match.HasState()) {
       continue;
     }
 
-    if (prev_match != end) {
-      const auto &prev_state = mapmatcher.state_container().state(prev_match->stateid),
-                 state = mapmatcher.state_container().state(match->stateid);
+    if (prev_match.HasState()) {
+      const auto &prev_state = mapmatcher.state_container().state(prev_match.stateid),
+                 state = mapmatcher.state_container().state(match.stateid);
 
       // get the route between the two states by walking edge labels backwards
       // then reverse merge the segments together which are on the same edge so we have a
       // minimum number of segments. in this case we could at minimum end up with 1 segment
       segments.clear();
-      MergeRoute(segments, prev_state, state);
+      MergeRoute(segments, prev_state, state, prev_idx, curr_idx);
 
       // TODO remove: the code is pretty mature we dont need this check its wasted cpu
       if (!ValidateRoute(mapmatcher.graphreader(), segments.begin(), segments.end(), tile)) {
@@ -264,7 +279,37 @@ std::vector<EdgeSegment> ConstructRoute(const MapMatcher& mapmatcher,
     }
 
     prev_match = match;
+    prev_idx = curr_idx;
   }
+
+  if (route.empty()) {
+    return {};
+  }
+
+  EdgeSegment *prev = &route.front(), *curr{&route.front()};
+  for (int i = 1, n = static_cast<int>(route.size()); i < n; ++i) {
+    curr = &route[i];
+    // Skip edges that are the same as the prior edge if they are not disconnected,
+    // Note that, when the prior edge and current edge has the same edgeid and the current
+    // source is smaller than prior target, it indicates discontinuity. see follow:
+    //
+    //                   current_source
+    //    prior_source           |    prior_target
+    //          |                |         |
+    //  X---------------------------------------------X
+    //                      Edge
+    if (curr->edgeid == prev->edgeid && prev->target <= curr->source) {
+      continue;
+    }
+
+    // Check if connected to prior edge
+    if (!graphReader.AreEdgesConnectedForward(prev->edgeid, curr->edgeid)) {
+      prev->discontinuity = true;
+    }
+    prev = curr;
+  }
+  curr->discontinuity = true;
+
   return route;
 }
 

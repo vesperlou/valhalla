@@ -111,13 +111,17 @@ private:
   TransitionCostModel transition_cost_model_;
 };
 
-bool MergeRoute(std::vector<EdgeSegment>& route, const State& source, const State& target);
+bool MergeRoute(std::vector<EdgeSegment>& route,
+                const State& source,
+                const State& target,
+                int first_match_idx = std::numeric_limits<int>::min(),
+                int last_match_idx = std::numeric_limits<int>::min());
 
 std::vector<EdgeSegment> MergeRoute(const State& source, const State& target);
 
 std::vector<EdgeSegment> ConstructRoute(const MapMatcher& mapmatcher,
-                                        std::vector<MatchResult>::const_iterator begin,
-                                        std::vector<MatchResult>::const_iterator end);
+                                        const std::vector<MatchResult>& matchResults,
+                                        baldr::GraphReader& graphReader);
 
 std::vector<std::vector<midgard::PointLL>>
 ConstructRouteShapes(baldr::GraphReader& graphreader,
