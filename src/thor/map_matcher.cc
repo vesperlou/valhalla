@@ -186,6 +186,7 @@ MapMatcher::FormPath(meili::MapMatcher* matcher,
   std::vector<PathInfo> path;
   GraphId prior_edge, prior_node;
   EdgeLabel pred;
+  const meili::EdgeSegment* prev_seg{nullptr};
   auto prev_segment_target = std::numeric_limits<float>::max();
 
   // Build the path
@@ -215,6 +216,10 @@ MapMatcher::FormPath(meili::MapMatcher* matcher,
         !matcher->graphreader().AreEdgesConnectedForward(prior_edge, edge_id)) {
       disconnected_edges.emplace_back(prior_edge, edge_id);
       disconnected = true;
+    }
+
+    if (prev_seg && prev_seg->discontinuity != disconnected) {
+      throw std::logic_error{"edge_segment did not populate correct!"};
     }
 
     // Get seconds from beginning of the week accounting for any changes to timezone on the path
@@ -262,6 +267,7 @@ MapMatcher::FormPath(meili::MapMatcher* matcher,
 
     // Update the predecessor EdgeLabel (for transition costing in the next round);
     pred = {kInvalidLabel, edge_id, directededge, elapsed, 0, 0, mode, 0, {}};
+    prev_seg = &edge_segment;
 
     // Add to the PathInfo
     path.emplace_back(mode, elapsed.secs, edge_id, 0, elapsed.cost, false, transition_cost.secs);

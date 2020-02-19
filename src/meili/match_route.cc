@@ -336,6 +336,7 @@ ConstructRouteShapes(baldr::GraphReader& graphreader,
     } else {
       // Disconnected. Hence a new start
       shapes.emplace_back();
+      shapes.back().reserve(shapes.size());
     }
 
     for (auto vertex = shape_begin; vertex != shape.end(); vertex++) {
