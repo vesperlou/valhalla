@@ -281,8 +281,8 @@ nodelayout map_to_coordinates(const std::string& map,
   // TODO: the way this projects coordinates onto the sphere could do with some work.
   //       it's not always going to be sensible to lay a grid down onto a sphere
   nodelayout result;
-  for (int y = 0; y < lines.size(); y++) {
-    for (int x = 0; x < lines[y].size(); x++) {
+  for (std::size_t y = 0; y < lines.size(); y++) {
+    for (std::size_t x = 0; x < lines[y].size(); x++) {
       auto ch = lines[y][x];
       // Only do A-Za-z0-9 for nodes - all other things are ignored
       if (std::isalnum(ch)) {
