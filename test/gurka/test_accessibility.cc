@@ -63,3 +63,7 @@ TEST_F(SimpleRestrictions, WalkAvoidsMotorway) {
   auto result = gurka::route(map, "A", "G", "pedestrian");
   gurka::assert::expect_route(result, {"AB", "BE", "EH", "GHI"});
 }
+TEST_F(SimpleRestrictions, AutoUsesMotorway) {
+  auto result = gurka::route(map, "A", "G", "auto");
+  gurka::assert::expect_route(result, {"ADG"});
+}
