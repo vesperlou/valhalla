@@ -13,7 +13,8 @@ TEST(Standalone, TurnStraight) {
 
   const gurka::ways ways = {{"ABC", {{"highway", "primary"}}}, {"BD", {{"highway", "primary"}}}};
 
-  auto map = gurka::buildtiles(ascii_map, 100, ways, {}, {}, "test/data/gurka_turns_3");
+  const auto layout = gurka::detail::map_to_coordinates(ascii_map, 100);
+  auto map = gurka::buildtiles(layout, ways, {}, {}, "test/data/gurka_turns_3");
 
   auto result = gurka::route(map, "A", "C", "auto");
 
@@ -44,8 +45,10 @@ protected:
   static void SetUpTestSuite() {
     constexpr double gridsize = 100;
 
-    map_1 = gurka::buildtiles(ascii_map_1, gridsize, map_1_ways, {}, {}, "test/data/gurka_turns_1");
-    map_2 = gurka::buildtiles(ascii_map_2, gridsize, map_2_ways, {}, {}, "test/data/gurka_turns_2");
+    const auto layout1 = gurka::detail::map_to_coordinates(ascii_map_1, gridsize);
+    const auto layout2 = gurka::detail::map_to_coordinates(ascii_map_2, gridsize);
+    map_1 = gurka::buildtiles(layout1, map_1_ways, {}, {}, "test/data/gurka_turns_1");
+    map_2 = gurka::buildtiles(layout2, map_2_ways, {}, {}, "test/data/gurka_turns_2");
   }
 };
 

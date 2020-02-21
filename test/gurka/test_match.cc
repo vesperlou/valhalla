@@ -19,7 +19,8 @@ TEST(Standalone, BasicMatch) {
                             {"CD", {{"highway", "primary"}}}};
 
   const double gridsize = 10;
-  auto map = gurka::buildtiles(ascii_map, gridsize, ways, {}, {}, "test/data/basic_match");
+  const auto layout = gurka::detail::map_to_coordinates(ascii_map, gridsize);
+  auto map = gurka::buildtiles(layout, ways, {}, {}, "test/data/basic_match");
 
   auto result = gurka::match(map, {"1", "2", "3", "4", "5"}, false, "auto");
 

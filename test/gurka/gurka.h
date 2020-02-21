@@ -1,3 +1,5 @@
+#ifndef VALHALLA_TEST_GURKA_H
+#define VALHALLA_TEST_GURKA_H
 /******************************************************************************
  * End-to-end tests
  *
@@ -53,6 +55,8 @@ struct relation {
 };
 
 using relations = std::vector<relation>;
+
+using nodelayout = std::unordered_map<std::string, midgard::PointLL>;
 
 namespace detail {
 
@@ -226,10 +230,9 @@ std::string trim(std::string s) {
  *
  * @returns a dictionary of node IDs to lon/lat values
  */
-inline std::unordered_map<std::string, midgard::PointLL>
-map_to_coordinates(const std::string& map,
-                   const double gridsize_metres,
-                   const midgard::PointLL& topleft = {0, 0}) {
+nodelayout map_to_coordinates(const std::string& map,
+                              const double gridsize_metres,
+                              const midgard::PointLL& topleft = {0, 0}) {
 
   // Gridsize is in meters per character
 
@@ -277,7 +280,7 @@ map_to_coordinates(const std::string& map,
 
   // TODO: the way this projects coordinates onto the sphere could do with some work.
   //       it's not always going to be sensible to lay a grid down onto a sphere
-  std::unordered_map<std::string, midgard::PointLL> result;
+  nodelayout result;
   for (int y = 0; y < lines.size(); y++) {
     for (int x = 0; x < lines[y].size(); x++) {
       auto ch = lines[y][x];
@@ -298,7 +301,7 @@ map_to_coordinates(const std::string& map,
  * Given a map of node locations, ways, node properties and relations, will
  * generate an OSM compatible PBF file, suitable for loading into Valhalla
  */
-inline void build_pbf(const std::unordered_map<std::string, midgard::PointLL>& node_locations,
+inline void build_pbf(const nodelayout& node_locations,
                       const ways& ways,
                       const nodes& nodes,
                       const relations& relations,
@@ -437,8 +440,7 @@ inline void build_pbf(const std::unordered_map<std::string, midgard::PointLL>& n
 
 } // namespace detail
 
-map buildtiles(const std::string& ascii_map,
-               const double gridsize,
+map buildtiles(const nodelayout layout,
                const ways& ways,
                const nodes& nodes,
                const relations& relations,
@@ -446,7 +448,7 @@ map buildtiles(const std::string& ascii_map,
 
   map result;
   result.config = detail::build_config(workdir);
-  result.nodes = detail::map_to_coordinates(ascii_map, gridsize);
+  result.nodes = layout;
 
   // Sanity check so that we don't blow away / by mistake
   if (workdir == "/") {
@@ -551,7 +553,7 @@ void expect_route(const valhalla::Api& result, const std::vector<std::string>& e
   auto last = std::unique(actual_names.begin(), actual_names.end());
   actual_names.erase(last, actual_names.end());
 
-  EXPECT_EQ(actual_names, expected_names);
+  EXPECT_EQ(actual_names, expected_names) << "Actual path didn't match expected path";
 }
 
 void expect_maneuvers(const valhalla::Api& result,
@@ -567,10 +569,12 @@ void expect_maneuvers(const valhalla::Api& result,
     actual_maneuvers.push_back(leg.maneuver(i).type());
   }
 
-  EXPECT_EQ(actual_maneuvers, expected_maneuvers);
+  EXPECT_EQ(actual_maneuvers, expected_maneuvers)
+      << "Actual maneuvers didn't match expected maneuvers";
 }
 
 } // namespace assert
 
 } // namespace gurka
 } // namespace valhalla
+#endif // VALHALLA_TEST_GURKA_H

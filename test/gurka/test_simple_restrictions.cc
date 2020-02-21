@@ -27,7 +27,8 @@ protected:
                                           {gurka::node_member, "B", "via"}},
                                          {{"type", "restriction"}, {"restriction", "no_left_turn"}}}};
 
-    map = gurka::buildtiles(ascii_map, 100, ways, {}, relations, "test/data/simple_restrictions");
+    const auto layout = gurka::detail::map_to_coordinates(ascii_map, 100);
+    map = gurka::buildtiles(layout, ways, {}, relations, "test/data/simple_restrictions");
   }
 };
 
