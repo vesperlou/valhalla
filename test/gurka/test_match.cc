@@ -23,19 +23,9 @@ TEST(Standalone, BasicMatch) {
 
   auto result = gurka::match(map, {"1", "2", "3", "4", "5"}, false, "auto");
 
-  EXPECT_EQ(result.directions().routes_size(), 1);
-  EXPECT_EQ(result.directions().routes(0).legs_size(), 1);
-
-  auto& leg = result.directions().routes(0).legs(0);
-
-  EXPECT_EQ(leg.maneuver_size(), 4);
-
-  EXPECT_EQ(leg.maneuver(0).type(), valhalla::DirectionsLeg_Maneuver_Type_kStart);
-  EXPECT_EQ(leg.maneuver(1).type(), valhalla::DirectionsLeg_Maneuver_Type_kContinue);
-  EXPECT_EQ(leg.maneuver(2).type(), valhalla::DirectionsLeg_Maneuver_Type_kRight);
-  EXPECT_EQ(leg.maneuver(3).type(), valhalla::DirectionsLeg_Maneuver_Type_kDestination);
-
-  EXPECT_EQ(leg.maneuver(0).street_name(0).value(), std::string("AB"));
-  EXPECT_EQ(leg.maneuver(1).street_name(0).value(), std::string("BC"));
-  EXPECT_EQ(leg.maneuver(2).street_name(0).value(), std::string("CD"));
+  gurka::assert::expect_route(result, {"AB", "BC", "CD"});
+  gurka::assert::expect_maneuvers(result, {DirectionsLeg_Maneuver_Type_kStart,
+                                           DirectionsLeg_Maneuver_Type_kContinue,
+                                           DirectionsLeg_Maneuver_Type_kRight,
+                                           DirectionsLeg_Maneuver_Type_kDestination});
 }

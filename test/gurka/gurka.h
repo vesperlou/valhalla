@@ -28,6 +28,8 @@
 #include <regex>
 #include <string>
 
+#include <gtest/gtest.h>
+
 namespace valhalla {
 namespace gurka {
 
@@ -392,7 +394,8 @@ inline void build_pbf(const std::unordered_map<std::string, midgard::PointLL>& n
 
     for (const auto& member : relation.members) {
       if (member.type == node_member) {
-        members.push_back({osmium::item_type::node, node_osm_id_map[member.ref]});
+        members.push_back(
+            {osmium::item_type::node, node_osm_id_map[member.ref], member.role.c_str()});
       } else {
         if (way_osm_id_map.count(member.ref) == 0) {
           throw std::runtime_error("Relation member refers to an undefined way " + member.ref);
@@ -456,7 +459,7 @@ map buildtiles(const std::string& ascii_map,
 
   auto pbf_filename = workdir + "/map.pbf";
   std::cerr << "[          ] generating map PBF at " << pbf_filename << std::endl;
-  detail::build_pbf(result.nodes, ways, {}, {}, pbf_filename);
+  detail::build_pbf(result.nodes, ways, nodes, relations, pbf_filename);
   std::cerr << "[          ] building tiles in " << result.config.get<std::string>("mjolnir.tile_dir")
             << std::endl;
   midgard::logging::Configure({{"type", ""}});
@@ -529,6 +532,45 @@ valhalla::Api match(const map& map,
 
   return request;
 }
+
+namespace assert {
+
+void expect_route(const valhalla::Api& result, const std::vector<std::string>& expected_names) {
+
+  EXPECT_EQ(result.directions().routes_size(), 1);
+  EXPECT_EQ(result.directions().routes(0).legs_size(), 1);
+
+  const auto& leg = result.directions().routes(0).legs(0);
+
+  std::vector<std::string> actual_names;
+  for (int i = 0; i < leg.maneuver_size(); i++) {
+    if (leg.maneuver(i).street_name_size() > 0) {
+      actual_names.push_back(leg.maneuver(i).street_name(0).value());
+    }
+  }
+  auto last = std::unique(actual_names.begin(), actual_names.end());
+  actual_names.erase(last, actual_names.end());
+
+  EXPECT_EQ(actual_names, expected_names);
+}
+
+void expect_maneuvers(const valhalla::Api& result,
+                      const std::vector<valhalla::DirectionsLeg_Maneuver_Type>& expected_maneuvers) {
+
+  EXPECT_EQ(result.directions().routes_size(), 1);
+  EXPECT_EQ(result.directions().routes(0).legs_size(), 1);
+
+  const auto& leg = result.directions().routes(0).legs(0);
+
+  std::vector<valhalla::DirectionsLeg_Maneuver_Type> actual_maneuvers;
+  for (int i = 0; i < leg.maneuver_size(); i++) {
+    actual_maneuvers.push_back(leg.maneuver(i).type());
+  }
+
+  EXPECT_EQ(actual_maneuvers, expected_maneuvers);
+}
+
+} // namespace assert
 
 } // namespace gurka
 } // namespace valhalla

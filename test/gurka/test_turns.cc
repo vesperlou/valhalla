@@ -17,8 +17,7 @@ TEST(Standalone, TurnStraight) {
 
   auto result = gurka::route(map, "A", "C", "auto");
 
-  EXPECT_EQ(result.directions().routes_size(), 1);
-  EXPECT_EQ(result.directions().routes(0).legs_size(), 1);
+  gurka::assert::expect_route(result, {"ABC"});
 }
 /*************************************************************/
 
@@ -58,32 +57,20 @@ TEST_F(Turns, TurnRight) {
 
   auto result = gurka::route(map_1, "A", "D", "auto");
 
-  // Only expect one possible route
-  EXPECT_EQ(result.directions().routes_size(), 1);
-  EXPECT_EQ(result.directions().routes(0).legs_size(), 1);
+  gurka::assert::expect_route(result, {"ABC", "BD"});
 
-  auto& leg = result.directions().routes(0).legs(0);
-  EXPECT_EQ(leg.maneuver(0).type(), valhalla::DirectionsLeg_Maneuver_Type_kStart);
-  EXPECT_EQ(leg.maneuver(1).type(), valhalla::DirectionsLeg_Maneuver_Type_kRight);
-  EXPECT_EQ(leg.maneuver(2).type(), valhalla::DirectionsLeg_Maneuver_Type_kDestination);
-
-  EXPECT_EQ(leg.maneuver(0).street_name(0).value(), std::string("ABC"));
-  EXPECT_EQ(leg.maneuver(1).street_name(0).value(), std::string("BD"));
+  gurka::assert::expect_maneuvers(result, {DirectionsLeg_Maneuver_Type_kStart,
+                                           DirectionsLeg_Maneuver_Type_kRight,
+                                           DirectionsLeg_Maneuver_Type_kDestination});
 }
 /************************************************************************************/
 TEST_F(Turns, TurnLeft) {
 
   auto result = gurka::route(map_2, "C", "D", "auto");
 
-  // Only expect one possible route
-  EXPECT_EQ(result.directions().routes_size(), 1);
-  EXPECT_EQ(result.directions().routes(0).legs_size(), 1);
+  gurka::assert::expect_route(result, {"FEBC", "FDB"});
 
-  auto& leg = result.directions().routes(0).legs(0);
-  EXPECT_EQ(leg.maneuver(0).type(), valhalla::DirectionsLeg_Maneuver_Type_kStart);
-  EXPECT_EQ(leg.maneuver(1).type(), valhalla::DirectionsLeg_Maneuver_Type_kLeft);
-  EXPECT_EQ(leg.maneuver(2).type(), valhalla::DirectionsLeg_Maneuver_Type_kDestination);
-
-  EXPECT_EQ(leg.maneuver(0).street_name(0).value(), std::string("FEBC"));
-  EXPECT_EQ(leg.maneuver(1).street_name(0).value(), std::string("FDB"));
+  gurka::assert::expect_maneuvers(result, {DirectionsLeg_Maneuver_Type_kStart,
+                                           DirectionsLeg_Maneuver_Type_kLeft,
+                                           DirectionsLeg_Maneuver_Type_kDestination});
 }
