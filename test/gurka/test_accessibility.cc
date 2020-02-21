@@ -18,11 +18,12 @@ protected:
     G----H----I)";
 
     // BE and EH are highway=path, so no cars
+    // EI is a shortcut that's not accessible to bikes
     const gurka::ways ways = {{"AB", {{"highway", "primary"}}},
                               {"BC", {{"highway", "primary"}}},
                               {"DEF", {{"highway", "primary"}}},
                               {"GHI", {{"highway", "primary"}}},
-                              {"ADG", {{"highway", "primary"}}},
+                              {"ADG", {{"highway", "motorway"}}},
                               {"BE", {{"highway", "path"}}},
                               {"EI", {{"highway", "path"}, {"bicycle", "no"}}},
                               {"EH", {{"highway", "path"}}}};
@@ -57,4 +58,8 @@ TEST_F(SimpleRestrictions, BikeUsesShortcut) {
 TEST_F(SimpleRestrictions, BikeAvoidsSecondShortcut) {
   auto result = gurka::route(map, "C", "I", "bicycle");
   gurka::assert::expect_route(result, {"BC", "BE", "EH", "GHI"});
+}
+TEST_F(SimpleRestrictions, WalkAvoidsMotorway) {
+  auto result = gurka::route(map, "A", "G", "pedestrian");
+  gurka::assert::expect_route(result, {"AB", "BE", "EH", "GHI"});
 }
