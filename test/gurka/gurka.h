@@ -20,6 +20,7 @@
 #include "rapidjson/stringbuffer.h"
 #include "rapidjson/writer.h"
 
+#include "midgard/constants.h"
 #include "midgard/logging.h"
 #include "midgard/pointll.h"
 
@@ -236,10 +237,11 @@ nodelayout map_to_coordinates(const std::string& map,
 
   // Gridsize is in meters per character
 
-  const double earth_mean_radius = 6371008.8;
-  const double DEGREE_TO_RAD = 0.017453292519943295769236907684886;
-  const double metres_to_degrees = 1 / (DEGREE_TO_RAD * earth_mean_radius);
-  const double grid_to_degree = gridsize_metres * metres_to_degrees;
+  /// Mercator projection
+  auto y2lat_m = [](double y) {
+    return (2 * atan(exp(y / midgard::kRadEarthMeters)) - midgard::kPiD / 2) * midgard::kDegPerRadD;
+  };
+  auto x2lon_m = [](double x) { return (x / midgard::kRadEarthMeters) * midgard::kDegPerRadD; };
 
   // Split string into lines
   // Strip whitespace lines, if they exist
@@ -287,8 +289,8 @@ nodelayout map_to_coordinates(const std::string& map,
       // Only do A-Za-z0-9 for nodes - all other things are ignored
       if (std::isalnum(ch)) {
         // Always project west, then south, for consistency
-        double lon = topleft.lng() + grid_to_degree * x;
-        double lat = topleft.lat() - grid_to_degree * y;
+        double lon = topleft.lng() + x2lon_m(x * gridsize_metres);
+        double lat = topleft.lat() - y2lat_m(y * gridsize_metres);
         result.insert({std::string(1, ch), {lon, lat}});
       }
     }
@@ -537,25 +539,49 @@ valhalla::Api match(const map& map,
 
 namespace assert {
 
-void expect_route(const valhalla::Api& result, const std::vector<std::string>& expected_names) {
+/**
+ * Tests if a found path traverses the expected roads in the expected order
+ *
+ * @param result the result of a /route or /match request
+ * @param expected_names the names of the roads the path should traverse in order
+ * @param dedupe whether subsequent same-name roads should appear multiple times or not (default not)
+ */
+void expect_route(const valhalla::Api& result,
+                  const std::vector<std::string>& expected_names,
+                  bool dedupe = true) {
 
-  EXPECT_EQ(result.directions().routes_size(), 1);
-  EXPECT_EQ(result.directions().routes(0).legs_size(), 1);
+  EXPECT_EQ(result.trip().routes_size(), 1);
+  EXPECT_EQ(result.trip().routes(0).legs_size(), 1);
 
-  const auto& leg = result.directions().routes(0).legs(0);
+  const auto& route = result.trip().routes(0);
 
   std::vector<std::string> actual_names;
-  for (int i = 0; i < leg.maneuver_size(); i++) {
-    if (leg.maneuver(i).street_name_size() > 0) {
-      actual_names.push_back(leg.maneuver(i).street_name(0).value());
+  for (int legnum = 0; legnum < route.legs_size(); legnum++) {
+    const auto& leg = route.legs(legnum);
+    for (int nodenum = 0; nodenum < leg.node_size(); nodenum++) {
+      const auto& node = leg.node(nodenum);
+      if (node.has_edge()) {
+        for (int namenum = 0; namenum < node.edge().name_size(); namenum++) {
+          actual_names.push_back(node.edge().name(namenum).value());
+        }
+      }
     }
   }
-  auto last = std::unique(actual_names.begin(), actual_names.end());
-  actual_names.erase(last, actual_names.end());
+  if (dedupe) {
+    auto last = std::unique(actual_names.begin(), actual_names.end());
+    actual_names.erase(last, actual_names.end());
+  }
 
   EXPECT_EQ(actual_names, expected_names) << "Actual path didn't match expected path";
 }
 
+/**
+ * Tests whether the expected sequence of maneuvers is emitted for the route.
+ * Looks at the output of Odin in the result.
+ *
+ * @param result the result of a /route or /match request
+ * @param expected_maneuvers all the maneuvers expected in the DirectionsLeg for the route
+ */
 void expect_maneuvers(const valhalla::Api& result,
                       const std::vector<valhalla::DirectionsLeg_Maneuver_Type>& expected_maneuvers) {
 
@@ -571,6 +597,32 @@ void expect_maneuvers(const valhalla::Api& result,
 
   EXPECT_EQ(actual_maneuvers, expected_maneuvers)
       << "Actual maneuvers didn't match expected maneuvers";
+}
+
+void expect_path_length(const valhalla::Api& result,
+                        const float expected_length_km,
+                        const float error_margin = 0) {
+  EXPECT_EQ(result.trip().routes_size(), 1);
+  EXPECT_EQ(result.trip().routes(0).legs_size(), 1);
+
+  const auto& route = result.trip().routes(0);
+
+  float length_km = 0;
+  for (int legnum = 0; legnum < route.legs_size(); legnum++) {
+    const auto& leg = route.legs(legnum);
+    for (int nodenum = 0; nodenum < leg.node_size(); nodenum++) {
+      const auto& node = leg.node(nodenum);
+      if (node.has_edge()) {
+        length_km += node.edge().length();
+      }
+    }
+  }
+
+  if (error_margin == 0) {
+    EXPECT_FLOAT_EQ(length_km, expected_length_km);
+  } else {
+    EXPECT_NEAR(length_km, expected_length_km, error_margin);
+  }
 }
 
 } // namespace assert

@@ -29,4 +29,6 @@ TEST(Standalone, BasicMatch) {
                                            DirectionsLeg_Maneuver_Type_kContinue,
                                            DirectionsLeg_Maneuver_Type_kRight,
                                            DirectionsLeg_Maneuver_Type_kDestination});
+
+  gurka::assert::expect_path_length(result, 0.100, 0.001);
 }
