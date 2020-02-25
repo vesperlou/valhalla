@@ -1235,6 +1235,8 @@ void TripLegBuilder::Build(
     auto* node = trip_path.add_node();
     if (controller.attributes.at(kNodeElapsedTime)) {
       node->set_elapsed_time(path_begin->elapsed_time - trim_begin - trim_end);
+      if (path_begin->elapsed_time < trim_begin + trim_end)
+        std::cout << "here" << std::endl;
     }
 
     const GraphTile* end_tile = graphreader.GetGraphTile(edge->endnode());

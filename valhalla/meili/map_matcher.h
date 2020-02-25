@@ -111,11 +111,7 @@ private:
   TransitionCostModel transition_cost_model_;
 };
 
-bool MergeRoute(std::vector<EdgeSegment>& route,
-                const State& source,
-                const State& target,
-                int first_match_idx = std::numeric_limits<int>::min(),
-                int last_match_idx = std::numeric_limits<int>::min());
+bool MergeRoute(std::vector<EdgeSegment>& route, const State& source, const State& target);
 
 std::vector<EdgeSegment> MergeRoute(const State& source, const State& target);
 

@@ -193,11 +193,7 @@ bool EdgeSegment::Adjoined(baldr::GraphReader& graph_reader, const EdgeSegment& 
   return false;
 }
 
-bool MergeRoute(std::vector<EdgeSegment>& route,
-                const State& source,
-                const State& target,
-                int first_match_idx,
-                int last_match_idx) {
+bool MergeRoute(std::vector<EdgeSegment>& route, const State& source, const State& target) {
   const auto route_rbegin = source.RouteBegin(target), route_rend = source.RouteEnd();
 
   // No route, discontinuity
@@ -213,11 +209,6 @@ bool MergeRoute(std::vector<EdgeSegment>& route,
   for (; std::next(label) != route_rend; label++) {
     segments.emplace_back(label->edgeid(), label->source(), label->target(),
                           std::numeric_limits<int>::min(), std::numeric_limits<int>::min());
-  }
-
-  if (!segments.empty()) {
-    segments.front().first_match_idx = first_match_idx;
-    segments.back().last_match_idx = last_match_idx;
   }
 
   // Make sure the first edge has an invalid predecessor
@@ -265,7 +256,22 @@ std::vector<EdgeSegment> ConstructRoute(const MapMatcher& mapmatcher,
       // then reverse merge the segments together which are on the same edge so we have a
       // minimum number of segments. in this case we could at minimum end up with 1 segment
       segments.clear();
-      MergeRoute(segments, prev_state, state, prev_idx, curr_idx);
+      MergeRoute(segments, prev_state, state);
+
+      // populate the edge segments with match result indices accordingly.
+      const MatchResult& first_match = matchResults[prev_idx];
+      const MatchResult& last_match = matchResults[curr_idx];
+      auto iter =
+          std::find_if(segments.begin(), segments.end(), [&first_match](const EdgeSegment& segment) {
+            return segment.edgeid == first_match.edgeid &&
+                   first_match.distance_along == segment.source;
+          });
+      iter->first_match_idx = prev_idx;
+      iter =
+          std::find_if(segments.begin(), segments.end(), [&last_match](const EdgeSegment& segment) {
+            return segment.edgeid == last_match.edgeid && last_match.distance_along == segment.target;
+          });
+      iter->last_match_idx = curr_idx;
 
       // TODO remove: the code is pretty mature we dont need this check its wasted cpu
       if (!ValidateRoute(mapmatcher.graphreader(), segments.begin(), segments.end(), tile)) {
@@ -286,9 +292,14 @@ std::vector<EdgeSegment> ConstructRoute(const MapMatcher& mapmatcher,
     return {};
   }
 
-  EdgeSegment *prev = &route.front(), *curr{&route.front()};
-  for (int i = 1, n = static_cast<int>(route.size()); i < n; ++i) {
-    curr = &route[i];
+  // EdgeSegment *prev = &route.front(), *curr{&route.front()};
+  auto prev = route.begin();
+  for (auto curr = route.begin() + 1; curr != route.end(); ++curr) {
+    if (curr->first_match_idx >= 0 && matchResults[curr->first_match_idx].edgeid != curr->edgeid)
+      throw std::logic_error{"populating indices wrong"};
+    if (curr->last_match_idx >= 0 && matchResults[curr->last_match_idx].edgeid != curr->edgeid)
+      throw std::logic_error{"populating indices wrong"};
+
     // Skip edges that are the same as the prior edge if they are not disconnected,
     // Note that, when the prior edge and current edge has the same edgeid and the current
     // source is smaller than prior target, it indicates discontinuity. see follow:
@@ -298,17 +309,19 @@ std::vector<EdgeSegment> ConstructRoute(const MapMatcher& mapmatcher,
     //          |                |         |
     //  X---------------------------------------------X
     //                      Edge
-    if (curr->edgeid == prev->edgeid && prev->target <= curr->source) {
+    if (curr->edgeid == prev->edgeid && prev->target == curr->source) {
       continue;
     }
 
     // Check if connected to prior edge
     if (!graphReader.AreEdgesConnectedForward(prev->edgeid, curr->edgeid)) {
       prev->discontinuity = true;
+      if (curr->first_match_idx < 0 || prev->last_match_idx < 0)
+        throw std::logic_error{"Found invalid route"};
     }
     prev = curr;
   }
-  curr->discontinuity = true;
+  route.back().discontinuity = true;
 
   return route;
 }

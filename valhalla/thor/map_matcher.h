@@ -22,7 +22,7 @@ namespace thor {
 
 class MapMatcher {
 public:
-  static std::vector<PathInfo>
+  static std::vector<std::vector<std::pair<PathInfo, const meili::EdgeSegment*>>>
   FormPath(meili::MapMatcher* matcher,
            const std::vector<meili::MatchResult>& results,
            const std::vector<meili::EdgeSegment>& edge_segments,
@@ -30,6 +30,15 @@ public:
            const sif::TravelMode mode,
            std::vector<std::pair<baldr::GraphId, baldr::GraphId>>& disconnected_edges,
            Options& options);
+
+  static std::vector<std::vector<std::pair<PathInfo, const meili::EdgeSegment*>>>
+  FormPath_new(meili::MapMatcher* matcher,
+               const std::vector<meili::MatchResult>& results,
+               const std::vector<meili::EdgeSegment>& edge_segments,
+               const std::shared_ptr<sif::DynamicCost>* mode_costing,
+               const sif::TravelMode mode,
+               std::vector<std::pair<baldr::GraphId, baldr::GraphId>>& disconnected_edges,
+               Options& options);
 
 private:
   struct interpolation_t {
