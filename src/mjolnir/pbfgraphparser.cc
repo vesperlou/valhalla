@@ -355,6 +355,7 @@ public:
     bool has_default_speed = false, has_max_speed = false;
     bool has_average_speed = false, has_advisory_speed = false;
     bool has_surface = true;
+    bool mtb = false;
     std::string name;
 
     // Process tags
@@ -814,26 +815,25 @@ public:
 
         if (value.find("difficult_alpine_hiking") != std::string::npos) {
           w.set_sac_scale(SacScale::kDifficultAlpineHiking);
-
+          ++osmdata_.sac_scale_count;
         } else if (value.find("demanding_alpine_hiking") != std::string::npos) {
           w.set_sac_scale(SacScale::kDemandingAlpineHiking);
-
+          ++osmdata_.sac_scale_count;
         } else if (value.find("alpine_hiking") != std::string::npos) {
           w.set_sac_scale(SacScale::kAlpineHiking);
-
+          ++osmdata_.sac_scale_count;
         } else if (value.find("demanding_mountain_hiking") != std::string::npos) {
           w.set_sac_scale(SacScale::kDemandingMountainHiking);
-
+          ++osmdata_.sac_scale_count;
         } else if (value.find("mountain_hiking") != std::string::npos) {
           w.set_sac_scale(SacScale::kMountainHiking);
-
+          ++osmdata_.sac_scale_count;
         } else if (value.find("hiking") != std::string::npos) {
           w.set_sac_scale(SacScale::kHiking);
-
+          ++osmdata_.sac_scale_count;
         } else {
           w.set_sac_scale(SacScale::kNone);
         }
-        ++osmdata_.sac_scale_count;
       }
 
       else if (tag.first == "surface") {
@@ -1030,24 +1030,16 @@ public:
         w.set_bwd_jct_base_index(osmdata_.name_offset_map.index(tag.second));
       } else if (tag.first == "guidance_view:jct:overlay:backward") {
         w.set_bwd_jct_overlay_index(osmdata_.name_offset_map.index(tag.second));
+      } else if (tag.first == "mtb:scale" || tag.first == "mtb:scale:imba" ||
+                 tag.first == "mtb:scale:uphill" || tag.first == "mtb:description") {
+        ++osmdata_.mtb_count;
+        mtb = true;
       }
     }
 
     // if no surface and tracktype but we have a sac_scale, set surface to path.
     if (!has_surface) {
-      if (results.find("sac_scale") != results.end()) {
-        ++osmdata_.sac_scale_count;
-      }
-      if (results.find("mtb:scale") != results.end() ||
-        results.find("mtb:scale:imba") != results.end() ||
-        results.find("mtb:scale:uphill") != results.end() ||
-        results.find("mtb:description") != results.end()) {
-          ++osmdata_.mtb_count;
-        }
-      if (results.find("sac_scale") != results.end() || results.find("mtb:scale") != results.end() ||
-          results.find("mtb:scale:imba") != results.end() ||
-          results.find("mtb:scale:uphill") != results.end() ||
-          results.find("mtb:description") != results.end()) {
+      if (results.find("sac_scale") != results.end() || mtb) {
         w.set_surface(Surface::kPath);
       } else {
         // If no surface has been set by a user, assign a surface based on Road Class and Use
