@@ -277,15 +277,17 @@ public:
         // only private driveways.
         Tags::const_iterator priv;
         if ((priv = results.find("private")) != results.end() && priv->second == "true") {
+          ++osmdata_.driveways_included;
           return;
         }
+      } else {
+        ++osmdata_.driveways_included;
       }
     } catch (const std::invalid_argument& arg) {
       LOG_INFO("invalid_argument thrown for way id: " + std::to_string(osmid));
     } catch (const std::out_of_range& oor) {
       LOG_INFO("out_of_range thrown for way id: " + std::to_string(osmid));
     }
-
     // Check for ways that loop back on themselves (simple check) and add
     // any wayids that have loops to a vector
     if (nodes.size() > 2) {
@@ -831,6 +833,7 @@ public:
         } else {
           w.set_sac_scale(SacScale::kNone);
         }
+        ++osmdata_.sac_scale_count;
       }
 
       else if (tag.first == "surface") {
@@ -1032,6 +1035,15 @@ public:
 
     // if no surface and tracktype but we have a sac_scale, set surface to path.
     if (!has_surface) {
+      if (results.find("sac_scale") != results.end()) {
+        ++osmdata_.sac_scale_count;
+      }
+      if (results.find("mtb:scale") != results.end() ||
+        results.find("mtb:scale:imba") != results.end() ||
+        results.find("mtb:scale:uphill") != results.end() ||
+        results.find("mtb:description") != results.end()) {
+          ++osmdata_.mtb_count;
+        }
       if (results.find("sac_scale") != results.end() || results.find("mtb:scale") != results.end() ||
           results.find("mtb:scale:imba") != results.end() ||
           results.find("mtb:scale:uphill") != results.end() ||
@@ -1832,6 +1844,9 @@ OSMData PBFGraphParser::Parse(const boost::property_tree::ptree& pt,
   LOG_INFO("Number of reverse way refs = " + std::to_string(osmdata.way_ref_rev.size()));
   LOG_INFO("Unique Node Strings (names, refs, etc.) = " + std::to_string(osmdata.node_names.Size()));
   LOG_INFO("Unique Strings (names, refs, etc.) = " + std::to_string(osmdata.name_offset_map.Size()));
+  LOG_INFO("Number of ways with driveways included = " + std::to_string(osmdata.driveways_included));
+  LOG_INFO("Number of ways with sac_scale = " + std::to_string(osmdata.sac_scale_count));
+  LOG_INFO("Number of ways with mtb = " + std::to_string(osmdata.mtb_count));
 
   // Return OSM data
   return osmdata;
