@@ -1196,7 +1196,7 @@ public:
     uint32_t bike_network_mask = 0;
 
     std::string network, ref, name, except;
-    std::string from_lanes, from, to_lanes, to;
+    std::string connectivity;
     std::string condition, direction;
     std::string hour_start, hour_end, day_start, day_end;
     uint32_t modes = 0;
@@ -1312,14 +1312,8 @@ public:
         day_end = tag.second;
       } else if (tag.first == "bike_network_mask") {
         bike_network_mask = std::stoi(tag.second);
-      } else if (tag.first == "to:lanes") {
-        to_lanes = tag.second;
-      } else if (tag.first == "from:lanes") {
-        from_lanes = tag.second;
-      } else if (tag.first == "to") {
-        to = tag.second;
-      } else if (tag.first == "from") {
-        from = tag.second;
+      } else if (tag.first == "connectivity") {
+        connectivity = tag.second;
       }
     } // for (const auto& tag : results)
 
@@ -1396,8 +1390,7 @@ public:
           }
         }
       }
-    } else if (isConnectivity && (!to_lanes.empty() || !to.empty()) &&
-               (!from_lanes.empty() || !from.empty())) {
+    } else if (isConnectivity && !connectivity.empty()) {
       uint32_t from_way_id = 0;
       uint32_t to_way_id = 0;
       for (const auto& member : members) {
@@ -1412,8 +1405,30 @@ public:
       }
 
       if (from_way_id && to_way_id) {
-        uint32_t to_idx = osmdata_.name_offset_map.index(std::max(to, to_lanes));
-        uint32_t from_idx = osmdata_.name_offset_map.index(std::max(from, from_lanes));
+
+        //connectivity = connectivity=1:1,2|2:3
+        std::string from_lanes, to_lanes;
+        connectivity.erase(boost::remove_if(connectivity, boost::is_any_of("()")), connectivity.end());
+
+        std::vector<std::string> connections = GetTagTokens(connectivity, '|');
+        for (const auto& conn : connections) {
+          std::vector<std::string> lanes = GetTagTokens(conn, ':');
+          if (lanes.size() != 2)
+            return;
+          std::string from_lane = lanes.at(0);
+          std::vector<std::string> tolanes = GetTagTokens(lanes.at(1), ',');
+          for (const auto& l : tolanes) {
+            if (!from_lanes.empty())
+              from_lanes += "|";
+            from_lanes += from_lane;
+            if (!to_lanes.empty())
+              to_lanes += "|";
+            to_lanes += l;
+          }
+        }
+
+        uint32_t to_idx = osmdata_.name_offset_map.index(to_lanes);
+        uint32_t from_idx = osmdata_.name_offset_map.index(from_lanes);
         osmdata_.lane_connectivity_map.insert(
             OSMLaneConnectivityMultiMap::value_type(to_way_id,
                                                     OSMLaneConnectivity{to_way_id, from_way_id,
