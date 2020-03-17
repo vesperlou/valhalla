@@ -1416,8 +1416,14 @@ public:
           if (lanes.size() != 2)
             return;
           std::string from_lane = lanes.at(0);
+          // for now skip center turn lanes.
+          if (from_lane == "bw")
+            continue;
           std::vector<std::string> tolanes = GetTagTokens(lanes.at(1), ',');
           for (const auto& l : tolanes) {
+            // for now skip center turn lanes.
+            if (l == "bw")
+              continue;
             if (!from_lanes.empty())
               from_lanes += "|";
             from_lanes += from_lane;
