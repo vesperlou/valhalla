@@ -1424,12 +1424,8 @@ public:
             // for now skip center turn lanes.
             if (l == "bw")
               continue;
-            if (!from_lanes.empty())
-              from_lanes += "|";
-            from_lanes += from_lane;
-            if (!to_lanes.empty())
-              to_lanes += "|";
-            to_lanes += l;
+            from_lanes += (from_lanes.empty() ? "" : "|") + from_lane;
+            to_lanes += (to_lanes.empty() ? "" : "|") + l;
           }
         }
 
