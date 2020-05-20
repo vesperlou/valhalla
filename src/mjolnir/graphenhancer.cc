@@ -430,7 +430,8 @@ void UpdateTurnLanes(const OSMData& osmdata,
           // Should have a left.
           if (has_turn_left(outgoing_turn_type)) {
             // check for a right.
-            EnhanceRightLane(directededge, idx, startnodeinfo, tilebuilder, reader, lock, enhanced_tls);
+            EnhanceRightLane(directededge, idx, startnodeinfo, tilebuilder, reader, lock,
+                             enhanced_tls);
           }
         }
       }
@@ -443,7 +444,8 @@ void UpdateTurnLanes(const OSMData& osmdata,
             (enhanced_tls.front() == kTurnLaneEmpty || enhanced_tls.front() == kTurnLaneNone)) {
 
           std::set<Turn::Type> outgoing_turn_type;
-          GetTurnTypes(directededge, idx, outgoing_turn_type, startnodeinfo, tilebuilder, reader, lock);
+          GetTurnTypes(directededge, idx, outgoing_turn_type, startnodeinfo, tilebuilder, reader,
+                       lock);
           if (outgoing_turn_type.empty()) {
             directededge.set_turnlanes(false);
             return;
@@ -482,9 +484,11 @@ void UpdateTurnLanes(const OSMData& osmdata,
 
           if (bUpdated) {
             // check for a right.
-            EnhanceRightLane(directededge, idx, startnodeinfo, tilebuilder, reader, lock, enhanced_tls);
+            EnhanceRightLane(directededge, idx, startnodeinfo, tilebuilder, reader, lock,
+                             enhanced_tls);
             // check for a left
-            EnhanceLeftLane(directededge, idx, startnodeinfo, tilebuilder, reader, lock, enhanced_tls);
+            EnhanceLeftLane(directededge, idx, startnodeinfo, tilebuilder, reader, lock,
+                            enhanced_tls);
           }
         }
       }
@@ -510,9 +514,11 @@ void UpdateTurnLanes(const OSMData& osmdata,
 
           if (bUpdated) {
             // check for a right.
-            EnhanceRightLane(directededge, idx, startnodeinfo, tilebuilder, reader, lock, enhanced_tls);
+            EnhanceRightLane(directededge, idx, startnodeinfo, tilebuilder, reader, lock,
+                             enhanced_tls);
             // check for a left
-            EnhanceLeftLane(directededge, idx, startnodeinfo, tilebuilder, reader, lock, enhanced_tls);
+            EnhanceLeftLane(directededge, idx, startnodeinfo, tilebuilder, reader, lock,
+                            enhanced_tls);
           }
         }
       }
