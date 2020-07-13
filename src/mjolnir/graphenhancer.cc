@@ -3,6 +3,7 @@
 #include "mjolnir/countryaccess.h"
 #include "mjolnir/graphtilebuilder.h"
 #include "mjolnir/util.h"
+#include "mjolnir/flat_containers.h"
 
 #include <cinttypes>
 #include <future>
@@ -603,7 +604,9 @@ bool IsNotThruEdge(GraphReader& reader,
                    const GraphId& startnode,
                    DirectedEdge& directededge) {
   // Add the end node to the expand list
-  std::unordered_set<GraphId> visitedset; // Set of visited nodes
+  ska::flat_hash_set<GraphId> visitedset;
+//  absl::flat_hash_set<GraphId> visitedset;
+//  absl::<GraphId> visitedset; // Set of visited nodes
   std::vector<GraphId> expandset; // Set of nodes to expand - uses a vector for cache friendliness
 
   // Pre-reserve space in the expandset.  Most of the time, we'll
