@@ -8,6 +8,7 @@
 #include <vector>
 
 #include "test.h"
+#include <rapidcheck.h>
 
 using namespace std;
 using namespace valhalla;
@@ -20,16 +21,29 @@ void TryAddRemove(const std::vector<uint32_t>& costs, const std::vector<uint32_t
 
   const auto edgecost = [&edgelabels](const uint32_t label) { return edgelabels[label]; };
 
-  uint32_t i = 0;
   DoubleBucketQueue adjlist(0, 10000, 5, edgecost);
   for (auto cost : costs) {
     edgelabels.emplace_back(cost);
-    adjlist.add(i);
-    i++;
+    adjlist.add(edgelabels.size() - 1);
   }
   for (auto expected : expectedorder) {
     uint32_t labelindex = adjlist.pop();
     EXPECT_EQ(edgelabels[labelindex], expected) << "TryAddRemove: expected order test failed";
+  }
+}
+void TryAddRemoveRc(const std::vector<uint32_t>& costs, const std::vector<uint32_t>& expectedorder) {
+  std::vector<float> edgelabels;
+
+  const auto edgecost = [&edgelabels](const uint32_t label) { return edgelabels[label]; };
+
+  DoubleBucketQueue adjlist(0, 10000, 5, edgecost);
+  for (auto cost : costs) {
+    edgelabels.emplace_back(cost);
+    adjlist.add(edgelabels.size() - 1);
+  }
+  for (auto expected : expectedorder) {
+    uint32_t labelindex = adjlist.pop();
+    RC_ASSERT(edgelabels[labelindex] == expected);
   }
 }
 
@@ -48,6 +62,67 @@ TEST(DoubleBucketQueue, TestAddRemove) {
   std::vector<uint32_t> expectedorder = costs;
   std::sort(expectedorder.begin(), expectedorder.end());
   TryAddRemove(costs, expectedorder);
+}
+
+TEST(DoubleBucketQueue, Test1FromRapidCheck) {
+  std::vector<uint32_t> costs = {5, 6};
+  std::vector<uint32_t> expectedorder = costs;
+  std::sort(expectedorder.begin(), expectedorder.end());
+  TryAddRemove(costs, expectedorder);
+}
+
+TEST(DoubleBucketQueue, TestGenerated) {
+  rc::check("Double bucket sorts correctly",
+      [](const std::vector<uint32_t> &costs) {
+    std::vector<uint32_t> expectedorder = costs;
+    std::sort(expectedorder.begin(), expectedorder.end());
+    TryAddRemoveRc(costs, expectedorder);
+  });
+}
+
+//TEST(DoubleBucketQueue, TestEmptyOverflow) {
+//      [](const std::vector<uint32_t> &costs) {
+//    std::vector<uint32_t> expectedorder = costs;
+//    std::sort(expectedorder.begin(), expectedorder.end());
+
+//    std::vector<float> edgelabels;
+
+//    const auto edgecost = [&edgelabels](const uint32_t label) { return edgelabels[label]; };
+
+//    DoubleBucketQueue adjlist(0, 2, 1, edgecost);
+//    for (auto cost : costs) {
+//      edgelabels.emplace_back(cost);
+//      adjlist.add(edgelabels.size() - 1);
+//    }
+
+//    // Now, _change the cost before `pop`ing
+//    edgelabels[2] = 1; // Decreases from the earlier 20
+//    adjlist.pop();
+//    adjlist.pop();
+//    adjlist.pop();
+//  }
+//}
+
+TEST(DoubleBucketQueue, TestSegfault) {
+  std::vector<float> costs = {0.1, -1};
+  std::vector<uint32_t> expectedorder(0, costs.size());
+  for (auto cost : costs) {
+    expectedorder.push_back((uint32_t)cost);
+  }
+  std::sort(expectedorder.begin(), expectedorder.end());
+  std::vector<float> edgelabels;
+
+  const auto edgecost = [&edgelabels](const uint32_t label) { return edgelabels[label]; };
+
+  DoubleBucketQueue adjlist(0.5, 10, 5, edgecost);
+  for (auto cost : costs) {
+    edgelabels.emplace_back(cost);
+    adjlist.add(edgelabels.size() - 1);
+  }
+  for (auto expected : expectedorder) {
+    uint32_t labelindex = adjlist.pop();
+    EXPECT_EQ(edgelabels[labelindex], expected) << "TryAddRemove: expected order test failed";
+  }
 }
 
 void TryClear(const std::vector<uint32_t>& costs) {

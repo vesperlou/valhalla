@@ -28,3 +28,6 @@
 [submodule "third_party/robin-hood-hashing"]
 	path = third_party/robin-hood-hashing
 	url = https://github.com/martinus/robin-hood-hashing.git
+[submodule "third_party/rapidcheck"]
+	path = third_party/rapidcheck
+	url = git@github.com:emil-e/rapidcheck.git

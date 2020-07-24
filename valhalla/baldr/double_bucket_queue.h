@@ -129,6 +129,7 @@ public:
    *          kInvalidLabel if the buckets are empty.
    */
   uint32_t pop() {
+    //fprintf(stderr, "pop()\n");
     if (empty()) {
       // No labels found in the low-level buckets.
       if (overflowbucket_.empty()) {
@@ -185,12 +186,12 @@ private:
 
   inline bucket_t& get_bucket_inner(float cost) {
     auto diff = cost - mincost_;
-    if (diff < 0) {
-      LOG_ERROR("Cost less than mincost_, should not be possible. cost " + std::to_string(cost) +
-                " mincost_ " + std::to_string(mincost_) + " range " + std::to_string(bucketrange_) +
-                " size " + std::to_string(bucketsize_) + " inv_ " + std::to_string(inv_));
-      diff = 0.0;
-    }
+    //if (diff < 0) {
+    //  LOG_ERROR("Cost less than mincost_, should not be possible. cost " + std::to_string(cost) +
+    //            " mincost_ " + std::to_string(mincost_) + " range " + std::to_string(bucketrange_) +
+    //            " size " + std::to_string(bucketsize_) + " inv_ " + std::to_string(inv_));
+    //  diff = 0.0;
+    //}
 
     return buckets_[static_cast<uint32_t>(diff * inv_)];
   }
@@ -201,6 +202,7 @@ private:
    * @return  Returns true if the low-level buckets are all empty.
    */
   bool empty() {
+    //fprintf(stderr, "empty()\n");
     while (currentbucket_ != buckets_.end() && currentbucket_->empty()) {
       currentbucket_++;
       currentcost_ += bucketsize_;
@@ -213,6 +215,7 @@ private:
    * low level buckets.
    */
   void empty_overflow() {
+    //fprintf(stderr, "empty_overflow()\n");
     // Get the minimum label so we can figure out where the new range should be
     auto itr =
         std::min_element(overflowbucket_.begin(), overflowbucket_.end(),
@@ -239,6 +242,7 @@ private:
         // Get the cost (using the label cost function)
         float cost = labelcost_(label);
         if (cost < maxcost_) {
+          //fprintf(stderr, "Moving from overflowbucket_\n");
           get_bucket_inner(cost).push_back(label);
         } else {
           tmp.push_back(label);

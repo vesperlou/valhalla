@@ -4,6 +4,8 @@ set_target_properties(gtest_main PROPERTIES FOLDER "Dependencies")
 set_target_properties(gmock PROPERTIES FOLDER "Dependencies")
 set_target_properties(gmock_main PROPERTIES FOLDER "Dependencies")
 
+add_subdirectory(${VALHALLA_SOURCE_DIR}/third_party/rapidcheck ${CMAKE_BINARY_DIR}/rapidcheck)
+
 ## Lists tests
 set(tests aabb2 access_restriction actor admin attributes_controller complexrestriction countryaccess datetime directededge
   distanceapproximator double_bucket_queue edgecollapser edgestatus ellipse encode
@@ -39,7 +41,7 @@ foreach(test ${tests})
     FOLDER "Tests"
     COMPILE_DEFINITIONS VALHALLA_SOURCE_DIR="${VALHALLA_SOURCE_DIR}/")
   create_source_groups("Source Files" ${test}.cc)
-  target_link_libraries(${test} valhalla gtest gmock pthread)
+  target_link_libraries(${test} valhalla gtest gmock pthread rapidcheck)
   if (LUAJIT_FOUND AND APPLE)
     # Using LuaJIT on macOS requires a couple of extra linker flags
     # Any tool that needs interact with Lua will need these flags on macOS
