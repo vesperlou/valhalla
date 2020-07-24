@@ -8,6 +8,7 @@
 #include <vector>
 
 #include "test.h"
+#include <rapidcheck.h>
 
 using namespace std;
 using namespace valhalla;
@@ -15,21 +16,32 @@ using namespace valhalla::baldr;
 
 namespace {
 
-void TryAddRemove(const std::vector<uint32_t>& costs, const std::vector<uint32_t>& expectedorder) {
+enum class AssertType {
+  Gtest,
+  RapidCheck,
+};
+
+void TryAddRemove(const std::vector<uint32_t>& costs,
+                  const std::vector<uint32_t>& expectedorder,
+                  AssertType assert_type = AssertType::Gtest) {
   std::vector<float> edgelabels;
 
   const auto edgecost = [&edgelabels](const uint32_t label) { return edgelabels[label]; };
 
-  uint32_t i = 0;
-  DoubleBucketQueue adjlist(0, 10000, 5, edgecost);
+  DoubleBucketQueue adjlist(0, 10000, 1, edgecost);
   for (auto cost : costs) {
     edgelabels.emplace_back(cost);
-    adjlist.add(i);
-    i++;
+    adjlist.add(edgelabels.size() - 1);
   }
   for (auto expected : expectedorder) {
     uint32_t labelindex = adjlist.pop();
-    EXPECT_EQ(edgelabels[labelindex], expected) << "TryAddRemove: expected order test failed";
+    if (assert_type == AssertType::Gtest) {
+      EXPECT_EQ(edgelabels[labelindex], expected) << "TryAddRemove: expected order test failed";
+    } else if (assert_type == AssertType::RapidCheck) {
+      RC_ASSERT(edgelabels[labelindex] == expected);
+    } else {
+      throw std::runtime_error("Missing case");
+    }
   }
 }
 
@@ -45,6 +57,34 @@ TEST(DoubleBucketQueue, TestInvalidConstruction) {
 TEST(DoubleBucketQueue, TestAddRemove) {
   std::vector<uint32_t> costs = {67,  325, 25,  466,   1000, 100005,
                                  758, 167, 258, 16442, 278,  111111000};
+  std::vector<uint32_t> expectedorder = costs;
+  std::sort(expectedorder.begin(), expectedorder.end());
+  TryAddRemove(costs, expectedorder);
+}
+
+TEST(DoubleBucketQueue, TestGenerated) {
+  rc::check("Double bucket sorts correctly", [](const std::vector<uint32_t>& costs) {
+    std::vector<uint32_t> expectedorder = costs;
+    std::sort(expectedorder.begin(), expectedorder.end());
+    TryAddRemove(costs, expectedorder, AssertType::RapidCheck);
+  });
+}
+
+TEST(DoubleBucketQueue, RC2Segfault) {
+  std::vector<uint32_t> costs = {722947945,  1067508659, 323447915, 418158065, 741700647,  248690299,
+                                 235418188,  734712702,  118457825, 265225590, 660095895,  910075485,
+                                 49566967,   971490874,  940698668, 411001909, 1050928429, 58505645,
+                                 592287771,  779917125,  712999537, 27030318,  589880102,  787250706,
+                                 122252650,  1035447047, 595689439, 783370827, 229522080,  844634378,
+                                 992574103,  782118036,  365692262, 962364499, 369724983,  662324654,
+                                 574569387,  196720470,  901243917, 107854647, 95179967,   891025590,
+                                 1049087461, 597334770,  542088166, 903930982, 562611418,  941419309,
+                                 376685626,  743028769,  943691612, 164403943, 710579526,  369911590,
+                                 18265747,   692026661,  287799556, 499679985, 502820409,  340786909,
+                                 123227558,  419911472,  230737115, 532550272, 176228041,  922960173,
+                                 955974888,  232644948,  690643080, 868708288, 1019099947, 829548956,
+                                 602181493,  498194814,  953953989, 39490175,  117091002,  127578152,
+                                 787167807,  902193305,  439270068};
   std::vector<uint32_t> expectedorder = costs;
   std::sort(expectedorder.begin(), expectedorder.end());
   TryAddRemove(costs, expectedorder);
