@@ -129,6 +129,7 @@ public:
    *          kInvalidLabel if the buckets are empty.
    */
   uint32_t pop() {
+    fprintf(stderr, "## pop()\n");
     if (empty()) {
       // No labels found in the low-level buckets.
       if (overflowbucket_.empty()) {
@@ -136,12 +137,16 @@ public:
         // Reset currentbucket to the last bucket - in case another access of
         // adjacency list is done.
         currentbucket_--;
+
+        fprintf(stderr, "##  overflow empty\n");
         return kInvalidLabel;
       } else {
         // Move labels from the overflow bucket to the low level buckets.
         // Return invalid label if still empty.
+        fprintf(stderr, "##  empty_overflow()\n");
         empty_overflow();
         if (empty()) {
+          fprintf(stderr, "##  still empty\n");
           return kInvalidLabel;
         }
       }
@@ -149,6 +154,9 @@ public:
 
     // Return label from lowest non-empty bucket
     uint32_t label = currentbucket_->back();
+    if (label > 100) {
+      fprintf(stderr, "fooz\n");
+    }
     currentbucket_->pop_back();
     return label;
   }
@@ -211,6 +219,8 @@ private:
     // If there is actually stuff to move
     if (itr != overflowbucket_.end()) {
 
+      fprintf(stderr, "##    has stuff to move\n");
+
       // Adjust cost range so smallest element is in the buckets_
       float min = labelcost_(*itr);
       mincost_ += (std::floor((min - mincost_) / bucketrange_)) * bucketrange_;
@@ -222,6 +232,7 @@ private:
         mincost_ += bucketrange_;
       }
       maxcost_ = mincost_ + bucketrange_;
+      fprintf(stderr, "##    mincost_ %f maxcost_ %f\n", mincost_, maxcost_);
 
       // Move elements within the range from overflow to buckets
       bucket_t tmp;
@@ -237,6 +248,8 @@ private:
 
       // Add any labels that lie outside the new range back to overflow bucket
       overflowbucket_ = std::move(tmp);
+    } else {
+      fprintf(stderr, "##    nothing to move\n");
     }
 
     // Reset current cost and bucket to beginning of low level buckets

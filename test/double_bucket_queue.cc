@@ -26,19 +26,33 @@ void TryAddRemove(const std::vector<uint32_t>& costs,
                   AssertType assert_type = AssertType::Gtest) {
   std::vector<float> edgelabels;
 
-  const auto edgecost = [&edgelabels](const uint32_t label) { return edgelabels[label]; };
+  const auto edgecost = [&edgelabels](const uint32_t label) {
+    fprintf(stderr, "##    edgecost: %i, %f\n", label, edgelabels[label]);
+    return edgelabels[label];
+  };
 
   DoubleBucketQueue adjlist(0, 10000, 1, edgecost);
   for (auto cost : costs) {
+
+    fprintf(stderr, "## Emplacing %i\n", cost);
     edgelabels.emplace_back(cost);
     adjlist.add(edgelabels.size() - 1);
   }
+  fprintf(stderr, "First edgecost: %f\n", edgecost(0));
   for (auto expected : expectedorder) {
     uint32_t labelindex = adjlist.pop();
+
+    auto edgelabel = 0;
+    if (labelindex != kInvalidLabel) {
+      edgelabel = edgelabels[labelindex];
+    } else {
+      fprintf(stderr, "#####################################  INVALID LABEL INDEX\n");
+    }
+
     if (assert_type == AssertType::Gtest) {
-      EXPECT_EQ(edgelabels[labelindex], expected) << "TryAddRemove: expected order test failed";
+      EXPECT_EQ(edgelabel, expected) << "TryAddRemove: expected order test failed";
     } else if (assert_type == AssertType::RapidCheck) {
-      RC_ASSERT(edgelabels[labelindex] == expected);
+      RC_ASSERT(edgelabel == expected);
     } else {
       throw std::runtime_error("Missing case");
     }
@@ -85,6 +99,14 @@ TEST(DoubleBucketQueue, RC2Segfault) {
                                  955974888,  232644948,  690643080, 868708288, 1019099947, 829548956,
                                  602181493,  498194814,  953953989, 39490175,  117091002,  127578152,
                                  787167807,  902193305,  439270068};
+  std::vector<uint32_t> expectedorder = costs;
+  std::sort(expectedorder.begin(), expectedorder.end());
+  TryAddRemove(costs, expectedorder);
+}
+
+TEST(DoubleBucketQueue, RC3IntegerToFloatLossyConversion) {
+  // Tests what happens when the float cost can no longer represent the uint32-cost
+  std::vector<uint32_t> costs = {16777217};
   std::vector<uint32_t> expectedorder = costs;
   std::sort(expectedorder.begin(), expectedorder.end());
   TryAddRemove(costs, expectedorder);
