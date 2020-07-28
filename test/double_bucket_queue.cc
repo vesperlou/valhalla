@@ -21,9 +21,13 @@ enum class AssertType {
   RapidCheck,
 };
 
-void TryAddRemove(const std::vector<uint32_t>& costs,
-                  const std::vector<uint32_t>& expectedorder,
-                  AssertType assert_type = AssertType::Gtest) {
+void noop(){};
+
+void TryAddRemove(std::vector<uint32_t>& costs,
+                  std::vector<uint32_t>& expectedorder,
+                  AssertType assert_type = AssertType::Gtest,
+                  std::function<void()> tweak_data = noop) {
+
   std::vector<float> edgelabels;
 
   const auto edgecost = [&edgelabels](const uint32_t label) {
@@ -41,6 +45,8 @@ void TryAddRemove(const std::vector<uint32_t>& costs,
   // if (costs.size() > 0) {
   // fprintf(stderr, "First edgecost: %f\n", edgecost(0));
   //}
+  // Tweak data before evaluation (if wanted)
+  tweak_data();
   for (auto expected : expectedorder) {
     expected = (uint32_t)(float)expected;
     uint32_t labelindex = adjlist.pop();
@@ -81,16 +87,31 @@ TEST(DoubleBucketQueue, TestAddRemove) {
 }
 
 TEST(DoubleBucketQueue, TestGenerated) {
-  rc::check("Double bucket sorts correctly", [](const std::vector<uint32_t>& costs) {
-    //RC_PRE(std::find_if(costs.begin(), costs.end(), [](const uint32_t cost) -> bool {
-    //         // Ignore test-data with too large values
-    //         // Currently unsure if this is bug in test or actual logic
-    //         return cost > 16777217;
-    //       }) == costs.end());
+  rc::check("Double bucket sorts correctly", [](std::vector<uint32_t>& costs) {
+    RC_PRE(std::find_if(costs.begin(), costs.end(), [](uint32_t cost) -> bool {
+             // Ignore test-data with too large values
+             // Currently unsure if this is bug in test or actual logic
+             return cost > 16777217;
+           }) == costs.end());
     std::vector<uint32_t> expectedorder = costs;
     std::sort(expectedorder.begin(), expectedorder.end());
     TryAddRemove(costs, expectedorder, AssertType::RapidCheck);
   });
+}
+
+TEST(DoubleBucketQueue, TestGeneratedCostsChanging) {
+  rc::check("Double bucket sorts correctly with changing costs",
+            [](std::vector<uint32_t>& costs, std::vector<uint32_t>& changed_costs) {
+              RC_PRE(std::find_if(costs.begin(), costs.end(), [](uint32_t cost) -> bool {
+                       // Ignore test-data with too large values
+                       // Currently unsure if this is bug in test or actual logic
+                       return cost > 16777217;
+                     }) == costs.end());
+              std::vector<uint32_t> expectedorder = costs;
+              std::sort(expectedorder.begin(), expectedorder.end());
+              TryAddRemove(costs, expectedorder, AssertType::RapidCheck,
+                           [costs, changed_costs]() { costs.swap(changed_costs); });
+            });
 }
 
 TEST(DoubleBucketQueue, RC2Segfault) {
@@ -143,6 +164,48 @@ TEST(DoubleBucketQueue, TestClear) {
   TryClear(costs);
 }
 
+TEST(DoubleBucketQueue, TestCostChanging) {
+  std::vector<uint32_t> costs = {67,  325, 25,  466,   1000, 100005,
+                                 758, 167, 258, 16442, 278,  111111000};
+  std::vector<uint32_t> expectedorder = costs;
+  std::sort(expectedorder.begin(), expectedorder.end());
+
+  {
+    std::vector<float> edgelabels;
+
+    const auto edgecost = [&edgelabels](const uint32_t label) {
+      // fprintf(stderr, "##    edgecost: %i, %f\n", label, edgelabels[label]);
+      return edgelabels[label];
+    };
+
+    DoubleBucketQueue adjlist(0, 10000, 1, edgecost);
+    for (auto cost : costs) {
+
+      edgelabels.emplace_back(cost);
+      adjlist.add(edgelabels.size() - 1);
+    }
+
+    // Go ahead and change costs
+    for (auto& cost : costs) {
+      cost -= 1000;
+    }
+
+    for (auto expected : expectedorder) {
+      expected = (uint32_t)(float)expected;
+      uint32_t labelindex = adjlist.pop();
+
+      auto edgelabel = 0;
+      if (labelindex != kInvalidLabel) {
+        edgelabel = edgelabels[labelindex];
+      } else {
+        fprintf(stderr, "#####################################  INVALID LABEL INDEX\n");
+        // continue;
+      }
+
+      EXPECT_EQ(edgelabel, expected) << "TryAddRemove: expected order test failed";
+    }
+  }
+}
 /**
    void TestDecreseCost() {
    std::vector<uint32_t> costs = { 67, 325, 25, 466, 1000, 100005, 758, 167,
