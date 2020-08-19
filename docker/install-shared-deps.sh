@@ -19,6 +19,8 @@ readonly primeserver_version=0.6.7
 # Now, go through and install the build dependencies
 apt-get update --assume-yes
 env DEBIAN_FRONTEND=noninteractive apt-get install --yes --quiet \
+    vim \
+    gdb \
     autoconf \
     automake \
     ccache \
