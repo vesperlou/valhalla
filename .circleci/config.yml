@@ -160,13 +160,8 @@ jobs:
             - ccache-release-linux-x86_32
       - run: mkdir build
       - run: |
-          cd build && cmake .. -DCMAKE_BUILD_TYPE=Release
-      - run: make -C build -j4
-      - run: make -C build utrecht_tiles
-      - run: make -C build -j2 tests
-      - run: make -C build -j2 check
-      - run: make -C build -j2 benchmarks
-      - run: make -C build run-benchmarks
+          cd build && cmake .. -DCMAKE_BUILD_TYPE=Debug
+      - run: make -C build -j4 run-benchmark-buildtiles
       - save_cache:
           key: ccache-release-linux-x86_32-{{ .Branch }}-{{ epoch }}
           paths:
@@ -240,32 +235,4 @@ workflows:
   version: 2
   build_test_publish:
     jobs:
-      - build-base
-      - lint-build-debug
-      - build-release
       - build-release-x86
-      - build-osx
-      - build-release-binary-osx:
-          filters:
-            tags:
-              only: /.*/
-            branches:
-              ignore: /.*/
-      - build-debug-binary-osx:
-          filters:
-            tags:
-              only: /.*/
-            branches:
-              ignore: /.*/
-      - build-release-binary-linux:
-          filters:
-            tags:
-              only: /.*/
-            branches:
-              ignore: /.*/
-      - build-debug-binary-linux:
-          filters:
-            tags:
-              only: /.*/
-            branches:
-              ignore: /.*/
