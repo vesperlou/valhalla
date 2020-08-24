@@ -12,7 +12,7 @@
 #include "odin/enhancedtrippath.h"
 #include "odin/util.h"
 
-#include <valhalla/proto/trip.pb.h>
+#include "proto/trip.pb.h"
 
 using namespace valhalla::midgard;
 using namespace valhalla::baldr;
@@ -21,7 +21,10 @@ namespace {
 constexpr float kShortRemainingDistanceThreshold = 0.402f; // Kilometers (~quarter mile)
 constexpr int kSignificantRoadClassThreshold = 2;          // Max lower road class delta
 
-const std::string& TripLeg_RoadClass_Name(int v) {
+constexpr uint32_t kBackwardTurnDegreeLowerBound = 124;
+constexpr uint32_t kBackwardTurnDegreeUpperBound = 236;
+
+const std::string& RoadClass_Name(int v) {
   static const std::unordered_map<int, std::string> values{
       {0, "kMotorway"}, {1, "kTrunk"},        {2, "kPrimary"},     {3, "kSecondary"},
       {4, "kTertiary"}, {5, "kUnclassified"}, {6, "kResidential"}, {7, "kServiceOther"},
@@ -410,7 +413,7 @@ bool EnhancedTripLeg_Edge::IsUnnamedMountainBikeTrail() const {
 }
 
 bool EnhancedTripLeg_Edge::IsHighway() const {
-  return ((road_class() == TripLeg_RoadClass_kMotorway) && (!IsRampUse()));
+  return ((road_class() == RoadClass::kMotorway) && (!IsRampUse()));
 }
 
 bool EnhancedTripLeg_Edge::IsOneway() const {
@@ -947,8 +950,8 @@ std::string EnhancedTripLeg_Edge::ToParameterString() const {
   str += std::to_string(speed());
 
   str += delim;
-  str += "TripLeg_RoadClass_";
-  str += TripLeg_RoadClass_Name(road_class());
+  str += "RoadClass_";
+  str += RoadClass_Name(road_class());
 
   str += delim;
   str += std::to_string(begin_heading());
@@ -1235,7 +1238,7 @@ bool EnhancedTripLeg_IntersectingEdge::IsTraversableOutbound(
 }
 
 bool EnhancedTripLeg_IntersectingEdge::IsHighway() const {
-  return ((road_class() == TripLeg_RoadClass_kMotorway) && !(use() == TripLeg_Use_kRampUse));
+  return ((road_class() == RoadClass::kMotorway) && !(use() == TripLeg_Use_kRampUse));
 }
 
 std::string EnhancedTripLeg_IntersectingEdge::ToString() const {
@@ -1292,6 +1295,28 @@ bool EnhancedTripLeg_Node::HasIntersectingEdgeCurrNameConsistency() const {
   for (const auto& xedge : intersecting_edge()) {
     if (xedge.curr_name_consistency()) {
       return true;
+    }
+  }
+  return false;
+}
+
+bool EnhancedTripLeg_Node::HasNonBackwardTraversableSameNameIntersectingEdge(
+    uint32_t from_heading,
+    const TripLeg_TravelMode travel_mode) {
+  // Loop over the route path intersecting edges
+  for (int i = 0; i < intersecting_edge_size(); ++i) {
+    auto xedge = GetIntersectingEdge(i);
+    // Check if the intersecting edges have the same names as the path edges
+    // and if the intersecting edge is traversable based on the route path travel mode
+    if ((xedge->prev_name_consistency() || xedge->curr_name_consistency()) &&
+        xedge->IsTraversable(travel_mode)) {
+      // Calculate the intersecting edge turn degree to make sure it is not in the opposing direction
+      uint32_t intersecting_turn_degree = GetTurnDegree(from_heading, xedge->begin_heading());
+      bool non_backward = !((intersecting_turn_degree > kBackwardTurnDegreeLowerBound) &&
+                            (intersecting_turn_degree < kBackwardTurnDegreeUpperBound));
+      if (non_backward) {
+        return true;
+      }
     }
   }
   return false;
@@ -1397,7 +1422,7 @@ bool EnhancedTripLeg_Node::HasForwardTraversableIntersectingEdge(
 bool EnhancedTripLeg_Node::HasForwardTraversableSignificantRoadClassXEdge(
     uint32_t from_heading,
     const TripLeg_TravelMode travel_mode,
-    TripLeg_RoadClass path_road_class) {
+    RoadClass path_road_class) {
 
   for (int i = 0; i < intersecting_edge_size(); ++i) {
     auto xedge = GetIntersectingEdge(i);
@@ -1440,6 +1465,16 @@ bool EnhancedTripLeg_Node::HasWiderForwardTraversableHighwayXEdge(
   return false;
 }
 
+bool EnhancedTripLeg_Node::HasTraversableIntersectingEdge(const TripLeg_TravelMode travel_mode) {
+
+  for (int i = 0; i < intersecting_edge_size(); ++i) {
+    if (GetIntersectingEdge(i)->IsTraversable(travel_mode)) {
+      return true;
+    }
+  }
+  return false;
+}
+
 bool EnhancedTripLeg_Node::HasTraversableOutboundIntersectingEdge(
     const TripLeg_TravelMode travel_mode) {
 
@@ -1467,7 +1502,7 @@ bool EnhancedTripLeg_Node::HasSpecifiedTurnXEdge(const Turn::Type turn_type,
   return false;
 }
 
-bool EnhancedTripLeg_Node::HasSpecifiedRoadClassXEdge(const TripLeg_RoadClass road_class) {
+bool EnhancedTripLeg_Node::HasSpecifiedRoadClassXEdge(const RoadClass road_class) {
 
   // If no intersecting edges then return false
   if (!HasIntersectingEdges()) {

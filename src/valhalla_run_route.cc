@@ -35,10 +35,10 @@
 #include "thor/triplegbuilder.h"
 #include "worker.h"
 
-#include <valhalla/proto/api.pb.h>
-#include <valhalla/proto/directions.pb.h>
-#include <valhalla/proto/options.pb.h>
-#include <valhalla/proto/trip.pb.h>
+#include "proto/api.pb.h"
+#include "proto/directions.pb.h"
+#include "proto/options.pb.h"
+#include "proto/trip.pb.h"
 
 #include "config.h"
 
@@ -118,7 +118,7 @@ const valhalla::TripLeg* PathTest(GraphReader& reader,
                                   valhalla::Location& origin,
                                   valhalla::Location& dest,
                                   PathAlgorithm* pathalgorithm,
-                                  const std::shared_ptr<DynamicCost>* mode_costing,
+                                  const mode_costing_t& mode_costing,
                                   const TravelMode mode,
                                   PathStatistics& data,
                                   bool multi_run,
@@ -171,8 +171,8 @@ const valhalla::TripLeg* PathTest(GraphReader& reader,
   t1 = std::chrono::high_resolution_clock::now();
   AttributesController controller;
   auto& trip_path = *request.mutable_trip()->mutable_routes()->Add()->mutable_legs()->Add();
-  TripLegBuilder::Build(controller, reader, mode_costing, pathedges.begin(), pathedges.end(), origin,
-                        dest, std::list<valhalla::Location>{}, trip_path);
+  TripLegBuilder::Build(request.options(), controller, reader, mode_costing, pathedges.begin(),
+                        pathedges.end(), origin, dest, std::list<valhalla::Location>{}, trip_path);
   t2 = std::chrono::high_resolution_clock::now();
   msecs = std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1).count();
   LOG_INFO("TripLegBuilder took " + std::to_string(msecs) + " ms");
@@ -206,6 +206,20 @@ const valhalla::TripLeg* PathTest(GraphReader& reader,
     const auto projections = Search(locations, reader, cost);
     std::vector<PathLocation> path_location;
     valhalla::Options options;
+
+    for (const auto& ll : shape) {
+      auto* sll = options.mutable_shape()->Add();
+      sll->mutable_ll()->set_lat(ll.lat());
+      sll->mutable_ll()->set_lng(ll.lng());
+      // set type to via by default
+      sll->set_type(valhalla::Location::kVia);
+    }
+    // first and last always get type break
+    if (options.shape_size()) {
+      options.mutable_shape(0)->set_type(valhalla::Location::kBreak);
+      options.mutable_shape(options.shape_size() - 1)->set_type(valhalla::Location::kBreak);
+    }
+
     for (const auto& loc : locations) {
       path_location.push_back(projections.at(loc));
       PathLocation::toPBF(path_location.back(), options.mutable_locations()->Add(), reader);
@@ -235,8 +249,8 @@ const valhalla::TripLeg* PathTest(GraphReader& reader,
       AttributesController controller;
       valhalla::TripLeg trip_leg;
       const auto& pathedges = paths.front();
-      TripLegBuilder::Build(controller, reader, mode_costing, pathedges.begin(), pathedges.end(),
-                            origin, dest, std::list<valhalla::Location>{}, trip_leg);
+      TripLegBuilder::Build(request.options(), controller, reader, mode_costing, pathedges.begin(),
+                            pathedges.end(), origin, dest, std::list<valhalla::Location>{}, trip_leg);
       t2 = std::chrono::high_resolution_clock::now();
       total_trip_leg_builder_ms +=
           std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1).count();
@@ -588,26 +602,10 @@ int main(int argc, char* argv[]) {
   auto t0 = std::chrono::high_resolution_clock::now();
 
   // Construct costing
-  CostFactory<DynamicCost> factory;
-  factory.RegisterStandardCostingModels();
+  CostFactory factory;
   // Get the costing method - pass the JSON configuration
   TravelMode mode;
-  std::shared_ptr<DynamicCost> mode_costing[4];
-  if (routetype == "multimodal") {
-    // Create array of costing methods per mode and set initial mode to
-    // pedestrian
-    mode_costing[0] = factory.Create(valhalla::Costing::auto_, options);
-    mode_costing[1] = factory.Create(valhalla::Costing::pedestrian, options);
-    mode_costing[2] = factory.Create(valhalla::Costing::bicycle, options);
-    mode_costing[3] = factory.Create(valhalla::Costing::transit, options);
-    mode = TravelMode::kPedestrian;
-  } else {
-    // Assign costing method, override any config options that are in the
-    // json request
-    std::shared_ptr<DynamicCost> cost = factory.Create(options);
-    mode = cost->travel_mode();
-    mode_costing[static_cast<uint32_t>(mode)] = cost;
-  }
+  auto mode_costing = factory.CreateModeCosting(options, mode);
 
   // Find path locations (loki) for sources and targets
   auto tw0 = std::chrono::high_resolution_clock::now();

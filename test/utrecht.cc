@@ -1,9 +1,9 @@
+#include "filesystem.h"
 #include "midgard/sequence.h"
 #include "mjolnir/osmnode.h"
 #include "mjolnir/pbfgraphparser.h"
 #include <cstdint>
 
-#include <boost/filesystem.hpp>
 #include <boost/property_tree/ptree.hpp>
 #include <fstream>
 
@@ -23,7 +23,6 @@ using namespace valhalla::baldr;
 
 namespace {
 
-const std::string config_file = "test/test_config_ut";
 std::string ways_file = "test_ways_utrecht.bin";
 std::string way_nodes_file = "test_way_nodes_utrecht.bin";
 std::string access_file = "test_access_utrecht.bin";
@@ -54,6 +53,8 @@ OSMWay GetWay(uint32_t way_id, sequence<OSMWay>& ways) {
 TEST(Utrecth, TestBike) {
   boost::property_tree::ptree conf;
   conf.put<std::string>("mjolnir.tile_dir", "test/data/parser_tiles");
+  conf.put<unsigned long>("mjolnir.id_table_size", 1000);
+
   sequence<OSMWay> ways(ways_file, false);
   ways.sort(way_predicate);
 
@@ -180,6 +181,8 @@ TEST(Utrecth, TestBike) {
 TEST(Utrecht, TestBus) {
   boost::property_tree::ptree conf;
   conf.put<std::string>("mjolnir.tile_dir", "test/data/parser_tiles");
+  conf.put<unsigned long>("mjolnir.id_table_size", 1000);
+
   sequence<OSMWay> ways(ways_file, false);
   ways.sort(way_predicate);
 
@@ -201,19 +204,29 @@ public:
   void SetUp() override {
     boost::property_tree::ptree conf;
     conf.put<std::string>("mjolnir.tile_dir", "test/data/parser_tiles");
+    conf.put<unsigned long>("mjolnir.id_table_size", 1000);
+
     auto osmdata =
-        PBFGraphParser::Parse(conf.get_child("mjolnir"),
-                              {VALHALLA_SOURCE_DIR "test/data/utrecht_netherlands.osm.pbf"},
-                              ways_file, way_nodes_file, access_file, from_restriction_file,
-                              to_restriction_file, bss_file);
+        PBFGraphParser::ParseWays(conf.get_child("mjolnir"),
+                                  {VALHALLA_SOURCE_DIR "test/data/utrecht_netherlands.osm.pbf"},
+                                  ways_file, way_nodes_file, access_file);
+
+    PBFGraphParser::ParseRelations(conf.get_child("mjolnir"),
+                                   {VALHALLA_SOURCE_DIR "test/data/utrecht_netherlands.osm.pbf"},
+                                   from_restriction_file, to_restriction_file, osmdata);
+
+    PBFGraphParser::ParseNodes(conf.get_child("mjolnir"),
+                               {VALHALLA_SOURCE_DIR "test/data/utrecht_netherlands.osm.pbf"},
+                               ways_file, way_nodes_file, bss_file, osmdata);
   }
 
   void TearDown() override {
-    boost::filesystem::remove(ways_file);
-    boost::filesystem::remove(way_nodes_file);
-    boost::filesystem::remove(access_file);
-    boost::filesystem::remove(from_restriction_file);
-    boost::filesystem::remove(to_restriction_file);
+    filesystem::remove(ways_file);
+    filesystem::remove(way_nodes_file);
+    filesystem::remove(access_file);
+    filesystem::remove(from_restriction_file);
+    filesystem::remove(to_restriction_file);
+    filesystem::remove(bss_file);
   }
 };
 

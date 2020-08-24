@@ -3,8 +3,8 @@
 #include "baldr/graphconstants.h"
 #include "baldr/json.h"
 #include "odin/enhancedtrippath.h"
+#include "proto_conversions.h"
 #include "thor/attributes_controller.h"
-#include "thor/match_result.h"
 #include "tyr/serializers.h"
 
 using namespace valhalla;
@@ -293,8 +293,9 @@ json::ArrayPtr serialize_edges(const AttributesController& controller,
           end_node_map->emplace("intersecting_edges", intersecting_edge_array);
         }
 
-        if (node.has_elapsed_time()) {
-          end_node_map->emplace("elapsed_time", json::fp_t{node.elapsed_time(), 3});
+        if (node.has_cost() && node.cost().has_elapsed_cost() &&
+            node.cost().elapsed_cost().has_seconds()) {
+          end_node_map->emplace("elapsed_time", json::fp_t{node.cost().elapsed_cost().seconds(), 3});
         }
         if (node.has_admin_index()) {
           end_node_map->emplace("admin_index", static_cast<uint64_t>(node.admin_index()));
@@ -308,8 +309,10 @@ json::ArrayPtr serialize_edges(const AttributesController& controller,
         if (node.has_time_zone()) {
           end_node_map->emplace("time_zone", node.time_zone());
         }
-        if (node.has_transition_time()) {
-          end_node_map->emplace("transition_time", json::fp_t{node.transition_time(), 3});
+        if (node.has_cost() && node.cost().has_transition_cost() &&
+            node.cost().transition_cost().has_seconds()) {
+          end_node_map->emplace("transition_time",
+                                json::fp_t{node.cost().transition_cost().seconds(), 3});
         }
 
         // TODO transit info at node
@@ -347,7 +350,7 @@ json::ArrayPtr serialize_edges(const AttributesController& controller,
 }
 
 json::ArrayPtr serialize_matched_points(const AttributesController& controller,
-                                        const std::vector<thor::MatchResult>& match_results) {
+                                        const std::vector<meili::MatchResult>& match_results) {
   auto match_points_array = json::array({});
   for (const auto& match_result : match_results) {
     auto match_points_map = json::map({});
@@ -360,11 +363,11 @@ json::ArrayPtr serialize_matched_points(const AttributesController& controller,
 
     // Process matched type
     if (controller.attributes.at(kMatchedType)) {
-      switch (match_result.type) {
-        case thor::MatchResult::Type::kMatched:
+      switch (match_result.GetType()) {
+        case meili::MatchResult::Type::kMatched:
           match_points_map->emplace("type", std::string("matched"));
           break;
-        case thor::MatchResult::Type::kInterpolated:
+        case meili::MatchResult::Type::kInterpolated:
           match_points_map->emplace("type", std::string("interpolated"));
           break;
         default:
@@ -373,34 +376,35 @@ json::ArrayPtr serialize_matched_points(const AttributesController& controller,
       }
     }
 
+    // TODO: need to keep track of the index of the edge in the global set of edges a given
+    // TODO: match result belongs/correlated to
     // Process matched point edge index
-    if (controller.attributes.at(kMatchedEdgeIndex) && match_result.HasEdgeIndex()) {
+    if (controller.attributes.at(kMatchedEdgeIndex) && match_result.edgeid.Is_Valid()) {
       match_points_map->emplace("edge_index", static_cast<uint64_t>(match_result.edge_index));
     }
 
     // Process matched point begin route discontinuity
     if (controller.attributes.at(kMatchedBeginRouteDiscontinuity) &&
-        match_result.begin_route_discontinuity) {
+        match_result.begins_discontinuity) {
       match_points_map->emplace("begin_route_discontinuity",
-                                static_cast<bool>(match_result.begin_route_discontinuity));
+                                static_cast<bool>(match_result.begins_discontinuity));
     }
 
     // Process matched point end route discontinuity
-    if (controller.attributes.at(kMatchedEndRouteDiscontinuity) &&
-        match_result.end_route_discontinuity) {
+    if (controller.attributes.at(kMatchedEndRouteDiscontinuity) && match_result.ends_discontinuity) {
       match_points_map->emplace("end_route_discontinuity",
-                                static_cast<bool>(match_result.end_route_discontinuity));
+                                static_cast<bool>(match_result.ends_discontinuity));
     }
 
     // Process matched point distance along edge
     if (controller.attributes.at(kMatchedDistanceAlongEdge) &&
-        (match_result.type != thor::MatchResult::Type::kUnmatched)) {
+        (match_result.GetType() != meili::MatchResult::Type::kUnmatched)) {
       match_points_map->emplace("distance_along_edge", json::fp_t{match_result.distance_along, 3});
     }
 
     // Process matched point distance from trace point
     if (controller.attributes.at(kMatchedDistanceFromTracePoint) &&
-        (match_result.type != thor::MatchResult::Type::kUnmatched)) {
+        (match_result.GetType() != meili::MatchResult::Type::kUnmatched)) {
       match_points_map->emplace("distance_from_trace_point",
                                 json::fp_t{match_result.distance_from, 3});
     }
@@ -444,7 +448,7 @@ void append_trace_info(
     const json::MapPtr& json,
     const AttributesController& controller,
     const Options& options,
-    const std::tuple<float, float, std::vector<thor::MatchResult>>& map_match_result,
+    const std::tuple<float, float, std::vector<meili::MatchResult>>& map_match_result,
     const TripLeg& trip_path) {
   // Set trip path and match results
   const auto& match_results = std::get<kMatchResultsIndex>(map_match_result);
@@ -496,7 +500,7 @@ namespace tyr {
 std::string serializeTraceAttributes(
     const Api& request,
     const AttributesController& controller,
-    std::vector<std::tuple<float, float, std::vector<thor::MatchResult>>>& map_match_results) {
+    std::vector<std::tuple<float, float, std::vector<meili::MatchResult>>>& map_match_results) {
 
   // Create json map to return
   auto json = json::map({});

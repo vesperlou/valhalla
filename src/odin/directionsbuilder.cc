@@ -95,14 +95,12 @@ void DirectionsBuilder::Build(Api& api) {
         if (options.directions_type() == DirectionsType::instructions) {
           std::unique_ptr<NarrativeBuilder> narrative_builder =
               NarrativeBuilderFactory::Create(options, &etp);
-          narrative_builder->Build(options, maneuvers);
+          narrative_builder->Build(maneuvers);
         }
       }
 
       // Return trip directions
       PopulateDirectionsLeg(options, &etp, maneuvers, trip_directions);
-
-      LOG_INFO("maneuver_count::" + std::to_string(trip_directions.maneuver_size()));
     }
   }
 }
@@ -363,8 +361,8 @@ void DirectionsBuilder::PopulateDirectionsLeg(const Options& options,
     }
 
     // Verbal multi-cue
-    if (maneuver.verbal_multi_cue()) {
-      trip_maneuver->set_verbal_multi_cue(maneuver.verbal_multi_cue());
+    if (maneuver.HasVerbalMultiCue()) {
+      trip_maneuver->set_verbal_multi_cue(maneuver.HasVerbalMultiCue());
     }
 
     // To stay on
@@ -374,6 +372,9 @@ void DirectionsBuilder::PopulateDirectionsLeg(const Options& options,
 
     // Travel mode
     trip_maneuver->set_travel_mode(translate_travel_mode.find(maneuver.travel_mode())->second);
+
+    // Bss maneuver type
+    trip_maneuver->set_bss_maneuver_type(maneuver.bss_maneuver_type());
 
     // Travel type
     switch (maneuver.travel_mode()) {
@@ -399,7 +400,8 @@ void DirectionsBuilder::PopulateDirectionsLeg(const Options& options,
 
   // Populate summary
   trip_directions.mutable_summary()->set_length(etp->GetLength(options.units()));
-  trip_directions.mutable_summary()->set_time(etp->node(etp->GetLastNodeIndex()).elapsed_time());
+  trip_directions.mutable_summary()->set_time(
+      etp->node(etp->GetLastNodeIndex()).cost().elapsed_cost().seconds());
   auto mutable_bbox = trip_directions.mutable_summary()->mutable_bbox();
   mutable_bbox->mutable_min_ll()->set_lat(etp->bbox().min_ll().lat());
   mutable_bbox->mutable_min_ll()->set_lng(etp->bbox().min_ll().lng());

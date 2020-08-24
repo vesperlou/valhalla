@@ -9,8 +9,6 @@
 #include <set>
 #include <thread>
 
-#include <boost/filesystem/operations.hpp>
-
 #include "baldr/datetime.h"
 #include "baldr/graphconstants.h"
 #include "baldr/graphid.h"
@@ -60,7 +58,7 @@ std::deque<GraphId> GetGraphIds(GraphId& n_graphId,
 
       GraphId g_id(endnodetile->id().tileid(), endnodetile->id().level(), n_info->edge_index() + j);
 
-      if (de->edgeinfo_offset() != 0 && de->endnode() != prev_Node && g_id != avoidId &&
+      if (de->endnode() != prev_Node && g_id != avoidId &&
           !(de->IsTransitLine() || de->is_shortcut() || de->use() == Use::kTransitConnection ||
             de->use() == Use::kEgressConnection || de->use() == Use::kPlatformConnection)) {
         // get the edge info offset
@@ -139,7 +137,7 @@ std::deque<GraphId> GetGraphIds(GraphId& n_graphId,
                            tmp_n_info->edge_index() + l);
 
               // only look at non transition edges.
-              if (de->edgeinfo_offset() != 0 && de->endnode() != prev_Node && g_id != avoidId &&
+              if (de->endnode() != prev_Node && g_id != avoidId &&
                   !(de->IsTransitLine() || de->is_shortcut() ||
                     de->use() == Use::kTransitConnection || de->use() == Use::kEgressConnection ||
                     de->use() == Use::kPlatformConnection)) {
@@ -194,6 +192,9 @@ std::deque<GraphId> GetGraphIds(GraphId& n_graphId,
               currentNode = n_graphId;
               prev_Node = GraphId();
             } else {
+              /*LOG_WARN("Could not recover restriction from way_id " +
+                       std::to_string(res_way_ids.front()) + " to way_id " +
+                       std::to_string(res_way_ids.back()));*/
               graphids.clear();
               return graphids;
             }
@@ -216,6 +217,9 @@ std::deque<GraphId> GetGraphIds(GraphId& n_graphId,
             currentNode = n_graphId;
             prev_Node = GraphId();
           } else {
+            /*LOG_WARN("Could not recover restriction from way_id " +
+                     std::to_string(res_way_ids.front()) + " to way_id " +
+                     std::to_string(res_way_ids.back()));*/
             graphids.clear();
             return graphids;
           }
@@ -227,6 +231,8 @@ std::deque<GraphId> GetGraphIds(GraphId& n_graphId,
   }
 
   if (!bBeginFound) { // happens when opp edge is found and via a this node.
+    /*LOG_WARN("Could not recover restriction from way_id " + std::to_string(res_way_ids.front()) +
+             " to way_id " + std::to_string(res_way_ids.back()));*/
     graphids.clear();
   }
 
@@ -624,7 +630,7 @@ void RestrictionBuilder::Build(const boost::property_tree::ptree& pt,
 
     std::vector<std::shared_ptr<std::thread>> threads(
         std::max(static_cast<unsigned int>(1),
-                 pt.get<unsigned int>("concurrency", std::thread::hardware_concurrency())));
+                 pt.get<unsigned int>("mjolnir.concurrency", std::thread::hardware_concurrency())));
     // Hold the results (DataQuality/stats) for the threads
     std::vector<std::promise<DataQuality>> results(threads.size());
 

@@ -16,7 +16,7 @@
 #include "odin/worker.h"
 #include "tyr/serializers.h"
 
-#include <valhalla/proto/trip.pb.h>
+#include "proto/trip.pb.h"
 
 using namespace valhalla;
 using namespace valhalla::tyr;
@@ -52,17 +52,22 @@ odin_worker_t::work(const std::list<zmq::message_t>& job,
   Api request;
   try {
     // Set the interrupt function
-    service_worker_t::set_interrupt(interrupt_function);
+    service_worker_t::set_interrupt(&interrupt_function);
 
     // crack open the in progress request
-    request.ParseFromArray(job.front().data(), job.front().size());
+    bool success = request.ParseFromArray(job.front().data(), job.front().size());
+    if (!success) {
+      LOG_ERROR("Failed parsing pbf in Odin::Worker");
+      throw valhalla_exception_t{200,
+                                 boost::optional<std::string>("Failed parsing pbf in Odin::Worker")};
+    }
 
     // narrate them and serialize them along
     narrate(request);
     auto response = tyr::serializeDirections(request);
-    auto* to_response =
-        request.options().format() == Options::gpx ? to_response_xml : to_response_json;
-    return to_response(response, info, request);
+    const bool as_gpx = request.options().format() == Options::gpx;
+    return to_response(response, info, request, as_gpx ? worker::GPX_MIME : worker::JSON_MIME,
+                       as_gpx);
   } catch (const std::exception& e) {
     return jsonify_error({299, std::string(e.what())}, info, request);
   }

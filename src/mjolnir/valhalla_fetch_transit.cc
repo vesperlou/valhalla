@@ -12,7 +12,6 @@
 #include <unordered_set>
 
 #include <boost/algorithm/string.hpp>
-#include <boost/filesystem/operations.hpp>
 #include <boost/format.hpp>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/tokenizer.hpp>
@@ -27,11 +26,11 @@
 #include "midgard/logging.h"
 #include "midgard/sequence.h"
 
+#include "filesystem.h"
 #include "mjolnir/admin.h"
 #include "mjolnir/servicedays.h"
 #include "mjolnir/transitpbf.h"
-
-#include <valhalla/proto/transit.pb.h>
+#include "valhalla/proto/transit.pb.h"
 
 using namespace boost::property_tree;
 using namespace valhalla::midgard;
@@ -204,8 +203,8 @@ std::priority_queue<weighted_tile_t> which_tiles(const ptree& pt, const std::str
       }
 
       // expand the top and bottom edges of the box to account for geodesics
-      min_y -= std::abs(min_y - PointLL(min_x, min_y).MidPoint({max_x, min_y}).second);
-      max_y += std::abs(max_y - PointLL(min_x, max_y).MidPoint({max_x, max_y}).second);
+      min_y -= std::abs(min_y - PointLL(min_x, min_y).PointAlongSegment({max_x, min_y}).second);
+      max_y += std::abs(max_y - PointLL(min_x, max_y).PointAlongSegment({max_x, max_y}).second);
       auto min_c = tile_level.tiles.Col(min_x), min_r = tile_level.tiles.Row(min_y);
       auto max_c = tile_level.tiles.Col(max_x), max_r = tile_level.tiles.Row(max_y);
       if (min_c > max_c) {
@@ -231,9 +230,10 @@ std::priority_queue<weighted_tile_t> which_tiles(const ptree& pt, const std::str
   ++utc->tm_mon;
   for (const auto& tile : tiles) {
     auto bbox = tile_level.tiles.TileBounds(tile.tileid());
-    auto min_y = std::max(bbox.miny(), bbox.minpt().MidPoint({bbox.maxx(), bbox.miny()}).second);
-    auto max_y =
-        std::min(bbox.maxy(), PointLL(bbox.minx(), bbox.maxy()).MidPoint(bbox.maxpt()).second);
+    auto min_y =
+        std::max(bbox.miny(), bbox.minpt().PointAlongSegment({bbox.maxx(), bbox.miny()}).second);
+    auto max_y = std::min(bbox.maxy(),
+                          PointLL(bbox.minx(), bbox.maxy()).PointAlongSegment(bbox.maxpt()).second);
     bbox = AABB2<PointLL>(bbox.minx(), min_y, bbox.maxx(), max_y);
     // stop count
     auto request =
@@ -263,7 +263,7 @@ std::priority_queue<weighted_tile_t> which_tiles(const ptree& pt, const std::str
                           stations_total +
                               10 /* + routes_total * 1000 + pairs_total*/}); // TODO: factor in stop
                                                                              // pairs as well
-      LOG_INFO(GraphTile::FileSuffix(tile) + " should have " + std::to_string(stations_total) +
+      LOG_INFO(GraphTile::FileSuffix(tile, false, false) + " should have " + std::to_string(stations_total) +
                " stations " /* +
           std::to_string(routes_total) +  " routes and " + std::to_string(pairs_total) +  " stop_pairs"*/);
     }
@@ -748,12 +748,12 @@ void fetch_tiles(const ptree& pt,
     uniques.lock.unlock();
     auto filter = tiles.TileBounds(current.tileid());
     // expanding both top and bottom by distance to geodesic running through the coords
-    auto min_y =
-        filter.miny() -
-        std::abs(filter.miny() - filter.minpt().MidPoint({filter.maxx(), filter.miny()}).second);
-    auto max_y =
-        filter.maxy() +
-        std::abs(filter.maxy() - filter.maxpt().MidPoint({filter.minx(), filter.maxy()}).second);
+    auto min_y = filter.miny() -
+                 std::abs(filter.miny() -
+                          filter.minpt().PointAlongSegment({filter.maxx(), filter.miny()}).second);
+    auto max_y = filter.maxy() +
+                 std::abs(filter.maxy() -
+                          filter.maxpt().PointAlongSegment({filter.minx(), filter.maxy()}).second);
     AABB2<PointLL> bbox(filter.minx(), min_y, filter.maxx(), max_y);
     ptree response;
     auto api_key =
@@ -765,8 +765,8 @@ void fetch_tiles(const ptree& pt,
     Transit tile;
     auto file_name = GraphTile::FileSuffix(current);
     file_name = file_name.substr(0, file_name.size() - 3) + "pbf";
-    boost::filesystem::path transit_tile = pt.get<std::string>("mjolnir.transit_dir") +
-                                           filesystem::path::preferred_separator + file_name;
+    filesystem::path transit_tile = pt.get<std::string>("mjolnir.transit_dir") +
+                                    filesystem::path::preferred_separator + file_name;
 
     // tiles are wrote out with .pbf or .pbf.n ext
     uint32_t ext = 0;
@@ -1071,7 +1071,7 @@ void stitch_tiles(const ptree& pt,
                std::to_string(needed.size()) + " stops");
 
       file_name = prefix + "." + std::to_string(ext++);
-    } while (boost::filesystem::exists(file_name));
+    } while (filesystem::exists(file_name));
   }
 }
 
@@ -1155,13 +1155,13 @@ int main(int argc, char** argv) {
   curl_global_cleanup();
 
   // figure out which transit tiles even exist
-  boost::filesystem::recursive_directory_iterator transit_file_itr(
+  filesystem::recursive_directory_iterator transit_file_itr(
       pt.get<std::string>("mjolnir.transit_dir") + filesystem::path::preferred_separator +
       std::to_string(TileHierarchy::levels().rbegin()->first));
-  boost::filesystem::recursive_directory_iterator end_file_itr;
+  filesystem::recursive_directory_iterator end_file_itr;
   std::unordered_set<GraphId> all_tiles;
   for (; transit_file_itr != end_file_itr; ++transit_file_itr) {
-    if (boost::filesystem::is_regular(transit_file_itr->path()) &&
+    if (filesystem::is_regular_file(transit_file_itr->path()) &&
         transit_file_itr->path().extension() == ".pbf") {
       all_tiles.emplace(GraphTile::GetTileId(transit_file_itr->path().string()));
     }

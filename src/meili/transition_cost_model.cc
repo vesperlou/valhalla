@@ -15,7 +15,7 @@ TransitionCostModel::TransitionCostModel(baldr::GraphReader& graphreader,
                                          const IViterbiSearch& vs,
                                          const TopKSearch& ts,
                                          const StateContainer& container,
-                                         const sif::cost_ptr_t* mode_costing,
+                                         const sif::mode_costing_t& mode_costing,
                                          const sif::TravelMode travelmode,
                                          float beta,
                                          float breakage_distance,
@@ -46,20 +46,20 @@ TransitionCostModel::TransitionCostModel(baldr::GraphReader& graphreader,
                                          const IViterbiSearch& vs,
                                          const TopKSearch& ts,
                                          const StateContainer& container,
-                                         const sif::cost_ptr_t* mode_costing,
+                                         const sif::mode_costing_t& mode_costing,
                                          const sif::TravelMode travelmode,
-                                         const boost::property_tree::ptree& config)
+                                         const Config::TransitionCost& config)
     : TransitionCostModel(graphreader,
                           vs,
                           ts,
                           container,
                           mode_costing,
                           travelmode,
-                          config.get<float>("beta"),
-                          config.get<float>("breakage_distance"),
-                          config.get<float>("max_route_distance_factor"),
-                          config.get<float>("max_route_time_factor"),
-                          config.get<float>("turn_penalty_factor")) {
+                          config.beta,
+                          config.breakage_distance_meters,
+                          config.max_route_distance_factor,
+                          config.max_route_time_factor,
+                          config.turn_penalty_factor) {
 }
 
 float TransitionCostModel::operator()(const StateId& lhs, const StateId& rhs) const {
@@ -114,19 +114,27 @@ void TransitionCostModel::UpdateRoute(const StateId& lhs, const StateId& rhs) co
   std::vector<baldr::PathLocation> locations;
   locations.reserve(1 + right_column.size());
   locations.push_back(left.candidate());
+  LOG_TRACE("Routing from: " + std::to_string(left.stateid().time()) + "." +
+            std::to_string(left.stateid().id()) + " [" +
+            std::to_string(locations.back().edges.front().projected.lng()) + "," +
+            std::to_string(locations.back().edges.front().projected.lat()) + "],");
   std::vector<StateId> unreached_stateids;
   unreached_stateids.reserve(right_column.size());
   for (const auto& state : right_column) {
     // if (!vs_.Predecessor(state.stateid()).IsValid()) {
     locations.push_back(state.candidate());
     unreached_stateids.push_back(state.stateid());
+    LOG_TRACE("Routing to: " + std::to_string(state.stateid().time()) + "." +
+              std::to_string(state.stateid().id()) + "   [" +
+              std::to_string(locations.back().edges.front().projected.lng()) + "," +
+              std::to_string(locations.back().edges.front().projected.lat()) + "],");
     //}
   }
 
   const auto& left_measurement = container_.measurement(lhs.time());
   const auto& right_measurement = container_.measurement(rhs.time());
 
-  const midgard::DistanceApproximator approximator(right_measurement.lnglat());
+  const midgard::DistanceApproximator<midgard::PointLL> approximator(right_measurement.lnglat());
 
   auto max_route_distance =
       std::min(GreatCircleDistance(left_measurement, right_measurement) * max_route_distance_factor_,

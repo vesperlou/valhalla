@@ -74,11 +74,9 @@ valhalla_module(NAME mjolnir
   DEPENDS
     valhalla::proto
     valhalla::baldr
-    Boost::filesystem
-    Boost::system
-    Boost::date_time
     SpatiaLite::SpatiaLite
     SQLite3::SQLite3
     Lua::Lua
     Threads::Threads
-    ZLIB::ZLIB)
+    ZLIB::ZLIB
+    robin_hood::robin_hood)

@@ -2,6 +2,7 @@
 #include <cstdint>
 #include <functional>
 #include <iostream>
+#include <iterator>
 #include <sstream>
 #include <stdexcept>
 #include <string>
@@ -27,8 +28,8 @@
 #include "odin/sign.h"
 #include "odin/signs.h"
 
-#include <valhalla/proto/directions.pb.h>
-#include <valhalla/proto/options.pb.h>
+#include "proto/directions.pb.h"
+#include "proto/options.pb.h"
 
 using namespace valhalla::midgard;
 using namespace valhalla::baldr;
@@ -37,7 +38,12 @@ using namespace valhalla::odin;
 namespace {
 
 constexpr float kShortForkThreshold = 0.05f; // Kilometers
-constexpr uint32_t kOverlayEdgeMax = 5;      // Maximum number of edges to look for matching overlay
+
+// Kilometers - picked since the next rounded maneuver announcement will happen
+// in a quarter mile or 400 meters
+constexpr float kShortContinueThreshold = 0.6f;
+
+constexpr uint32_t kOverlayEdgeMax = 5; // Maximum number of edges to look for matching overlay
 
 std::vector<std::string> split(const std::string& source, char delimiter) {
   std::vector<std::string> tokens;
@@ -87,8 +93,11 @@ std::list<Maneuver> ManeuversBuilder::Build() {
   // Confirm maneuver type assignment
   ConfirmManeuverTypeAssignment(maneuvers);
 
-  // Process the roundabout names
-  ProcessRoundaboutNames(maneuvers);
+  // Mark the maneuvers that have traversable outbound intersecting edges
+  SetTraversableOutboundIntersectingEdgeFlags(maneuvers);
+
+  // Process roundabouts
+  ProcessRoundabouts(maneuvers);
 
   // Process the 'to stay on' attribute
   SetToStayOnAttribute(maneuvers);
@@ -177,8 +186,6 @@ std::list<Maneuver> ManeuversBuilder::Produce() {
   if (trip_path_->location_size() < 2) {
     throw valhalla_exception_t{212};
   }
-
-  LOG_INFO(std::string("trip_path_->node_size()=" + std::to_string(trip_path_->node_size())));
 
   // Process the Destination maneuver
   maneuvers.emplace_front();
@@ -455,6 +462,23 @@ void ManeuversBuilder::Combine(std::list<Maneuver>& maneuvers) {
         LOG_TRACE("+++ Combine: ramp maneuvers +++");
         next_man = CombineManeuvers(maneuvers, curr_man, next_man);
         maneuvers_have_been_combined = true;
+      }
+      // Combine obvious maneuver
+      else if (IsNextManeuverObvious(maneuvers, curr_man, next_man)) {
+        // If current maneuver does not have street names then use the next maneuver street names
+        if (!curr_man->HasStreetNames() && next_man->HasStreetNames()) {
+          curr_man->set_street_names(next_man->street_names().clone());
+        }
+
+        // Mark that the current maneuver contains an obvious maneuver
+        curr_man->set_contains_obvious_maneuver(true);
+
+        // Disable turn channel
+        curr_man->set_turn_channel(false);
+
+        LOG_TRACE("+++ Combine: obvious maneuver +++");
+        next_man = CombineManeuvers(maneuvers, curr_man, next_man);
+        maneuvers_have_been_combined = true;
       } else {
         LOG_TRACE("+++ Do Not Combine +++");
         // Update with no combine
@@ -551,10 +575,8 @@ ManeuversBuilder::CombineInternalManeuver(std::list<Maneuver>& maneuvers,
   // Set begin shape index
   next_man->set_begin_shape_index(curr_man->begin_shape_index());
 
-  // Set signs, if needed
-  if (curr_man->HasSigns() && !next_man->HasSigns()) {
-    *(next_man->mutable_signs()) = curr_man->signs();
-  }
+  // NOTE: Do not copy signs from internal maneuver
+  //       It would produce invalid results
 
   if (start_man) {
     next_man->set_type(DirectionsLeg_Maneuver_Type_kStart);
@@ -678,6 +700,11 @@ ManeuversBuilder::CombineManeuvers(std::list<Maneuver>& maneuvers,
   // If needed, set portions_highway
   if (next_man->portions_highway()) {
     curr_man->set_portions_highway(true);
+  }
+
+  // If needed, set contains_obvious_maneuver
+  if (next_man->contains_obvious_maneuver()) {
+    curr_man->set_contains_obvious_maneuver(true);
   }
 
   return maneuvers.erase(next_man);
@@ -1098,8 +1125,8 @@ void ManeuversBuilder::FinalizeManeuver(Maneuver& maneuver, int node_index) {
 
   // Set the time based on the delta of the elapsed time between the begin
   // and end nodes
-  maneuver.set_time(trip_path_->node(maneuver.end_node_index()).elapsed_time() -
-                    trip_path_->node(maneuver.begin_node_index()).elapsed_time());
+  maneuver.set_time(trip_path_->node(maneuver.end_node_index()).cost().elapsed_cost().seconds() -
+                    trip_path_->node(maneuver.begin_node_index()).cost().elapsed_cost().seconds());
 
   // if possible, set the turn degree and relative direction
   if (prev_edge) {
@@ -1161,6 +1188,17 @@ void ManeuversBuilder::FinalizeManeuver(Maneuver& maneuver, int node_index) {
     if (curr_edge_names->size() > common_base_names->size()) {
       maneuver.set_begin_street_names(std::move(curr_edge_names));
     }
+  }
+
+  if (node->type() == TripLeg_Node_Type::TripLeg_Node_Type_kBikeShare && prev_edge &&
+      (prev_edge->travel_mode() == TripLeg_TravelMode::TripLeg_TravelMode_kBicycle) &&
+      maneuver.travel_mode() == TripLeg_TravelMode::TripLeg_TravelMode_kPedestrian) {
+    maneuver.set_bss_maneuver_type(DirectionsLeg_Maneuver_BssManeuverType_kReturnBikeAtBikeShare);
+  }
+  if (node->type() == TripLeg_Node_Type::TripLeg_Node_Type_kBikeShare && prev_edge &&
+      (prev_edge->travel_mode() == TripLeg_TravelMode::TripLeg_TravelMode_kPedestrian) &&
+      maneuver.travel_mode() == TripLeg_TravelMode::TripLeg_TravelMode_kBicycle) {
+    maneuver.set_bss_maneuver_type(DirectionsLeg_Maneuver_BssManeuverType_kRentBikeAtBikeShare);
   }
 
   // Set the verbal text formatter
@@ -1402,7 +1440,7 @@ void ManeuversBuilder::SetSimpleDirectionalManeuverType(Maneuver& maneuver,
       if (trip_path_) {
         auto man_begin_edge = trip_path_->GetCurrEdge(maneuver.begin_node_index());
         auto node = trip_path_->GetEnhancedNode(maneuver.begin_node_index());
-        bool prev_edge_has_names = (prev_edge ? !prev_edge->IsUnnamed() : false);
+        //        bool prev_edge_has_names = (prev_edge ? !prev_edge->IsUnnamed() : false);
 
         ////////////////////////////////////////////////////////////////////
         // If the maneuver begin edge is a turn channel
@@ -1458,9 +1496,7 @@ void ManeuversBuilder::SetSimpleDirectionalManeuverType(Maneuver& maneuver,
         //                  prev_edge->GetNameList());
         //          std::unique_ptr<StreetNames> common_base_names = prev_edge_names
         //              ->FindCommonBaseNames(maneuver.street_names());
-        //          LOG_INFO("prev_edge_names->size()=" + std::to_string(prev_edge_names->size()));
-        //          LOG_INFO("common_base_names->size()=" +
-        //          std::to_string(common_base_names->size())); if (common_base_names->empty()) {
+        //          if (common_base_names->empty()) {
         //            maneuver.set_type(DirectionsLeg_Maneuver_Type_kBecomes);
         //            LOG_TRACE("ManeuverType=BECOMES");
         //          }
@@ -1632,7 +1668,11 @@ ManeuversBuilder::DetermineCardinalDirection(uint32_t heading) {
 bool ManeuversBuilder::CanManeuverIncludePrevEdge(Maneuver& maneuver, int node_index) {
   auto prev_edge = trip_path_->GetPrevEdge(node_index);
   auto curr_edge = trip_path_->GetCurrEdge(node_index);
+  auto node = trip_path_->GetEnhancedNode(node_index);
 
+  if (node->type() == TripLeg_Node_Type::TripLeg_Node_Type_kBikeShare) {
+    return false;
+  }
   /////////////////////////////////////////////////////////////////////////////
   // Process transit
   if ((maneuver.travel_mode() == TripLeg_TravelMode_kTransit) &&
@@ -1910,8 +1950,8 @@ bool ManeuversBuilder::IsMergeManeuverType(Maneuver& maneuver,
   // consistent name with intersecting edge
   if (prev_edge && prev_edge->IsRampUse() && !curr_edge->IsRampUse() &&
       (curr_edge->IsHighway() ||
-       (((curr_edge->road_class() == TripLeg_RoadClass_kTrunk) ||
-         (curr_edge->road_class() == TripLeg_RoadClass_kPrimary)) &&
+       (((curr_edge->road_class() == RoadClass::kTrunk) ||
+         (curr_edge->road_class() == RoadClass::kPrimary)) &&
         curr_edge->IsOneway() && curr_edge->IsForward(maneuver.turn_degree()) &&
         node->HasIntersectingEdgeCurrNameConsistency()))) {
     maneuver.set_merge_to_relative_direction(
@@ -1944,8 +1984,8 @@ bool ManeuversBuilder::IsFork(int node_index,
     // and current edge is not a service road class
     // and an intersecting edge is a service road class
     // then not a fork
-    if (node->IsMotorwayJunction() && (curr_edge->road_class() != TripLeg_RoadClass_kServiceOther) &&
-        node->HasSpecifiedRoadClassXEdge(TripLeg_RoadClass_kServiceOther)) {
+    if (node->IsMotorwayJunction() && (curr_edge->road_class() != RoadClass::kServiceOther) &&
+        node->HasSpecifiedRoadClassXEdge(RoadClass::kServiceOther)) {
       return false;
     }
 
@@ -2311,7 +2351,7 @@ bool ManeuversBuilder::IsTurnChannelManeuverCombinable(std::list<Maneuver>::iter
                                                        bool start_man) const {
 
   // Current maneuver must be a turn channel and not equal to the next maneuver
-  if (curr_man->turn_channel() && (curr_man != next_man)) {
+  if (curr_man->turn_channel() && (curr_man != next_man) && !next_man->IsDestinationType()) {
 
     uint32_t new_turn_degree;
     if (start_man) {
@@ -2372,6 +2412,76 @@ bool ManeuversBuilder::AreRampManeuversCombinable(std::list<Maneuver>::iterator 
   return false;
 }
 
+bool ManeuversBuilder::IsNextManeuverObvious(const std::list<Maneuver>& maneuvers,
+                                             std::list<Maneuver>::const_iterator curr_man,
+                                             std::list<Maneuver>::const_iterator next_man) const {
+  // The next maneuver must be a continue maneuver
+  if ((next_man->type() == DirectionsLeg_Maneuver_Type_kContinue)) {
+    // Get the node between the the current and next maneuver
+    auto node = trip_path_->GetEnhancedNode(next_man->begin_node_index());
+
+    // Return true if there are no traversable intersecting edges
+    if (node && !node->HasTraversableIntersectingEdge(next_man->travel_mode())) {
+      return true;
+    }
+
+    // Return false if the maneuver has an exit number
+    if (next_man->HasExitNumberSign()) {
+      return false;
+    }
+
+    // Process ramp forks
+    if (curr_man->ramp() && curr_man->fork() && !curr_man->contains_obvious_maneuver()) {
+      // Obvious if Keep straight and continue
+      if (curr_man->type() == DirectionsLeg_Maneuver_Type_kStayStraight) {
+        return true;
+      } else {
+        if (node) {
+          IntersectingEdgeCounts xedge_counts;
+          node->CalculateRightLeftIntersectingEdgeCounts(curr_man->end_heading(),
+                                                         curr_man->travel_mode(), xedge_counts);
+
+          // TODO: we could enhance in the future
+          // Obvious if left fork and no left edges at intersection
+          if ((curr_man->type() == DirectionsLeg_Maneuver_Type_kStayLeft) &&
+              (xedge_counts.left == 0)) {
+            return true;
+          }
+
+          // Obvious if right fork and no right edges at intersection
+          if ((curr_man->type() == DirectionsLeg_Maneuver_Type_kStayRight) &&
+              (xedge_counts.right == 0)) {
+            return true;
+          }
+        }
+      }
+      return false;
+    }
+
+    // Return true if a short continue maneuver
+    // and the following maneuver is not a continue
+    if (next_man->length(Options_Units_kilometers) < kShortContinueThreshold) {
+      auto next_next_man = std::next(next_man);
+      if ((next_next_man != maneuvers.end()) &&
+          (next_next_man->type() != DirectionsLeg_Maneuver_Type_kContinue)) {
+        return true;
+      }
+    }
+
+    // Return false at motorway junction
+    if (node && (node->type() == TripLeg_Node_Type_kMotorwayJunction)) {
+      return false;
+    }
+
+    // Return true if not a non-backward traversable same name intersecting edge
+    if (node && !node->HasNonBackwardTraversableSameNameIntersectingEdge(curr_man->end_heading(),
+                                                                         next_man->travel_mode())) {
+      return true;
+    }
+  }
+  return false;
+}
+
 bool ManeuversBuilder::AreRoundaboutsProcessable(const TripLeg_TravelMode travel_mode) const {
   if ((travel_mode == TripLeg_TravelMode_kDrive) || (travel_mode == TripLeg_TravelMode_kBicycle)) {
     return true;
@@ -2379,7 +2489,7 @@ bool ManeuversBuilder::AreRoundaboutsProcessable(const TripLeg_TravelMode travel
   return false;
 }
 
-void ManeuversBuilder::ProcessRoundaboutNames(std::list<Maneuver>& maneuvers) {
+void ManeuversBuilder::ProcessRoundabouts(std::list<Maneuver>& maneuvers) {
   // Set previous maneuver
   auto prev_man = maneuvers.begin();
 
@@ -2421,12 +2531,42 @@ void ManeuversBuilder::ProcessRoundaboutNames(std::list<Maneuver>& maneuvers) {
         }
       }
 
-      // Process roundabout exit names
+      // Process roundabout exit names and signs
       if (next_man->type() == DirectionsLeg_Maneuver_Type_kRoundaboutExit) {
         if (next_man->HasBeginStreetNames()) {
-          curr_man->set_roundabout_exit_street_names(next_man->begin_street_names().clone());
+          if (next_man->contains_obvious_maneuver()) {
+            // If the next_man contains an obvious maneuver
+            // then use the begin street names as the street names
+            curr_man->set_roundabout_exit_street_names(next_man->begin_street_names().clone());
+          } else {
+            curr_man->set_roundabout_exit_begin_street_names(next_man->begin_street_names().clone());
+            curr_man->set_roundabout_exit_street_names(next_man->street_names().clone());
+          }
         } else {
           curr_man->set_roundabout_exit_street_names(next_man->street_names().clone());
+        }
+        if (next_man->HasSigns()) {
+          *(curr_man->mutable_roundabout_exit_signs()) = next_man->signs();
+        }
+
+        // Suppress roundabout exit maneuver if user requested
+        if (!options_.roundabout_exits()) {
+          // Mark that the maneuver has a combined enter and exit roundabout instruction
+          curr_man->set_has_combined_enter_exit_roundabout(true);
+
+          // Set the roundabout length
+          curr_man->set_roundabout_length(curr_man->length());
+
+          // Set the roundabout exit length
+          curr_man->set_roundabout_exit_length(next_man->length());
+
+          // Set the traversable_outbound_intersecting_edge booleans
+          curr_man->set_has_left_traversable_outbound_intersecting_edge(
+              next_man->has_left_traversable_outbound_intersecting_edge());
+          curr_man->set_has_right_traversable_outbound_intersecting_edge(
+              next_man->has_right_traversable_outbound_intersecting_edge());
+
+          next_man = CombineManeuvers(maneuvers, curr_man, next_man);
         }
       }
     }
@@ -2740,7 +2880,7 @@ void ManeuversBuilder::MatchGuidanceViewJunctions(Maneuver& maneuver,
        ((node_index < maneuver.end_node_index()) && (edge_count < kOverlayEdgeMax));
        ++node_index, edge_count++) {
     // Loop over guidance view junctions
-    auto curr_edge = trip_path_->GetCurrEdge(maneuver.begin_node_index());
+    auto curr_edge = trip_path_->GetCurrEdge(node_index);
     if (curr_edge && (curr_edge->has_sign())) {
       // Process overlay guidance view junctions
       for (const auto& overlay_guidance_view_junction : curr_edge->sign().guidance_view_junctions()) {
@@ -2748,10 +2888,9 @@ void ManeuversBuilder::MatchGuidanceViewJunctions(Maneuver& maneuver,
         // If overlay(!is_route_number) guidance view junction and a pair...
         if (!overlay_guidance_view_junction.is_route_number() && is_pair(overlay_tokens) &&
             (base_prefix == overlay_tokens.at(0))) {
-          // TODO implement for real in the future
           DirectionsLeg_GuidanceView guidance_view;
-          guidance_view.set_data_id("z");
-          guidance_view.set_type("jct");
+          guidance_view.set_data_id(std::to_string(trip_path_->osm_changeset()));
+          guidance_view.set_type("jct"); // TODO implement for real in the future based on sign type
           guidance_view.set_base_id(base_prefix + base_suffix);
           guidance_view.add_overlay_ids(overlay_tokens.at(0) + overlay_tokens.at(1));
           maneuver.mutable_guidance_views()->emplace_back(guidance_view);
@@ -2784,6 +2923,44 @@ bool ManeuversBuilder::RampLeadsToHighway(Maneuver& maneuver) const {
   }
   // Not a ramp
   return false;
+}
+
+void ManeuversBuilder::SetTraversableOutboundIntersectingEdgeFlags(std::list<Maneuver>& maneuvers) {
+  // Process each maneuver for traversable outbound intersecting edges
+  for (Maneuver& maneuver : maneuvers) {
+    bool found_first_edge_to_process = false;
+    for (int node_index = maneuver.begin_node_index(); node_index < maneuver.end_node_index();
+         ++node_index) {
+      if (!found_first_edge_to_process) {
+        auto curr_edge = trip_path_->GetCurrEdge(node_index);
+        // Skip the initial internal and turn channel edges
+        if (curr_edge->internal_intersection() || curr_edge->IsTurnChannelUse()) {
+          continue;
+        }
+        // we can process the next edge - set flag and continue
+        found_first_edge_to_process = true;
+        continue;
+      }
+      auto node = trip_path_->GetEnhancedNode(node_index);
+      auto prev_edge = trip_path_->GetPrevEdge(node_index);
+      if (node && prev_edge) {
+        IntersectingEdgeCounts xedge_counts;
+        node->CalculateRightLeftIntersectingEdgeCounts(prev_edge->end_heading(),
+                                                       prev_edge->travel_mode(), xedge_counts);
+        if (xedge_counts.right_traversable_outbound > 0) {
+          maneuver.set_has_right_traversable_outbound_intersecting_edge(true);
+        }
+        if (xedge_counts.left_traversable_outbound > 0) {
+          maneuver.set_has_left_traversable_outbound_intersecting_edge(true);
+        }
+        // If both are already marks then we can stop processing
+        if (maneuver.has_right_traversable_outbound_intersecting_edge() &&
+            maneuver.has_left_traversable_outbound_intersecting_edge()) {
+          break;
+        }
+      }
+    }
+  }
 }
 
 } // namespace odin

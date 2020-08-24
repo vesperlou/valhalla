@@ -13,7 +13,6 @@
 
 #include "baldr/rapidjson_utils.h"
 #include <boost/algorithm/string.hpp>
-#include <boost/filesystem/operations.hpp>
 #include <boost/format.hpp>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/tokenizer.hpp>
@@ -28,6 +27,7 @@
 #include "midgard/encoded.h"
 #include "midgard/logging.h"
 #include "midgard/sequence.h"
+#include "midgard/vector2.h"
 
 #include "mjolnir/admin.h"
 #include "mjolnir/graphtilebuilder.h"
@@ -35,7 +35,7 @@
 #include "mjolnir/transitpbf.h"
 #include "mjolnir/validatetransit.h"
 
-#include <valhalla/proto/transit.pb.h>
+#include "proto/transit.pb.h"
 
 using namespace boost::property_tree;
 using namespace valhalla::midgard;
@@ -75,12 +75,12 @@ ProcessStopPairs(GraphTileBuilder& transit_tilebuilder,
   std::size_t slash_found = file.find_last_of("/\\");
   std::string directory = file.substr(0, slash_found);
 
-  boost::filesystem::recursive_directory_iterator transit_file_itr(directory);
-  boost::filesystem::recursive_directory_iterator end_file_itr;
+  filesystem::recursive_directory_iterator transit_file_itr(directory);
+  filesystem::recursive_directory_iterator end_file_itr;
 
   // for each tile.
   for (; transit_file_itr != end_file_itr; ++transit_file_itr) {
-    if (boost::filesystem::is_regular(transit_file_itr->path())) {
+    if (filesystem::is_regular_file(transit_file_itr->path())) {
       std::string fname = transit_file_itr->path().string();
       std::string ext = transit_file_itr->path().extension().string();
       std::string file_name = fname.substr(0, fname.size() - ext.size());
@@ -999,7 +999,7 @@ void build_tiles(const boost::property_tree::ptree& pt,
     const std::string file = transit_dir + filesystem::path::preferred_separator + file_name;
 
     // Make sure it exists
-    if (!boost::filesystem::exists(file)) {
+    if (!filesystem::exists(file)) {
       LOG_ERROR("File not found.  " + file);
       return;
     }
@@ -1299,13 +1299,13 @@ int main(int argc, char** argv) {
   }
 
   // figure out which transit tiles even exist
-  boost::filesystem::recursive_directory_iterator transit_file_itr(
+  filesystem::recursive_directory_iterator transit_file_itr(
       pt.get<std::string>("mjolnir.transit_dir") + filesystem::path::preferred_separator +
       std::to_string(TileHierarchy::levels().rbegin()->first));
-  boost::filesystem::recursive_directory_iterator end_file_itr;
+  filesystem::recursive_directory_iterator end_file_itr;
   std::unordered_set<GraphId> all_tiles;
   for (; transit_file_itr != end_file_itr; ++transit_file_itr) {
-    if (boost::filesystem::is_regular(transit_file_itr->path()) &&
+    if (filesystem::is_regular_file(transit_file_itr->path()) &&
         transit_file_itr->path().extension() == ".pbf") {
 
       LOG_INFO("tile: " + transit_file_itr->path().string());

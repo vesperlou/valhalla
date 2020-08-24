@@ -12,28 +12,30 @@
 #include "baldr/directededge.h"
 #include "baldr/graphid.h"
 #include "baldr/graphreader.h"
+#include "baldr/rapidjson_utils.h"
+#include "filesystem.h"
 #include "loki/worker.h"
+#include "midgard/constants.h"
+#include "midgard/encoded.h"
+#include "midgard/logging.h"
+#include "midgard/pointll.h"
+#include "midgard/util.h"
 #include "mjolnir/util.h"
 #include "odin/worker.h"
+#include "proto/trip.pb.h"
 #include "thor/worker.h"
 #include "tyr/actor.h"
 #include "tyr/serializers.h"
 
-#include <boost/filesystem.hpp>
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/property_tree/ptree.hpp>
 
-#include "rapidjson/document.h"
-#include "rapidjson/stringbuffer.h"
-#include "rapidjson/writer.h"
-
-#include "midgard/constants.h"
-#include "midgard/logging.h"
-#include "midgard/pointll.h"
-
 #include <osmium/builder/attr.hpp>
 #include <osmium/builder/osm_object_builder.hpp>
+#include <osmium/io/output_iterator.hpp>
 #include <osmium/io/pbf_output.hpp>
+#include <osmium/object_pointer_collection.hpp>
+#include <osmium/osm/object_comparisons.hpp>
 
 #include <regex>
 #include <string>
@@ -44,13 +46,15 @@
 namespace valhalla {
 namespace gurka {
 
+using nodelayout = std::map<std::string, midgard::PointLL>;
+
 struct map {
   boost::property_tree::ptree config;
-  std::unordered_map<std::string, midgard::PointLL> nodes;
+  nodelayout nodes;
 };
 
-using ways = std::unordered_map<std::string, std::unordered_map<std::string, std::string>>;
-using nodes = std::unordered_map<std::string, std::unordered_map<std::string, std::string>>;
+using ways = std::map<std::string, std::map<std::string, std::string>>;
+using nodes = std::map<std::string, std::map<std::string, std::string>>;
 
 enum relation_member_type { node_member, way_member };
 struct relation_member {
@@ -60,19 +64,19 @@ struct relation_member {
 };
 struct relation {
   std::vector<relation_member> members;
-  std::unordered_map<std::string, std::string> tags;
+  std::map<std::string, std::string> tags;
 };
 
 using relations = std::vector<relation>;
 
-using nodelayout = std::unordered_map<std::string, midgard::PointLL>;
-
 namespace detail {
 
-boost::property_tree::ptree build_config(const std::string& tiledir) {
+boost::property_tree::ptree
+build_config(const std::string& tiledir,
+             const std::unordered_map<std::string, std::string>& config_options) {
 
   const std::string default_config = R"(
-    {"mjolnir":{"tile_dir":"", "concurrency": 1},
+    {"mjolnir":{"id_table_size":1000,"tile_dir":"", "concurrency": 1},
      "thor":{
        "logging" : {"long_request" : 100}
      },
@@ -91,7 +95,8 @@ boost::property_tree::ptree build_config(const std::string& tiledir) {
          "route": true,
          "search_radius": 50,
          "sigma_z": 4.07,
-         "turn_penalty_factor": 0
+         "turn_penalty_factor": 0,
+         "penalize_immediate_uturn": true
        },
        "customizable": [
          "mode",
@@ -102,7 +107,8 @@ boost::property_tree::ptree build_config(const std::string& tiledir) {
          "sigma_z",
          "beta",
          "max_route_distance_factor",
-         "max_route_time_factor"
+         "max_route_time_factor",
+         "penalize_immediate_uturn"
        ]
      },
      "loki":{
@@ -117,13 +123,14 @@ boost::property_tree::ptree build_config(const std::string& tiledir) {
          "trace_attributes",
          "transit_available"
        ],
-       "logging" : {"long_request" : 100}, 
+       "logging" : {"long_request" : 100},
        "service_defaults" : {
          "minimum_reachability" : 50,
          "radius" : 0,
          "search_cutoff" : 35000,
          "node_snap_tolerance" : 5,
          "street_side_tolerance" : 5,
+         "street_side_max_distance": 1000,
          "heading_tolerance" : 60
         }
      },
@@ -149,12 +156,17 @@ boost::property_tree::ptree build_config(const std::string& tiledir) {
   boost::property_tree::ptree ptree;
   boost::property_tree::json_parser::read_json(stream, ptree);
   ptree.put("mjolnir.tile_dir", tiledir);
+  for (const auto& kv : config_options) {
+    ptree.put(kv.first, kv.second);
+  }
   return ptree;
 }
 
-std::string build_valhalla_route_request(const map& map,
-                                         const std::vector<std::string>& waypoints,
-                                         const std::string& costing = "auto") {
+std::string
+build_valhalla_route_request(const map& map,
+                             const std::vector<std::string>& waypoints,
+                             const std::string& costing = "auto",
+                             const std::unordered_map<std::string, std::string>& options = {}) {
 
   rapidjson::Document doc;
   doc.SetObject();
@@ -167,8 +179,29 @@ std::string build_valhalla_route_request(const map& map,
     p.AddMember("lat", map.nodes.at(waypoint).lat(), allocator);
     locations.PushBack(p, allocator);
   }
+
+  rapidjson::Value dt(rapidjson::kObjectType);
+  rapidjson::Value speed_types(rapidjson::kArrayType);
+  speed_types.PushBack("freeflow", allocator);
+  speed_types.PushBack("constrained", allocator);
+  speed_types.PushBack("predicted", allocator);
+
+  // add the options using the pointer method
+  for (const auto& kv : options) {
+    if (kv.first.find("/date_time/type") != std::string::npos && kv.second == "0") {
+      speed_types.PushBack("current", allocator);
+    }
+    rapidjson::Pointer(kv.first).Set(doc, kv.second);
+  }
+
   doc.AddMember("locations", locations, allocator);
   doc.AddMember("costing", costing, allocator);
+
+  rapidjson::Value costing_options(rapidjson::kObjectType);
+  rapidjson::Value co(rapidjson::kObjectType);
+  co.AddMember("speed_types", speed_types, allocator);
+  costing_options.AddMember(rapidjson::Value(costing, allocator), co, allocator);
+  doc.AddMember("costing_options", costing_options, allocator);
 
   rapidjson::StringBuffer sb;
   rapidjson::Writer<rapidjson::StringBuffer> writer(sb);
@@ -178,8 +211,9 @@ std::string build_valhalla_route_request(const map& map,
 
 std::string build_valhalla_match_request(const map& map,
                                          const std::vector<std::string>& waypoints,
-                                         const bool break_at_points = false,
-                                         const std::string& costing = "auto") {
+                                         const std::string& stop_type,
+                                         const std::string& costing = "auto",
+                                         const std::string& trace_options = "{}") {
 
   rapidjson::Document doc;
   doc.SetObject();
@@ -190,9 +224,7 @@ std::string build_valhalla_match_request(const map& map,
     rapidjson::Value p(rapidjson::kObjectType);
     p.AddMember("lon", map.nodes.at(waypoint).lng(), allocator);
     p.AddMember("lat", map.nodes.at(waypoint).lat(), allocator);
-    if (break_at_points) {
-      p.AddMember("type", "break", allocator);
-    }
+    p.AddMember("type", stop_type, allocator);
     locations.PushBack(p, allocator);
   }
   doc.AddMember("shape", locations, allocator);
@@ -202,7 +234,15 @@ std::string build_valhalla_match_request(const map& map,
   rapidjson::StringBuffer sb;
   rapidjson::Writer<rapidjson::StringBuffer> writer(sb);
   doc.Accept(writer);
-  return sb.GetString();
+  std::string request = sb.GetString();
+  // inject more options directly
+  if (!trace_options.empty()) {
+    request.back() = ',';
+    request += R"("trace_options":)";
+    request += trace_options;
+    request.push_back('}');
+  }
+  return request;
 }
 
 std::vector<std::string> splitter(const std::string in_pattern, const std::string& content) {
@@ -310,7 +350,7 @@ inline void build_pbf(const nodelayout& node_locations,
                       const nodes& nodes,
                       const relations& relations,
                       const std::string& filename,
-                      const int initial_osm_id = 0) {
+                      const uint64_t initial_osm_id = 0) {
 
   const size_t initial_buffer_size = 10000;
   osmium::memory::Buffer buffer{initial_buffer_size, osmium::memory::Buffer::auto_grow::yes};
@@ -341,12 +381,12 @@ inline void build_pbf(const nodelayout& node_locations,
   }
 
   std::unordered_map<std::string, int> node_id_map;
-  std::unordered_map<std::string, int> node_osm_id_map;
+  std::unordered_map<std::string, uint64_t> node_osm_id_map;
   int id = 0;
   for (auto& loc : node_locations) {
     node_id_map[loc.first] = id++;
   }
-  int osm_id = initial_osm_id;
+  uint64_t osm_id = initial_osm_id;
   for (auto& loc : node_locations) {
     if (used_nodes.count(loc.first) > 0) {
       node_osm_id_map[loc.first] = osm_id++;
@@ -374,9 +414,20 @@ inline void build_pbf(const nodelayout& node_locations,
     }
   }
 
-  std::unordered_map<std::string, int> way_osm_id_map;
+  std::unordered_map<std::string, uint64_t> way_osm_id_map;
   for (const auto& way : ways) {
-    way_osm_id_map[way.first] = osm_id++;
+    // allow setting custom id
+    auto way_id = osm_id++;
+    auto found = way.second.find("osm_id");
+    if (found != way.second.cend()) {
+      uint64_t id = std::stoull(found->second);
+      if (id < osm_id) {
+        throw std::invalid_argument("Osm way id has already been used");
+      }
+      way_id = id;
+    }
+
+    way_osm_id_map[way.first] = way_id;
     std::vector<int> nodeids;
     for (const auto& ch : way.first) {
       nodeids.push_back(node_osm_id_map[std::string(1, ch)]);
@@ -389,7 +440,7 @@ inline void build_pbf(const nodelayout& node_locations,
       tags.push_back({keyval.first, keyval.second});
     }
     osmium::builder::add_way(buffer, osmium::builder::attr::_id(way_osm_id_map[way.first]),
-                             osmium::builder::attr::_version(1),
+                             osmium::builder::attr::_version(1), osmium::builder::attr::_cid(1001),
                              osmium::builder::attr::_timestamp(std::time(nullptr)),
                              osmium::builder::attr::_nodes(nodeids),
                              osmium::builder::attr::_tags(tags));
@@ -398,16 +449,16 @@ inline void build_pbf(const nodelayout& node_locations,
   for (const auto& relation : relations) {
 
     std::vector<osmium::builder::attr::member_type> members;
-
     for (const auto& member : relation.members) {
       if (member.type == node_member) {
-        members.push_back(
-            {osmium::item_type::node, node_osm_id_map[member.ref], member.role.c_str()});
+        members.push_back({osmium::item_type::node, static_cast<int64_t>(node_osm_id_map[member.ref]),
+                           member.role.c_str()});
       } else {
         if (way_osm_id_map.count(member.ref) == 0) {
           throw std::runtime_error("Relation member refers to an undefined way " + member.ref);
         }
-        members.push_back({osmium::item_type::way, way_osm_id_map[member.ref], member.role.c_str()});
+        members.push_back({osmium::item_type::way, static_cast<int64_t>(way_osm_id_map[member.ref]),
+                           member.role.c_str()});
       }
     }
 
@@ -431,10 +482,28 @@ inline void build_pbf(const nodelayout& node_locations,
 
   // Initialize Writer using the header from above and tell it that it
   // is allowed to overwrite a possibly existing file.
-  osmium::io::Writer writer{output_file, header, osmium::io::overwrite::allow};
+  osmium::io::Writer writer{output_file, header, osmium::io::overwrite::allow, osmium::io::fsync::no};
 
-  // Write out the contents of the output buffer.
-  writer(std::move(buffer));
+  // Sort by id..
+  // TODO: why does everything use object_id_type of signed int64?
+  osmium::ObjectPointerCollection objects;
+  osmium::apply(buffer, objects);
+  struct object_order_type_unsigned_id_version {
+    bool operator()(const osmium::OSMObject* lhs, const osmium::OSMObject* rhs) const noexcept {
+      if (lhs->type() == rhs->type()) {
+        if (lhs->id() == rhs->id()) {
+          return lhs->version() < rhs->version();
+        }
+        return static_cast<uint64_t>(lhs->id()) < static_cast<uint64_t>(rhs->id());
+      }
+      return lhs->type() < rhs->type();
+    }
+  };
+  objects.sort(object_order_type_unsigned_id_version{});
+
+  // Write out the objects in sorted order
+  auto out = osmium::io::make_output_iterator(writer);
+  std::copy(objects.begin(), objects.end(), out);
 
   // Explicitly close the writer. Will throw an exception if there is
   // a problem. If you wait for the destructor to close the writer, you
@@ -453,6 +522,9 @@ inline void build_pbf(const nodelayout& node_locations,
  * @param nodes properties on any of the defined nodes
  * @param relations OSM relations that related nodes and ways together
  * @param workdir where to build the PBF and the tiles
+ * @param config_options optional key value pairs where the key is ptree style dom traversal and
+ *        the value is the value to put into the config. You can do things like
+ *        add timezones database path
  * @return a map object that contains the Valhalla config (to pass to GraphReader) and node layout
  *         (for converting node names to coordinates)
  */
@@ -460,10 +532,11 @@ map buildtiles(const nodelayout layout,
                const ways& ways,
                const nodes& nodes,
                const relations& relations,
-               const std::string& workdir) {
+               const std::string& workdir,
+               const std::unordered_map<std::string, std::string>& config_options = {}) {
 
   map result;
-  result.config = detail::build_config(workdir);
+  result.config = detail::build_config(workdir, config_options);
   result.nodes = layout;
 
   // Sanity check so that we don't blow away / by mistake
@@ -471,9 +544,9 @@ map buildtiles(const nodelayout layout,
     throw std::runtime_error("Can't use / for tests, as we need to clean it out first");
   }
 
-  if (boost::filesystem::exists(workdir))
-    boost::filesystem::remove_all(workdir);
-  boost::filesystem::create_directories(workdir);
+  if (filesystem::exists(workdir))
+    filesystem::remove_all(workdir);
+  filesystem::create_directories(workdir);
 
   auto pbf_filename = workdir + "/map.pbf";
   std::cerr << "[          ] generating map PBF at " << pbf_filename << std::endl;
@@ -494,60 +567,53 @@ map buildtiles(const nodelayout layout,
  *
  * @param reader a reader configured to read graph tiles
  * @param nodes a lookup table from node names to coordinates
- * @param tile_id the tile to search
  * @param way_name the way name you want a directed edge for
  * @param end_node the node that should be the target of the directed edge you want
+ * @param tile_id optional tile_id to limit the search to
  * @return the directed edge that matches, or nullptr if there was no match
  */
 std::tuple<const baldr::GraphId,
            const baldr::DirectedEdge*,
            const baldr::GraphId,
            const baldr::DirectedEdge*>
-findEdge(const std::unique_ptr<valhalla::baldr::GraphReader>& reader,
-         const std::unordered_map<std::string, midgard::PointLL>& nodes,
-         const baldr::GraphId& tile_id,
+findEdge(valhalla::baldr::GraphReader& reader,
+         const nodelayout& nodes,
          const std::string& way_name,
-         const std::string& end_node) {
-  auto* tile = reader->GetGraphTile(tile_id);
+         const std::string& end_node,
+         const baldr::GraphId& tile_id = baldr::GraphId{}) {
+  // if the tile was specified use it otherwise scan everything
+  auto tileset =
+      tile_id.Is_Valid() ? std::unordered_set<baldr::GraphId>{tile_id} : reader.GetTileSet();
 
+  // Iterate over all the tiles, there wont be many in unit tests..
   auto end_node_coordinates = nodes.at(end_node);
-
-  // Iterate over all directed edges to find one with the name we want
-  for (uint32_t i = 0; i < tile->header()->directededgecount(); i++) {
-    const auto* forward_directed_edge = tile->directededge(i);
-    // Now, see if the endnode for this edge is our end_node
-    auto de_endnode = forward_directed_edge->endnode();
-    auto de_endnode_coordinates = tile->get_node_ll(de_endnode);
-    const auto threshold = 0.00001; // Degrees.  About 1m at the equator
-    if (std::abs(de_endnode_coordinates.lng() - end_node_coordinates.lng()) < threshold &&
-        std::abs(de_endnode_coordinates.lat() - end_node_coordinates.lat()) < threshold) {
-      auto names = tile->GetNames(forward_directed_edge->edgeinfo_offset());
-      for (const auto& name : names) {
-        if (name == way_name) {
-          auto forward_edge_id = tile_id;
-          forward_edge_id.set_id(i);
-          auto reverse_edge_id = tile->GetOpposingEdgeId(forward_directed_edge);
-          auto* reverse_directed_edge = tile->directededge(i);
-          return std::make_tuple(forward_edge_id, forward_directed_edge, reverse_edge_id,
-                                 reverse_directed_edge);
+  for (auto tile_id : tileset) {
+    auto* tile = reader.GetGraphTile(tile_id);
+    // Iterate over all directed edges to find one with the name we want
+    for (uint32_t i = 0; i < tile->header()->directededgecount(); i++) {
+      const auto* forward_directed_edge = tile->directededge(i);
+      // Now, see if the endnode for this edge is our end_node
+      auto de_endnode = forward_directed_edge->endnode();
+      auto de_endnode_coordinates = tile->get_node_ll(de_endnode);
+      const auto threshold = 0.00001; // Degrees.  About 1m at the equator
+      if (std::abs(de_endnode_coordinates.lng() - end_node_coordinates.lng()) < threshold &&
+          std::abs(de_endnode_coordinates.lat() - end_node_coordinates.lat()) < threshold) {
+        auto names = tile->GetNames(forward_directed_edge->edgeinfo_offset());
+        for (const auto& name : names) {
+          if (name == way_name) {
+            auto forward_edge_id = tile_id;
+            forward_edge_id.set_id(i);
+            auto reverse_edge_id = tile->GetOpposingEdgeId(forward_directed_edge);
+            auto* reverse_directed_edge = tile->directededge(i);
+            return std::make_tuple(forward_edge_id, forward_directed_edge, reverse_edge_id,
+                                   reverse_directed_edge);
+          }
         }
       }
     }
   }
 
   return std::make_tuple(baldr::GraphId{}, nullptr, baldr::GraphId{}, nullptr);
-}
-
-std::tuple<const baldr::GraphId,
-           const baldr::DirectedEdge*,
-           const baldr::GraphId,
-           const baldr::DirectedEdge*>
-findEdge(const map& map,
-         const baldr::GraphId& tile_id,
-         const std::string& way_name,
-         const std::string& end_node) {
-  std::unique_ptr<baldr::GraphReader> reader(new baldr::GraphReader(map.config));
-  return findEdge(reader, map.nodes, tile_id, way_name, end_node);
 }
 
 /**
@@ -558,8 +624,16 @@ findEdge(const map& map,
  * @param waypoints an array of node names to use as waypoints
  * @param costing the name of the costing model to use
  */
-valhalla::Api
-route(const map& map, const std::vector<std::string>& waypoints, const std::string& costing) {
+valhalla::Api route(const map& map,
+                    const std::vector<std::string>& waypoints,
+                    const std::string& costing,
+                    const std::unordered_map<std::string, std::string>& options = {},
+                    std::shared_ptr<valhalla::baldr::GraphReader> reader = {}) {
+  if (!reader)
+    reader.reset(new valhalla::baldr::GraphReader(map.config.get_child("mjolnir")));
+  else
+    std::cerr << "[          ] Using pre-allocated baldr::GraphReader" << std::endl;
+
   std::cerr << "[          ] Routing with mjolnir.tile_dir = "
             << map.config.get<std::string>("mjolnir.tile_dir") << " with waypoints ";
   bool first = true;
@@ -570,22 +644,42 @@ route(const map& map, const std::vector<std::string>& waypoints, const std::stri
     first = false;
   };
   std::cerr << " with costing " << costing << std::endl;
-  auto request_json = detail::build_valhalla_route_request(map, waypoints, costing);
+  auto request_json = detail::build_valhalla_route_request(map, waypoints, costing, options);
   std::cerr << "[          ] Valhalla request is: " << request_json << std::endl;
 
-  valhalla::tyr::actor_t actor(map.config, true);
-  return actor.unserialized_route(request_json);
+  valhalla::tyr::actor_t actor(map.config, *reader, true);
+  valhalla::Api api;
+  actor.route(request_json, nullptr, &api);
+  return api;
 }
 
-valhalla::Api
-route(const map& map, const std::string& from, const std::string& to, const std::string& costing) {
-  return route(map, {from, to}, costing);
+valhalla::Api route(const map& map,
+                    const std::string& from,
+                    const std::string& to,
+                    const std::string& costing,
+                    const std::unordered_map<std::string, std::string>& options = {},
+                    std::shared_ptr<valhalla::baldr::GraphReader> reader = {}) {
+  return route(map, {from, to}, costing, options, reader);
+}
+
+valhalla::Api route(const map& map, const std::string& request_json) {
+  valhalla::tyr::actor_t actor(map.config, true);
+  valhalla::Api api;
+  actor.route(request_json, nullptr, &api);
+  return api;
 }
 
 valhalla::Api match(const map& map,
                     const std::vector<std::string>& waypoints,
-                    const bool break_at_points,
-                    const std::string& costing) {
+                    const std::string& stop_type,
+                    const std::string& costing,
+                    const std::string& trace_options = "{}",
+                    std::shared_ptr<valhalla::baldr::GraphReader> reader = {}) {
+  if (!reader)
+    reader.reset(new valhalla::baldr::GraphReader(map.config.get_child("mjolnir")));
+  else
+    std::cerr << "[          ] Using pre-allocated baldr::GraphReader" << std::endl;
+
   std::cerr << "[          ] Matching with mjolnir.tile_dir = "
             << map.config.get<std::string>("mjolnir.tile_dir") << " with waypoints ";
   bool first = true;
@@ -596,34 +690,49 @@ valhalla::Api match(const map& map,
     first = false;
   };
   std::cerr << " with costing " << costing << std::endl;
-  auto request_json = detail::build_valhalla_match_request(map, waypoints, break_at_points, costing);
+  auto request_json =
+      detail::build_valhalla_match_request(map, waypoints, stop_type, costing, trace_options);
   std::cerr << "[          ] Valhalla request is: " << request_json << std::endl;
 
-  valhalla::tyr::actor_t actor(map.config, true);
-  return actor.unserialized_trace_route(request_json);
+  valhalla::tyr::actor_t actor(map.config, *reader, true);
+  valhalla::Api api;
+  actor.trace_route(request_json, nullptr, &api);
+  return api;
+}
+
+/* Returns the raw_result formatted as a JSON document in the given format.
+ *
+ * @param raw_result the result of a /route or /match request
+ * @param format the response format to use for the JSON document
+ * @return A JSON document created from serialized raw_result. Caller should
+ * call HasParseError() on the returned document to verify its validity.
+ */
+rapidjson::Document convert_to_json(valhalla::Api& raw_result, valhalla::Options_Format format) {
+  raw_result.mutable_options()->set_format(format);
+
+  std::string json = tyr::serializeDirections(raw_result);
+  rapidjson::Document result;
+  result.Parse(json.c_str());
+  return result;
 }
 
 namespace assert {
 namespace osrm {
 
 /**
- * Tests if a found path traverses the expected roads in the expected order
+ * Tests if a found path traverses the expected steps in the expected order
  *
  * @param result the result of a /route or /match request
- * @param expected_names the names of the roads the path should traverse in order
+ * @param expected_names the names of the step roads the path should traverse in order
  * @param dedupe whether subsequent same-name roads should appear multiple times or not (default not)
  */
-void expect_route(valhalla::Api& raw_result,
+void expect_steps(valhalla::Api& raw_result,
                   const std::vector<std::string>& expected_names,
                   bool dedupe = true) {
 
-  raw_result.mutable_options()->set_format(valhalla::Options_Format_osrm);
-  auto json = tyr::serializeDirections(raw_result);
-
-  rapidjson::Document result;
-  result.Parse(json.c_str());
+  rapidjson::Document result = convert_to_json(raw_result, valhalla::Options_Format_osrm);
   if (result.HasParseError()) {
-    FAIL();
+    FAIL() << "Error converting route response to JSON";
   }
 
   EXPECT_TRUE(result.HasMember("routes"));
@@ -661,7 +770,7 @@ void expect_route(valhalla::Api& raw_result,
     actual_names.erase(last, actual_names.end());
   }
 
-  EXPECT_EQ(actual_names, expected_names) << "Actual path didn't match expected path";
+  EXPECT_EQ(actual_names, expected_names) << "Actual steps didn't match expected steps";
 }
 /**
  * Tests if a found path traverses the expected roads in the expected order
@@ -674,13 +783,9 @@ void expect_match(valhalla::Api& raw_result,
                   const std::vector<std::string>& expected_names,
                   bool dedupe = true) {
 
-  raw_result.mutable_options()->set_format(valhalla::Options_Format_osrm);
-  auto json = tyr::serializeDirections(raw_result);
-
-  rapidjson::Document result;
-  result.Parse(json.c_str());
+  rapidjson::Document result = convert_to_json(raw_result, valhalla::Options_Format_osrm);
   if (result.HasParseError()) {
-    FAIL();
+    FAIL() << "Error converting route response to JSON";
   }
 
   EXPECT_TRUE(result.HasMember("matchings"));
@@ -734,43 +839,146 @@ void expect_maneuvers(const valhalla::Api& result,
                       const std::vector<valhalla::DirectionsLeg_Maneuver_Type>& expected_maneuvers) {
 
   EXPECT_EQ(result.directions().routes_size(), 1);
-  EXPECT_EQ(result.directions().routes(0).legs_size(), 1);
-
-  const auto& leg = result.directions().routes(0).legs(0);
 
   std::vector<valhalla::DirectionsLeg_Maneuver_Type> actual_maneuvers;
-  for (int i = 0; i < leg.maneuver_size(); i++) {
-    actual_maneuvers.push_back(leg.maneuver(i).type());
+  for (const auto& leg : result.directions().routes(0).legs()) {
+    for (const auto& maneuver : leg.maneuver()) {
+      actual_maneuvers.push_back(maneuver.type());
+    }
   }
 
   EXPECT_EQ(actual_maneuvers, expected_maneuvers)
       << "Actual maneuvers didn't match expected maneuvers";
 }
 
+/**
+ * Tests whether the expected set of instructions is emitted for the specified maneuver index.
+ * Looks at the output of Odin in the result.
+ *
+ * @param result the result of a /route or /match request
+ * @param maneuver_index the specified maneuver index to inspect
+ * @param expected_text_instruction the expected text instruction
+ * @param expected_verbal_transition_alert_instruction the expected verbal transition alert
+ *                                                     instruction
+ * @param expected_verbal_pre_transition_instruction the expected verbal pre-transition instruction
+ * @param expected_verbal_post_transition_instruction the expected verbal post-transition instruction
+ */
+void expect_instructions_at_maneuver_index(
+    const valhalla::Api& result,
+    int maneuver_index,
+    const std::string& expected_text_instruction,
+    const std::string& expected_verbal_transition_alert_instruction,
+    const std::string& expected_verbal_pre_transition_instruction,
+    const std::string& expected_verbal_post_transition_instruction) {
+
+  ASSERT_EQ(result.directions().routes_size(), 1);
+  ASSERT_EQ(result.directions().routes(0).legs_size(), 1);
+  ASSERT_TRUE((maneuver_index >= 0) &&
+              (maneuver_index < result.directions().routes(0).legs(0).maneuver_size()));
+  const auto& maneuver = result.directions().routes(0).legs(0).maneuver(maneuver_index);
+
+  EXPECT_EQ(maneuver.text_instruction(), expected_text_instruction);
+  EXPECT_EQ(maneuver.verbal_transition_alert_instruction(),
+            expected_verbal_transition_alert_instruction);
+  EXPECT_EQ(maneuver.verbal_pre_transition_instruction(), expected_verbal_pre_transition_instruction);
+  EXPECT_EQ(maneuver.verbal_post_transition_instruction(),
+            expected_verbal_post_transition_instruction);
+}
+
 void expect_path_length(const valhalla::Api& result,
                         const float expected_length_km,
                         const float error_margin = 0) {
   EXPECT_EQ(result.trip().routes_size(), 1);
-  EXPECT_EQ(result.trip().routes(0).legs_size(), 1);
 
-  const auto& route = result.trip().routes(0);
-
-  float length_km = 0;
-  for (int legnum = 0; legnum < route.legs_size(); legnum++) {
-    const auto& leg = route.legs(legnum);
-    for (int nodenum = 0; nodenum < leg.node_size(); nodenum++) {
-      const auto& node = leg.node(nodenum);
-      if (node.has_edge()) {
-        length_km += node.edge().length();
-      }
+  double length_m = 0;
+  for (const auto& route : result.trip().routes()) {
+    for (const auto& leg : route.legs()) {
+      auto points = midgard::decode<std::vector<midgard::PointLL>>(leg.shape());
+      length_m += midgard::length(points);
     }
   }
 
   if (error_margin == 0) {
-    EXPECT_FLOAT_EQ(length_km, expected_length_km);
+    EXPECT_FLOAT_EQ(static_cast<float>(length_m), expected_length_km * 1000);
   } else {
-    EXPECT_NEAR(length_km, expected_length_km, error_margin);
+    EXPECT_NEAR(static_cast<float>(length_m), expected_length_km * 1000, 1.f);
   }
+
+  double length_km = 0;
+  for (const auto& leg : result.trip().routes(0).legs()) {
+    for (const auto& node : leg.node()) {
+      if (node.has_edge())
+        length_km += node.edge().length();
+    }
+  }
+
+  if (error_margin == 0) {
+    EXPECT_FLOAT_EQ(static_cast<float>(length_km), expected_length_km);
+  } else {
+    EXPECT_NEAR(static_cast<float>(length_km), expected_length_km, error_margin);
+  }
+
+  length_km = 0;
+  for (const auto& leg : result.directions().routes(0).legs()) {
+    length_km += leg.summary().length();
+  }
+
+  if (error_margin == 0) {
+    EXPECT_FLOAT_EQ(static_cast<float>(length_km), expected_length_km);
+  } else {
+    EXPECT_NEAR(static_cast<float>(length_km), expected_length_km, error_margin);
+  }
+}
+
+void expect_eta(const valhalla::Api& result,
+                const float expected_eta_seconds,
+                const float error_margin = 0) {
+  EXPECT_EQ(result.trip().routes_size(), 1);
+
+  double eta_sec = 0;
+  for (const auto& leg : result.directions().routes(0).legs()) {
+    eta_sec += leg.summary().time();
+  }
+
+  if (error_margin == 0) {
+    EXPECT_FLOAT_EQ(static_cast<float>(eta_sec), expected_eta_seconds);
+  } else {
+    EXPECT_NEAR(static_cast<float>(eta_sec), expected_eta_seconds, error_margin);
+  }
+}
+
+std::string
+to_string(const ::google::protobuf::RepeatedPtrField<::valhalla::StreetName>& street_names) {
+  std::string str;
+
+  for (const auto& street_name : street_names) {
+    if (!str.empty()) {
+      str += "/";
+    }
+    str += street_name.value();
+  }
+  return str;
+}
+
+/**
+ * Tests if a found path traverses the expected edges in the expected order
+ *
+ * @param result the result of a /route or /match request
+ * @param expected_names the names of the edges the path should traverse in order
+ */
+void expect_path(const valhalla::Api& result, const std::vector<std::string>& expected_names) {
+  EXPECT_EQ(result.trip().routes_size(), 1);
+
+  std::vector<std::string> actual_names;
+  for (const auto& leg : result.trip().routes(0).legs()) {
+    for (const auto& node : leg.node()) {
+      if (node.has_edge()) {
+        actual_names.push_back(to_string(node.edge().name()));
+      }
+    }
+  }
+
+  EXPECT_EQ(actual_names, expected_names) << "Actual path didn't match expected path";
 }
 
 } // namespace raw

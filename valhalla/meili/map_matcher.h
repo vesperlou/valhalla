@@ -5,11 +5,10 @@
 #include <unordered_set>
 #include <vector>
 
-#include <boost/property_tree/ptree.hpp>
-
 #include <valhalla/baldr/graphid.h>
 #include <valhalla/baldr/graphreader.h>
 #include <valhalla/meili/candidate_search.h>
+#include <valhalla/meili/config.h>
 #include <valhalla/meili/emission_cost_model.h>
 #include <valhalla/meili/match_result.h>
 #include <valhalla/meili/measurement.h>
@@ -25,10 +24,10 @@ namespace meili {
 // A facade that connects everything
 class MapMatcher final {
 public:
-  MapMatcher(const boost::property_tree::ptree& config,
+  MapMatcher(const Config& config,
              baldr::GraphReader& graphreader,
              CandidateQuery& candidatequery,
-             const sif::cost_ptr_t* mode_costing,
+             const sif::mode_costing_t& mode_costing,
              sif::TravelMode travelmode);
 
   ~MapMatcher();
@@ -59,7 +58,7 @@ public:
     return travelmode_;
   }
 
-  const boost::property_tree::ptree& config() const {
+  const Config& config() const {
     return config_;
   }
 
@@ -76,6 +75,7 @@ public:
    */
   void set_interrupt(const std::function<void()>* interrupt_callback) {
     interrupt_ = interrupt_callback;
+    graphreader_.SetInterrupt(interrupt_);
   }
 
 private:
@@ -84,16 +84,16 @@ private:
 
   StateId::Time AppendMeasurement(const Measurement& measurement, const float sq_max_search_radius);
 
-  void RemoveRedundancies(const std::vector<StateId>& result);
-  // void RemoveRedundancies(const MatchResults& path, std::vector<StateId>& result);
+  void RemoveRedundancies(const std::vector<StateId>& result,
+                          const std::vector<MatchResult>& results);
 
-  boost::property_tree::ptree config_;
+  Config config_;
 
   baldr::GraphReader& graphreader_;
 
   CandidateQuery& candidatequery_;
 
-  const sif::cost_ptr_t* mode_costing_;
+  const sif::mode_costing_t mode_costing_;
 
   sif::TravelMode travelmode_;
 
@@ -111,13 +111,29 @@ private:
   TransitionCostModel transition_cost_model_;
 };
 
-bool MergeRoute(std::vector<EdgeSegment>& route, const State& source, const State& target);
-
-std::vector<EdgeSegment> MergeRoute(const State& source, const State& target);
-
-template <typename match_iterator_t>
-std::vector<EdgeSegment>
-ConstructRoute(const MapMatcher& mapmatcher, match_iterator_t begin, match_iterator_t end);
+/**
+ * Here we return the vector of edge segments between the source and target states. If its a node to
+ * node route (meaning no realy edge is traversed) then we use the target_result to say what edge the
+ * segment should use
+ * @param source         source state to use to find the route
+ * @param target         target state which candidate in the next column to fetch the route for
+ * @param route          a place to put the edge segments as we create them
+ * @param target_result  in case we have a node to node route we have a no-op edge segment to return
+ * @return  the vector of segments reprsenting the route between source and target
+ */
+bool MergeRoute(const State& source,
+                const State& target,
+                std::vector<EdgeSegment>& route,
+                const MatchResult& target_result);
+/**
+ * This loops over all of the states in the match and returns the vector of edge segments representing
+ * the matched path.
+ * @param mapmatcher     The matcher with which the match was computed
+ * @param match_results  The matched points
+ * @return  The vector of edge segments representing the match path
+ */
+std::vector<EdgeSegment> ConstructRoute(const MapMatcher& mapmatcher,
+                                        const std::vector<MatchResult>& match_results);
 
 template <typename segment_iterator_t>
 std::vector<std::vector<midgard::PointLL>> ConstructRouteShapes(baldr::GraphReader& graphreader,

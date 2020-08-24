@@ -35,6 +35,7 @@ constexpr auto kRampKey = "instructions.ramp";
 constexpr auto kRampVerbalKey = "instructions.ramp_verbal";
 constexpr auto kExitKey = "instructions.exit";
 constexpr auto kExitVerbalKey = "instructions.exit_verbal";
+constexpr auto kExitVisualKey = "instructions.exit_visual";
 constexpr auto kKeepKey = "instructions.keep";
 constexpr auto kKeepVerbalKey = "instructions.keep_verbal";
 constexpr auto kKeepToStayOnKey = "instructions.keep_to_stay_on";
@@ -74,6 +75,7 @@ constexpr auto kPostTransitConnectionDestinationVerbalKey =
 constexpr auto kPostTransitionVerbalKey = "instructions.post_transition_verbal";
 constexpr auto kPostTransitTransitionVerbalKey = "instructions.post_transition_transit_verbal";
 constexpr auto kVerbalMultiCueKey = "instructions.verbal_multi_cue";
+constexpr auto kApproachVerbalAlertKey = "instructions.approach_verbal_alert";
 constexpr auto kPosixLocaleKey = "posix_locale";
 
 // Variable keys
@@ -104,18 +106,16 @@ constexpr auto kMountainBikeTrailIndex = 2;
 // Metric length indexes
 constexpr auto kKilometersIndex = 0;
 constexpr auto kOneKilometerIndex = 1;
-constexpr auto kHalfKilometerIndex = 2;
-constexpr auto kMetersIndex = 3;
-constexpr auto kSmallMetersIndex = 4;
+constexpr auto kMetersIndex = 2;
+constexpr auto kSmallMetersIndex = 3;
 
 // US Customary length indexes
 constexpr auto kMilesIndex = 0;
 constexpr auto kOneMileIndex = 1;
 constexpr auto kHalfMileIndex = 2;
-constexpr auto kTenthsOfMileIndex = 3;
-constexpr auto kOneTenthOfMileIndex = 4;
-constexpr auto kFeetIndex = 5;
-constexpr auto kSmallFeetIndex = 6;
+constexpr auto kQuarterMileIndex = 3;
+constexpr auto kFeetIndex = 4;
+constexpr auto kSmallFeetIndex = 5;
 
 // Phrase tags
 constexpr auto kCardinalDirectionTag = "<CARDINAL_DIRECTION>";
@@ -125,6 +125,9 @@ constexpr auto kStreetNamesTag = "<STREET_NAMES>";
 constexpr auto kPreviousStreetNamesTag = "<PREVIOUS_STREET_NAMES>";
 constexpr auto kBeginStreetNamesTag = "<BEGIN_STREET_NAMES>";
 constexpr auto kCrossStreetNamesTag = "<CROSS_STREET_NAMES>";
+constexpr auto kRoundaboutExitStreetNamesTag = "<ROUNDABOUT_EXIT_STREET_NAMES>";
+constexpr auto kRoundaboutExitBeginStreetNamesTag = "<ROUNDABOUT_EXIT_BEGIN_STREET_NAMES>";
+constexpr auto kRampExitNumbersVisualTag = "<EXIT_NUMBERS>";
 constexpr auto kLengthTag = "<LENGTH>";
 constexpr auto kDestinationTag = "<DESTINATION>";
 constexpr auto kCurrentVerbalCueTag = "<CURRENT_VERBAL_CUE>";
@@ -138,6 +141,7 @@ constexpr auto kNumberSignTag = "<NUMBER_SIGN>";
 constexpr auto kBranchSignTag = "<BRANCH_SIGN>";
 constexpr auto kTowardSignTag = "<TOWARD_SIGN>";
 constexpr auto kNameSignTag = "<NAME_SIGN>";
+constexpr auto kJunctionNameTag = "<JUNCTION_NAME>";
 constexpr auto kFerryLabelTag = "<FERRY_LABEL>";
 constexpr auto kTransitPlatformTag = "<TRANSIT_STOP>";
 constexpr auto kStationLabelTag = "<STATION_LABEL>";
@@ -199,6 +203,7 @@ struct EnterFerrySubset : PhraseSet {
 
 struct EnterRoundaboutSubset : PhraseSet {
   std::vector<std::string> ordinal_values;
+  std::vector<std::string> empty_street_name_labels;
 };
 
 struct TransitConnectionSubset : PhraseSet {
@@ -221,6 +226,16 @@ struct PostTransitionVerbalSubset : PhraseSet {
 
 struct PostTransitionTransitVerbalSubset : PhraseSet {
   std::unordered_map<std::string, std::string> transit_stop_count_labels;
+};
+
+struct VerbalMultiCueSubset : PhraseSet {
+  std::vector<std::string> metric_lengths;
+  std::vector<std::string> us_customary_lengths;
+};
+
+struct ApproachVerbalAlertSubset : PhraseSet {
+  std::vector<std::string> metric_lengths;
+  std::vector<std::string> us_customary_lengths;
 };
 
 /**
@@ -276,6 +291,7 @@ public:
   // Exit
   RampSubset exit_subset;
   RampSubset exit_verbal_subset;
+  PhraseSet exit_visual_subset;
 
   // Keep
   KeepSubset keep_subset;
@@ -300,10 +316,6 @@ public:
   // EnterFerry
   EnterFerrySubset enter_ferry_subset;
   EnterFerrySubset enter_ferry_verbal_subset;
-
-  // ExitFerry
-  StartSubset exit_ferry_subset;
-  StartSubset exit_ferry_verbal_subset;
 
   // TransitConnectionStart
   TransitConnectionSubset transit_connection_start_subset;
@@ -337,18 +349,17 @@ public:
   TransitStopSubset transit_transfer_subset;
   TransitSubset transit_transfer_verbal_subset;
 
-  // PostTransitConnectionDestination
-  StartSubset post_transit_connection_destination_subset;
-  StartSubset post_transit_connection_destination_verbal_subset;
-
   // Post transition verbal
   PostTransitionVerbalSubset post_transition_verbal_subset;
 
   // Post transition transit verbal
   PostTransitionTransitVerbalSubset post_transition_transit_verbal_subset;
 
-  // Verbal miulti-cue
-  PhraseSet verbal_multi_cue_subset;
+  // Verbal multi-cue
+  VerbalMultiCueSubset verbal_multi_cue_subset;
+
+  // Approach verbal alert
+  ApproachVerbalAlertSubset approach_verbal_alert_subset;
 
   // Posix locale
   std::string posix_locale;
@@ -532,6 +543,26 @@ protected:
    */
   void Load(PostTransitionTransitVerbalSubset& post_transition_transit_verbal_handle,
             const boost::property_tree::ptree& post_transition_transit_verbal_subset_pt);
+
+  /**
+   * Loads the specified 'verbal multi cue' instruction subset with the
+   * localized narrative instructions contained in the specified property tree.
+   *
+   * @param  verbal_multi_cue_handle  The 'verbal multi cue' structure to populate.
+   * @param  verbal_multi_cue_subset_pt  The 'verbal multi cue' property tree.
+   */
+  void Load(VerbalMultiCueSubset& verbal_multi_cue_handle,
+            const boost::property_tree::ptree& verbal_multi_cue_subset_pt);
+
+  /**
+   * Loads the specified 'approach verbal alert' instruction subset with the
+   * localized narrative instructions contained in the specified property tree.
+   *
+   * @param  approach_verbal_alert_handle  The 'approach verbal alert' structure to populate.
+   * @param  approach_verbal_alert_subset_pt  The 'approach verbal alert' property tree.
+   */
+  void Load(ApproachVerbalAlertSubset& approach_verbal_alert_handle,
+            const boost::property_tree::ptree& approach_verbal_alert_subset_pt);
 
   // Locale
   std::locale locale;

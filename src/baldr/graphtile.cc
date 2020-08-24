@@ -2,6 +2,7 @@
 #include "baldr/compression_utils.h"
 #include "baldr/datetime.h"
 #include "baldr/sign.h"
+#include "baldr/tilegetter.h"
 #include "baldr/tilehierarchy.h"
 #include "filesystem.h"
 #include "midgard/aabb2.h"
@@ -9,7 +10,6 @@
 #include "midgard/tiles.h"
 
 #include <boost/algorithm/string.hpp>
-#include <boost/filesystem.hpp>
 #include <chrono>
 #include <cmath>
 #include <cstdio>
@@ -20,12 +20,24 @@
 #include <iostream>
 #include <locale>
 #include <string>
+#include <thread>
+#include <utility>
 #include <vector>
 
 using namespace valhalla::midgard;
 
 namespace {
 struct dir_facet : public std::numpunct<char> {
+protected:
+  virtual char do_thousands_sep() const {
+    return filesystem::path::preferred_separator;
+  }
+
+  virtual std::string do_grouping() const {
+    return "\03";
+  }
+};
+struct url_facet : public std::numpunct<char> {
 protected:
   virtual char do_thousands_sep() const {
     return '/';
@@ -35,9 +47,26 @@ protected:
     return "\03";
   }
 };
+const std::locale url_locale(std::locale("C"), new url_facet());
 const std::locale dir_locale(std::locale("C"), new dir_facet());
 const AABB2<PointLL> world_box(PointLL(-180, -90), PointLL(180, 90));
 constexpr float COMPRESSION_HINT = 3.5f;
+
+std::string MakeSingleTileUrl(const std::string& tile_url, const valhalla::baldr::GraphId& graphid) {
+  auto id_pos = tile_url.find(valhalla::baldr::GraphTile::kTilePathPattern);
+  return tile_url.substr(0, id_pos) +
+         valhalla::baldr::GraphTile::FileSuffix(graphid.Tile_Base(), false, false) +
+         tile_url.substr(id_pos + std::strlen(valhalla::baldr::GraphTile::kTilePathPattern));
+}
+
+// the point of this function is to avoid race conditions for writing a tile between threads
+// so the easiest thing to do is just use the thread id to differentiate
+std::string GenerateTmpSuffix() {
+  std::stringstream ss;
+  ss << ".tmp_" << std::this_thread::get_id() << "_"
+     << std::chrono::high_resolution_clock::now().time_since_epoch().count();
+  return ss.str();
+}
 } // namespace
 
 namespace valhalla {
@@ -51,12 +80,13 @@ GraphTile::GraphTile()
       signs_(nullptr), admins_(nullptr), edge_bins_(nullptr), complex_restriction_forward_(nullptr),
       complex_restriction_reverse_(nullptr), edgeinfo_(nullptr), textlist_(nullptr),
       complex_restriction_forward_size_(0), complex_restriction_reverse_size_(0), edgeinfo_size_(0),
-      textlist_size_(0), lane_connectivity_(nullptr), lane_connectivity_size_(0),
-      turnlanes_(nullptr) {
+      textlist_size_(0), lane_connectivity_(nullptr), lane_connectivity_size_(0), turnlanes_(nullptr),
+      traffic_tile(nullptr) {
 }
 
 // Constructor given a filename. Reads the graph data into memory.
-GraphTile::GraphTile(const std::string& tile_dir, const GraphId& graphid) : header_(nullptr) {
+GraphTile::GraphTile(const std::string& tile_dir, const GraphId& graphid, char* traffic_ptr)
+    : header_(nullptr), traffic_tile(traffic_ptr) {
 
   // Don't bother with invalid ids
   if (!graphid.Is_Valid() || graphid.level() > TileHierarchy::get_max_level() || tile_dir.empty()) {
@@ -132,28 +162,26 @@ bool GraphTile::DecompressTile(const GraphId& graphid, std::vector<char>& compre
   return true;
 }
 
-GraphTile::GraphTile(const GraphId& graphid, char* ptr, size_t size) : header_(nullptr) {
+GraphTile::GraphTile(const GraphId& graphid, char* tile_ptr, size_t size, char* traffic_ptr)
+    : header_(nullptr), traffic_tile(traffic_ptr) {
   // Initialize the internal tile data structures using a pointer to the
   // tile and the tile size
-  Initialize(graphid, ptr, size);
-}
-
-std::string MakeSingleTileUrl(const std::string& tile_url, const GraphId& graphid) {
-  auto id_pos = tile_url.find(GraphTile::kTilePathPattern);
-  return tile_url.substr(0, id_pos) + GraphTile::FileSuffix(graphid.Tile_Base()) +
-         tile_url.substr(id_pos + std::strlen(GraphTile::kTilePathPattern));
+  Initialize(graphid, tile_ptr, size);
 }
 
 void GraphTile::SaveTileToFile(const std::vector<char>& tile_data, const std::string& disk_location) {
   // At first we save tile to a temporary file and then move it
   // so we can avoid cases when another thread could read partially written file.
-  auto tmp_location = disk_location + boost::filesystem::unique_path().string();
   auto dir = filesystem::path(disk_location);
   dir.replace_filename("");
 
   bool success = true;
+  filesystem::path tmp_location;
   if (filesystem::create_directories(dir)) {
-    std::ofstream file(tmp_location, std::ios::out | std::ios::binary | std::ios::ate);
+    // Technically this is a race condition but its super unlikely (famous last words)
+    while (tmp_location.string().empty() || filesystem::exists(tmp_location))
+      tmp_location = disk_location + GenerateTmpSuffix();
+    std::ofstream file(tmp_location.string(), std::ios::out | std::ios::binary | std::ios::ate);
     file.write(tile_data.data(), tile_data.size());
     file.close();
     if (file.fail())
@@ -169,8 +197,7 @@ void GraphTile::SaveTileToFile(const std::vector<char>& tile_data, const std::st
 
 GraphTile GraphTile::CacheTileURL(const std::string& tile_url,
                                   const GraphId& graphid,
-                                  curler_t& curler,
-                                  bool gzipped,
+                                  tile_getter_t* tile_getter,
                                   const std::string& cache_location) {
   // Don't bother with invalid ids
   if (!graphid.Is_Valid() || graphid.level() > TileHierarchy::get_max_level()) {
@@ -178,27 +205,25 @@ GraphTile GraphTile::CacheTileURL(const std::string& tile_url,
   }
 
   auto uri = MakeSingleTileUrl(tile_url, graphid);
-  long http_code;
-  auto tile_data = curler(uri, http_code, gzipped);
-
-  if (http_code != 200)
+  auto result = tile_getter->get(uri);
+  if (result.status_ != tile_getter_t::status_code_t::SUCCESS) {
     return {};
-
+  }
   // try to cache it on disk so we dont have to keep fetching it from url
   if (!cache_location.empty()) {
-    auto suffix = FileSuffix(graphid.Tile_Base(), gzipped);
+    auto suffix = FileSuffix(graphid.Tile_Base(), tile_getter->gzipped());
     auto disk_location = cache_location + filesystem::path::preferred_separator + suffix;
-    SaveTileToFile(tile_data, disk_location);
+    SaveTileToFile(result.bytes_, disk_location);
   }
 
   // turn the memory into a tile
   auto tile = GraphTile();
-  if (gzipped) {
-    tile.DecompressTile(graphid, tile_data);
+  if (tile_getter->gzipped()) {
+    tile.DecompressTile(graphid, result.bytes_);
   } // we dont need to decompress so just take ownership of the data
   else {
     tile.graphtile_.reset(new std::vector<char>(0, 0));
-    *tile.graphtile_ = std::move(tile_data);
+    *tile.graphtile_ = std::move(result.bytes_);
     tile.Initialize(graphid, tile.graphtile_->data(), tile.graphtile_->size());
   }
 
@@ -371,7 +396,7 @@ void GraphTile::AssociateOneStopIds(const GraphId& graphid) {
   }
 }
 
-std::string GraphTile::FileSuffix(const GraphId& graphid, bool gzipped) {
+std::string GraphTile::FileSuffix(const GraphId& graphid, bool gzipped, bool is_file_path) {
   /*
   if you have a graphid where level == 8 and tileid == 24134109851 you should get:
   8/024/134/109/851.gph since the number of levels is likely to be very small this limits the total
@@ -403,7 +428,11 @@ std::string GraphTile::FileSuffix(const GraphId& graphid, bool gzipped) {
 
   // make a locale to use as a formatter for numbers
   std::ostringstream stream;
-  stream.imbue(dir_locale);
+  if (is_file_path) {
+    stream.imbue(dir_locale);
+  } else {
+    stream.imbue(url_locale);
+  }
 
   // if it starts with a zero the pow trick doesn't work
   if (graphid.level() == 0) {

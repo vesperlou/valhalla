@@ -142,7 +142,7 @@ public:
     return mutable_edge_->speed();
   }
 
-  ::valhalla::TripLeg_RoadClass road_class() const {
+  ::valhalla::RoadClass road_class() const {
     return mutable_edge_->road_class();
   }
 
@@ -339,6 +339,14 @@ public:
     return mutable_edge_->mutable_turn_lanes();
   }
 
+  bool has_restriction() const {
+    return mutable_edge_->has_restriction();
+  }
+
+  bool destination_only() const {
+    return mutable_edge_->destination_only();
+  }
+
   bool IsUnnamed() const;
 
   // Use
@@ -468,7 +476,7 @@ public:
     return mutable_intersecting_edge_->use();
   }
 
-  ::valhalla::TripLeg_RoadClass road_class() const {
+  ::valhalla::RoadClass road_class() const {
     return mutable_intersecting_edge_->road_class();
   }
 
@@ -562,7 +570,7 @@ public:
   }
 
   double elapsed_time() const {
-    return mutable_node_->elapsed_time();
+    return mutable_node_->cost().elapsed_cost().seconds();
   }
 
   uint32_t admin_index() const {
@@ -577,12 +585,16 @@ public:
     return mutable_node_->time_zone();
   }
 
-  bool has_transition_time() const {
-    return mutable_node_->has_transition_time();
+  TripLeg::PathCost cost() const {
+    return mutable_node_->cost();
   }
 
-  double transition_time() const {
-    return mutable_node_->transition_time();
+  const google::protobuf::RepeatedPtrField<TripLeg::PathCost> recosts() const {
+    return mutable_node_->recosts();
+  }
+
+  bool HasBssInfo() const {
+    return mutable_node_->has_bss_info();
   }
 
   bool HasIntersectingEdges() const;
@@ -590,6 +602,21 @@ public:
   bool HasIntersectingEdgeNameConsistency() const;
 
   bool HasIntersectingEdgeCurrNameConsistency() const;
+
+  /**
+   * Returns true if there is an non-backward traversable intersecting edge with the same name
+   * as the previous and/or current edges at this node along the route path.
+   * Non-backward is so we do not consider edges in the reverse direction of the route path.
+   *
+   * @param from_heading the previous edge end heading.
+   * @param travel_mode the travel mode at the node in the route path - examples:
+   *                       kDrive, kPedestrian, kBicycle, kTransit
+   *
+   * @return true if there is an non-backward traversable intersecting edge with the same name
+   * as the previous and/or current edges at this node along the route path.
+   */
+  bool HasNonBackwardTraversableSameNameIntersectingEdge(uint32_t from_heading,
+                                                         const TripLeg_TravelMode travel_mode);
 
   std::unique_ptr<EnhancedTripLeg_IntersectingEdge> GetIntersectingEdge(size_t index);
 
@@ -604,7 +631,7 @@ public:
 
   bool HasForwardTraversableSignificantRoadClassXEdge(uint32_t from_heading,
                                                       const TripLeg_TravelMode travel_mode,
-                                                      TripLeg_RoadClass path_road_class);
+                                                      RoadClass path_road_class);
 
   bool HasWiderForwardTraversableIntersectingEdge(uint32_t from_heading,
                                                   const TripLeg_TravelMode travel_mode);
@@ -612,13 +639,15 @@ public:
   bool HasWiderForwardTraversableHighwayXEdge(uint32_t from_heading,
                                               const TripLeg_TravelMode travel_mode);
 
+  bool HasTraversableIntersectingEdge(const TripLeg_TravelMode travel_mode);
+
   bool HasTraversableOutboundIntersectingEdge(const TripLeg_TravelMode travel_mode);
 
   bool HasSpecifiedTurnXEdge(const baldr::Turn::Type turn_type,
                              uint32_t from_heading,
                              const TripLeg_TravelMode travel_mode);
 
-  bool HasSpecifiedRoadClassXEdge(const TripLeg_RoadClass road_class);
+  bool HasSpecifiedRoadClassXEdge(const RoadClass road_class);
 
   uint32_t GetStraightestIntersectingEdgeTurnDegree(uint32_t from_heading);
 

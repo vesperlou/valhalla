@@ -387,7 +387,7 @@ void FindOSMConnection(const PointLL& stop_ll,
   const float kTransitLatDeg = kMetersPerKm / kMetersPerDegreeLat; // one km radius
 
   // Get a list of tiles required for a node search within this radius
-  float lngdeg = (rm / DistanceApproximator::MetersPerLngDegree(stop_ll.lat()));
+  float lngdeg = (rm / DistanceApproximator<PointLL>::MetersPerLngDegree(stop_ll.lat()));
   AABB2<PointLL> bbox(Point2(stop_ll.lng() - lngdeg, stop_ll.lat() - kTransitLatDeg),
                       Point2(stop_ll.lng() + lngdeg, stop_ll.lat() + kTransitLatDeg));
   std::vector<int32_t> tilelist = tiles.TileList(bbox);
@@ -404,7 +404,7 @@ void FindOSMConnection(const PointLL& stop_ll,
 
     // Use distance approximator for all distance checks
     PointLL base_ll = newtile->header()->base_ll();
-    DistanceApproximator approximator(stop_ll);
+    DistanceApproximator<PointLL> approximator(stop_ll);
     for (uint32_t i = 0; i < newtile->header()->nodecount(); i++) {
       const NodeInfo* node = newtile->node(i);
       // Check if within radius
@@ -685,7 +685,7 @@ void TransitBuilder::Build(const boost::property_tree::ptree& pt) {
               (transit_file_itr->path().string().size() - 4)) {
         auto graph_id = GraphTile::GetTileId(transit_file_itr->path().string());
         GraphId local_graph_id(graph_id.tileid(), graph_id.level() - 1, graph_id.id());
-        if (GraphReader::DoesTileExist(hierarchy_properties, local_graph_id)) {
+        if (reader.DoesTileExist(local_graph_id)) {
           const GraphTile* tile = reader.GetGraphTile(local_graph_id);
           tiles.emplace(local_graph_id);
           const std::string destination_path = pt.get<std::string>("mjolnir.tile_dir") +

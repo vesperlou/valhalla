@@ -81,41 +81,53 @@ void print_edge(GraphReader& reader,
   std::cout << "------------------------\n\n";
 }
 
-void walk_edges(const std::string& shape, GraphReader& reader, const cost_ptr_t& cost_ptr) {
-  TravelMode mode = cost_ptr->travel_mode();
-  cost_ptr_t mode_costing[10];
-  mode_costing[static_cast<uint32_t>(mode)] = cost_ptr;
+void walk_edges(const std::string& shape,
+                GraphReader& reader,
+                const valhalla::sif::mode_costing_t& mode_costings,
+                valhalla::sif::TravelMode mode) {
+  auto cost = mode_costings[static_cast<uint32_t>(mode)];
 
-  // Decode the shape
+  // Get shape
   std::vector<PointLL> shape_pts = decode<std::vector<PointLL>>(shape);
   if (shape_pts.size() <= 1) {
     std::cerr << "Not enough shape points to compute the path...exiting" << std::endl;
   }
+  std::vector<Measurement> trace;
+  trace.reserve(shape_pts.size());
+  std::transform(shape_pts.begin(), shape_pts.end(), std::back_inserter(trace), [](const PointLL& p) {
+    return Measurement{p, 10, 10};
+  });
 
-  std::vector<Measurement> measurements;
-  measurements.reserve(shape_pts.size());
-  for (const auto& ll : shape_pts) {
-    measurements.emplace_back(Measurement{ll, 10, 10});
-  }
+  // Use the shape to form a single edge correlation at the start and end of
+  // the shape (using heading).
+  std::vector<valhalla::baldr::Location> locations{shape_pts.front(), shape_pts.back()};
+  locations.front().heading_ = std::round(PointLL::HeadingAlongPolyline(shape_pts, 30.f));
+  locations.back().heading_ = std::round(PointLL::HeadingAtEndOfPolyline(shape_pts, 30.f));
 
-  // Add a location for the origin (first shape point) and destination (last
-  // shape point)
-  std::vector<baldr::Location> locations;
-  locations.push_back({shape_pts.front()});
-  locations.push_back({shape_pts.back()});
-  const auto projections = Search(locations, reader, cost_ptr);
+  const auto projections = Search(locations, reader, cost);
   std::vector<PathLocation> path_location;
   valhalla::Options options;
-  for (const auto& loc : locations) {
-    try {
-      path_location.push_back(projections.at(loc));
-      PathLocation::toPBF(path_location.back(), options.mutable_locations()->Add(), reader);
-    } catch (...) { return; }
+
+  for (const auto& ll : shape_pts) {
+    auto* sll = options.mutable_shape()->Add();
+    sll->mutable_ll()->set_lat(ll.lat());
+    sll->mutable_ll()->set_lng(ll.lng());
+    // set type to via by default
+    sll->set_type(valhalla::Location::kVia);
+  }
+  // first and last always get type break
+  if (options.shape_size()) {
+    options.mutable_shape(0)->set_type(valhalla::Location::kBreak);
+    options.mutable_shape(options.shape_size() - 1)->set_type(valhalla::Location::kBreak);
   }
 
-  std::vector<PathInfo> path_infos;
+  for (const auto& loc : locations) {
+    path_location.push_back(projections.at(loc));
+    PathLocation::toPBF(path_location.back(), options.mutable_locations()->Add(), reader);
+  }
+  std::vector<PathInfo> path;
   std::vector<PathLocation> correlated;
-  bool rtn = RouteMatcher::FormPath(mode_costing, mode, reader, measurements, options, path_infos);
+  bool rtn = RouteMatcher::FormPath(mode_costings, mode, reader, trace, options, path);
   if (!rtn) {
     std::cerr << "ERROR: RouteMatcher returned false - did not match complete shape." << std::endl;
   }
@@ -124,14 +136,14 @@ void walk_edges(const std::string& shape, GraphReader& reader, const cost_ptr_t&
   uint64_t current_osmid = 0;
   Cost edge_total;
   Cost trans_total;
-  for (const auto& path_info : path_infos) {
+  for (const auto& path_info : path) {
     // std::cout << "lat: " << result.lnglat.lat() << " lon: " << result.lnglat.lng() << std::endl;
     if (path_info.edgeid == current_id || path_info.edgeid == kInvalidGraphId) {
       continue;
     }
 
     current_id = path_info.edgeid;
-    print_edge(reader, cost_ptr, current_id, pred_id, edge_total, trans_total, current_osmid);
+    print_edge(reader, cost, current_id, pred_id, edge_total, trans_total, current_osmid);
   }
 
   std::cout << "+------------------------------------------------------------------------+\n";
@@ -270,27 +282,31 @@ int main(int argc, char* argv[]) {
   // Get something we can use to fetch tiles
   valhalla::baldr::GraphReader reader(pt.get_child("mjolnir"));
 
+  if (!map_match) {
+    rapidjson::Document doc;
+    sif::ParseCostingOptions(doc, "/costing_options", *request.mutable_options());
+  }
+
   // Construct costing
-  CostFactory<DynamicCost> factory;
-  factory.RegisterStandardCostingModels();
   valhalla::Costing costing;
   if (valhalla::Costing_Enum_Parse(routetype, &costing)) {
     request.mutable_options()->set_costing(costing);
   } else {
     throw std::runtime_error("No costing method found");
   }
-  cost_ptr_t cost_ptr = factory.Create(request.options());
+  valhalla::sif::TravelMode mode;
+  auto mode_costings = valhalla::sif::CostFactory{}.CreateModeCosting(request.options(), mode);
+  auto cost_ptr = mode_costings[static_cast<uint32_t>(mode)];
 
   // If a shape is entered use edge walking
   if (!map_match) {
-    walk_edges(shape, reader, cost_ptr);
+    walk_edges(shape, reader, mode_costings, mode);
     return EXIT_SUCCESS;
   }
 
   // If JSON is entered we do map matching
   MapMatcherFactory map_matcher_factory(pt);
-  std::shared_ptr<valhalla::meili::MapMatcher> matcher(
-      map_matcher_factory.Create(costing, request.options()));
+  std::shared_ptr<valhalla::meili::MapMatcher> matcher(map_matcher_factory.Create(request.options()));
 
   uint32_t i = 0;
   for (const auto& path : paths) {
@@ -300,9 +316,10 @@ int main(int argc, char* argv[]) {
     std::vector<Measurement> measurements;
     measurements.reserve(path.size());
     for (const auto& location : path) {
-      measurements.emplace_back(Measurement{{location.latlng_.lng(), location.latlng_.lat()},
-                                            matcher->config().get<float>("gps_accuracy") + 10,
-                                            matcher->config().get<float>("search_radius") + 10});
+      measurements.emplace_back(
+          Measurement{{location.latlng_.lng(), location.latlng_.lat()},
+                      matcher->config().emission_cost.gps_accuracy_meters + 10,
+                      matcher->config().candidate_search.search_radius_meters + 10});
     }
 
     auto results = matcher->OfflineMatch(measurements).front().results;

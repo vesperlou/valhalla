@@ -2,17 +2,22 @@
 #define VALHALLA_BALDR_GRAPHREADER_H_
 
 #include <cstdint>
+#include <memory>
 #include <mutex>
 #include <string>
 #include <unordered_map>
 
 #include <boost/property_tree/ptree.hpp>
+
 #include <valhalla/baldr/curler.h>
 #include <valhalla/baldr/graphid.h>
 #include <valhalla/baldr/graphtile.h>
+#include <valhalla/baldr/tilegetter.h>
 #include <valhalla/baldr/tilehierarchy.h>
+
 #include <valhalla/midgard/aabb2.h>
 #include <valhalla/midgard/pointll.h>
+#include <valhalla/midgard/sequence.h>
 
 namespace valhalla {
 namespace baldr {
@@ -331,23 +336,33 @@ class GraphReader {
 public:
   /**
    * Constructor using tiles as separate files.
-   * @param pt  Property tree listing the configuration for the tile storage.
+   * @param pt  Property tree listing the configuration for the tile storage
+   * @param tile_getter Object responsible for getting tiles by url. If nullptr default implementation
+   * is in use.
    */
-  GraphReader(const boost::property_tree::ptree& pt);
+  explicit GraphReader(const boost::property_tree::ptree& pt,
+                       std::unique_ptr<tile_getter_t>&& tile_getter = nullptr);
+
+  virtual ~GraphReader() = default;
+
+  virtual void SetInterrupt(const tile_getter_t::interrupt_t* interrupt) {
+    if (tile_getter_) {
+      tile_getter_->set_interrupt(interrupt);
+    }
+  }
 
   /**
    * Test if tile exists
    * @param  graphid  GraphId of the tile to test (tile id and level).
    */
-  bool DoesTileExist(const GraphId& graphid) const;
-  static bool DoesTileExist(const boost::property_tree::ptree& pt, const GraphId& graphid);
+  virtual bool DoesTileExist(const GraphId& graphid) const;
 
   /**
    * Get a pointer to a graph tile object given a GraphId.
    * @param graphid  the graphid of the tile
    * @return GraphTile* a pointer to the graph tile
    */
-  const GraphTile* GetGraphTile(const GraphId& graphid);
+  virtual const GraphTile* GetGraphTile(const GraphId& graphid);
 
   /**
    * Get a pointer to a graph tile object given a GraphId. This method also
@@ -388,7 +403,7 @@ public:
   /**
    * Clears the cache
    */
-  void Clear() {
+  virtual void Clear() {
     cache_->Clear();
   }
 
@@ -396,7 +411,7 @@ public:
    * Tries to ensure the cache footprint below allowed maximum
    * In some cases may even remove the entire cache.
    */
-  void Trim() {
+  virtual void Trim() {
     cache_->Trim();
   }
 
@@ -405,14 +420,14 @@ public:
    * use the reader concurrently without blocking
    */
   size_t MaxConcurrentUsers() const {
-    return curlers_->size();
+    return max_concurrent_users_;
   }
 
   /**
    * Lets you know if the cache is too large
    * @return true if the cache is over committed with respect to the limit
    */
-  bool OverCommitted() const {
+  virtual bool OverCommitted() const {
     return cache_->OverCommitted();
   }
 
@@ -736,9 +751,24 @@ public:
    */
   midgard::AABB2<midgard::PointLL> GetMinimumBoundingBox(const midgard::AABB2<midgard::PointLL>& bb);
 
+  /**
+   * Convenience method to get the timezone index at a node.
+   * @param node   GraphId of the node to get the timezone index.
+   * @param tile   Current tile.
+   * @return Returns the timezone index. A value of 0 indicates an invalid timezone.
+   */
+  int GetTimezone(const baldr::GraphId& node, const GraphTile*& tile);
+
 protected:
   // (Tar) extract of tiles - the contents are empty if not being used
-  struct tile_extract_t;
+  struct tile_extract_t {
+    tile_extract_t(const boost::property_tree::ptree& pt);
+    // TODO: dont remove constness, and actually make graphtile read only?
+    std::unordered_map<uint64_t, std::pair<char*, size_t>> tiles;
+    std::unordered_map<uint64_t, std::pair<char*, size_t>> traffic_tiles;
+    std::shared_ptr<midgard::tar> archive;
+    std::shared_ptr<midgard::tar> traffic_archive;
+  };
   std::shared_ptr<const tile_extract_t> tile_extract_;
   static std::shared_ptr<const GraphReader::tile_extract_t>
   get_extract_instance(const boost::property_tree::ptree& pt);
@@ -747,9 +777,9 @@ protected:
   const std::string tile_dir_;
 
   // Stuff for getting at remote tiles
-  std::unique_ptr<curler_pool_t> curlers_;
+  std::unique_ptr<tile_getter_t> tile_getter_;
+  const size_t max_concurrent_users_;
   const std::string tile_url_;
-  const bool tile_url_gz_;
 
   std::mutex _404s_lock;
   std::unordered_set<GraphId> _404s;

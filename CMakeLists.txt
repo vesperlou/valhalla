@@ -7,7 +7,7 @@
 # This is secondary build configuration provided for convenient development
 # on Windows and using CMake-enabled IDEs.
 #
-cmake_minimum_required(VERSION 3.5 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.8 FATAL_ERROR)
 project(valhalla LANGUAGES CXX C)
 
 include(FindPkgConfig)
@@ -22,15 +22,18 @@ option(ENABLE_DATA_TOOLS "Enable Valhalla data tools" ON)
 option(ENABLE_SERVICES "Enable Valhalla services" ON)
 option(ENABLE_HTTP "Enable the use of CURL" ON)
 option(ENABLE_PYTHON_BINDINGS "Enable Python bindings" ON)
-option(ENABLE_NODE_BINDINGS "Build NodeJs bindings" ON)
 option(ENABLE_CCACHE "Speed up incremental rebuilds via ccache" ON)
 option(ENABLE_COVERAGE "Build with coverage instrumentalisation" OFF)
 option(ENABLE_COMPILER_WARNINGS "Build with compiler warnings" OFF)
-option(ENABLE_SANITIZER "Use memory sanitizer for Debug build" OFF)
+option(ENABLE_SANITIZERS "Use all the integrated sanitizers for Debug build" OFF)
+option(ENABLE_ADDRESS_SANITIZER "Use memory sanitizer for Debug build" OFF)
+option(ENABLE_UNDEFINED_SANITIZER "Use UB sanitizer for Debug build" OFF)
 option(ENABLE_TESTS "Enable Valhalla tests" ON)
 option(ENABLE_WERROR "Convert compiler warnings to errors. Requires ENABLE_COMPILER_WARNINGS=ON to take effect" OFF)
+option(ENABLE_BENCHMARKS "Enable microbenchmarking" ON)
 set(LOGGING_LEVEL "" CACHE STRING "Logging level, default is INFO")
 set_property(CACHE LOGGING_LEVEL PROPERTY STRINGS "NONE;ALL;ERROR;WARN;INFO;DEBUG;TRACE")
+set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
@@ -74,6 +77,18 @@ else()
   message(STATUS "Unrecognized build type - will use cmake defaults")
 endif()
 
+function(create_source_groups prefix)
+  foreach(file ${ARGN})
+    get_filename_component(file "${file}" ABSOLUTE)
+    string(FIND "${file}" "${PROJECT_BINARY_DIR}/" pos)
+    if(pos EQUAL 0)
+      source_group(TREE "${PROJECT_BINARY_DIR}/" PREFIX "Generated Files" FILES "${file}")
+    else()
+      source_group(TREE "${PROJECT_SOURCE_DIR}/" PREFIX "${prefix}" FILES "${file}")
+    endif()
+  endforeach()
+endfunction()
+
 if(ENABLE_CCACHE AND (CMAKE_CXX_COMPILER_ID MATCHES "Clang" OR CMAKE_CXX_COMPILER_ID MATCHES "GNU"))
   find_program(CCACHE_FOUND ccache)
   if(CCACHE_FOUND)
@@ -84,25 +99,18 @@ if(ENABLE_CCACHE AND (CMAKE_CXX_COMPILER_ID MATCHES "Clang" OR CMAKE_CXX_COMPILE
   endif()
 endif()
 
-if(ENABLE_SANITIZER)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address")
-  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fsanitize=address")
-  set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -fsanitize=address")
-endif()
+include(cmake/SanitizerOptions.cmake)
 
 ## Coverage report targets
 if(ENABLE_COVERAGE)
-  find_program(LCOV_PATH NAMES lcov lcov.bat lcov.exe lcov.perl)
   find_program(GENHTML_PATH NAMES genhtml genhtml.perl genhtml.bat)
-  if(NOT LCOV_PATH OR NOT GENHTML_PATH)
-    message(FATAL_ERROR "no lcov or genhtml installed")
+  if(NOT GENHTML_PATH)
+    message(FATAL_ERROR "no genhtml installed")
   endif()
 
+  set(FASTCOV_PATH ${VALHALLA_SOURCE_DIR}/third_party/fastcov/fastcov.py)
   add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/coverage.info
-    COMMAND ${LCOV_PATH} --directory . --base-directory ${VALHALLA_SOURCE_DIR} --no-external --capture --output-file coverage.info --no-checksum
-    COMMAND ${LCOV_PATH} --remove coverage.info '*/third_party/*' --output-file coverage.info
-    COMMAND ${LCOV_PATH} --remove coverage.info '${CMAKE_CURRENT_BINARY_DIR}/*' --output-file coverage.info
-    COMMAND ${LCOV_PATH} --list coverage.info
+    COMMAND ${FASTCOV_PATH} -d . --exclude /usr/ third_party/ ${CMAKE_CURRENT_BINARY_DIR}/ --lcov -o coverage.info
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
     DEPENDS check)
 
@@ -110,6 +118,7 @@ if(ENABLE_COVERAGE)
     COMMAND ${GENHTML_PATH} --prefix ${CMAKE_CURRENT_BINARY_DIR} --output-directory coverage --title "Test Coverage" --legend --show-details coverage.info
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
     DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/coverage.info)
+  set_target_properties(coverage PROPERTIES FOLDER "Tests")
 endif()
 
 ## Dependencies
@@ -123,9 +132,12 @@ if(NOT TARGET CURL::CURL)
       find_package(CURL REQUIRED)
     endif()
     set_target_properties(CURL::CURL PROPERTIES
-      INTERFACE_LINK_LIBRARIES "${CURL_LIBRARIES}"
+      #INTERFACE_LINK_LIBRARIES "${CURL_LIBRARIES}"
       INTERFACE_INCLUDE_DIRECTORIES "${CURL_INCLUDE_DIR}"
       INTERFACE_COMPILE_DEFINITIONS CURL_STATICLIB)
+    if(NOT WIN32)
+      set_property(TARGET CURL::CURL APPEND PROPERTY INTERFACE_LINK_LIBRARIES "${CURL_LIBRARIES}")
+    endif()
   endif()
 else()
   message(STATUS "Using curl from the outside")
@@ -148,6 +160,7 @@ if(CMAKE_VERSION VERSION_LESS 3.9)
   if(NOT TARGET protobuf::libprotobuf-lite)
     add_library(protobuf::libprotobuf-lite UNKNOWN IMPORTED)
     set_target_properties(protobuf::libprotobuf-lite PROPERTIES
+      FOLDER "Dependencies"
       INTERFACE_INCLUDE_DIRECTORIES "${PROTOBUF_INCLUDE_DIR}")
 
     if(EXISTS "${PROTOBUF_LIBRARY}")
@@ -196,17 +209,17 @@ endif()
 
 ## Mjolnir and associated executables
 if(ENABLE_DATA_TOOLS)
-  find_package(Boost 1.51 REQUIRED COMPONENTS date_time filesystem system program_options)
+  find_package(Boost 1.51 REQUIRED COMPONENTS program_options)
   find_package(SQLite3 REQUIRED)
   find_package(SpatiaLite REQUIRED)
-  find_package(Lua REQUIRED)
+  find_package(LuaJIT)
   add_library(Lua::Lua INTERFACE IMPORTED)
   set_target_properties(Lua::Lua PROPERTIES
     INTERFACE_LINK_LIBRARIES "${LUA_LIBRARIES}"
     INTERFACE_INCLUDE_DIRECTORIES "${LUA_INCLUDE_DIR}")
 ## Top level executables
 elseif(ENABLE_TOOLS)
-  find_package(Boost 1.51 REQUIRED COMPONENTS filesystem system program_options)
+  find_package(Boost 1.51 REQUIRED COMPONENTS program_options)
 ## Header only boost for the library without mjolnir
 elseif(NOT Boost_FOUND)
   find_package(Boost 1.51 REQUIRED)
@@ -223,11 +236,6 @@ if(ENABLE_PYTHON_BINDINGS)
   install(FILES COPYING CHANGELOG.md
     DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/doc/python-valhalla"
     COMPONENT python)
-endif()
-
-# NodeJS bindings
-if (ENABLE_NODE_BINDINGS)
-  add_subdirectory(src/bindings/node)
 endif()
 
 ## Executable targets
@@ -261,7 +269,12 @@ if(ENABLE_TOOLS)
   foreach(program ${valhalla_programs})
     get_source_path(path ${program})
     add_executable(${program} ${path})
-    target_link_libraries(${program} Boost::program_options valhalla Threads::Threads Boost::filesystem Boost::system)
+    set_target_properties(${program} PROPERTIES FOLDER "Tools")
+    create_source_groups("Source Files" ${path})
+    target_link_libraries(${program} Boost::program_options valhalla)
+    if(WIN32)
+      target_link_libraries(${program} ${CURL_LIBRARIES})
+    endif()
     install(TARGETS ${program} DESTINATION "${CMAKE_INSTALL_BINDIR}" COMPONENT runtime)
   endforeach()
 endif()
@@ -270,7 +283,16 @@ if(ENABLE_DATA_TOOLS)
   foreach(program ${valhalla_data_tools})
     get_source_path(path ${program})
     add_executable(${program} ${path})
-    target_link_libraries(${program} valhalla Boost::program_options Threads::Threads Boost::filesystem Boost::system)
+    create_source_groups("Source Files" ${path})
+    set_target_properties(${program} PROPERTIES FOLDER "Data Tools")
+    target_link_libraries(${program} valhalla Boost::program_options)
+    if (LUAJIT_FOUND AND APPLE)
+      # Using LuaJIT on macOS requires a couple of extra linker flags
+      target_link_options(${program} PUBLIC -pagezero_size 10000 -image_base 100000000)
+    endif()
+    if(WIN32)
+      target_link_libraries(${program} ${CURL_LIBRARIES})
+    endif()
     install(TARGETS ${program} DESTINATION "${CMAKE_INSTALL_BINDIR}" COMPONENT runtime)
   endforeach()
 
@@ -286,7 +308,9 @@ endif()
 if(ENABLE_SERVICES)
   foreach(program ${valhalla_services})
     add_executable(${program} src/${program}.cc)
-    target_link_libraries(${program} valhalla Boost::program_options Threads::Threads)
+    create_source_groups("Source Files" src/${program}.cc)
+    set_target_properties(${program} PROPERTIES FOLDER "Services")
+    target_link_libraries(${program} valhalla Boost::program_options)
     install(TARGETS ${program} DESTINATION "${CMAKE_INSTALL_BINDIR}" COMPONENT runtime)
   endforeach()
 endif()
@@ -310,6 +334,11 @@ install(FILES COPYING CHANGELOG.md
 
 if(ENABLE_TESTS)
   add_subdirectory(test)
+endif()
+
+# NOTE(mookerji): Windows CI seems to break on the gbench build, so shelve Win32 support for now.
+if(ENABLE_BENCHMARKS AND NOT WIN32)
+  add_subdirectory(bench)
 endif()
 
 ## Packaging via CPack

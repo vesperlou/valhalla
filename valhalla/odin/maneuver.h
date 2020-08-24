@@ -42,6 +42,7 @@ public:
 
   const DirectionsLeg_Maneuver_Type& type() const;
   void set_type(const DirectionsLeg_Maneuver_Type& type);
+  bool IsStartType() const;
   bool IsDestinationType() const;
   bool IsMergeType() const;
 
@@ -73,9 +74,8 @@ public:
   void set_instruction(const std::string& instruction);
   void set_instruction(std::string&& instruction);
 
-  // Kilometers
   float length(const Options::Units& units = Options::kilometers) const;
-  void set_length(float length);
+  void set_length(float km_length); // Kilometers
 
   // Seconds
   double time() const;
@@ -130,8 +130,6 @@ public:
 
   bool portions_toll() const;
   void set_portions_toll(bool portionsToll);
-  bool has_time_restrictions() const;
-  void set_has_time_restrictions(bool has_time_restrictions);
 
   bool portions_unpaved() const;
   void set_portions_unpaved(bool portionsUnpaved);
@@ -206,8 +204,11 @@ public:
   bool unnamed_mountain_bike_trail() const;
   void set_unnamed_mountain_bike_trail(bool unnamed_mountain_bike_trail);
 
-  bool verbal_multi_cue() const;
-  void set_verbal_multi_cue(bool verbal_multi_cue);
+  bool imminent_verbal_multi_cue() const;
+  void set_imminent_verbal_multi_cue(bool imminent_verbal_multi_cue);
+  bool distant_verbal_multi_cue() const;
+  void set_distant_verbal_multi_cue(bool distant_verbal_multi_cue);
+  bool HasVerbalMultiCue() const;
 
   bool to_stay_on() const;
   void set_to_stay_on(bool to_stay_on);
@@ -218,11 +219,47 @@ public:
   bool HasRoundaboutExitStreetNames() const;
   void ClearRoundaboutExitStreetNames();
 
+  const StreetNames& roundabout_exit_begin_street_names() const;
+  void set_roundabout_exit_begin_street_names(const std::vector<std::pair<std::string, bool>>& names);
+  void set_roundabout_exit_begin_street_names(
+      std::unique_ptr<StreetNames>&& roundabout_exit_begin_street_names);
+  bool HasRoundaboutExitBeginStreetNames() const;
+  void ClearRoundaboutExitBeginStreetNames();
+
+  const Signs& roundabout_exit_signs() const;
+  Signs* mutable_roundabout_exit_signs();
+
   RelativeDirection merge_to_relative_direction() const;
   void set_merge_to_relative_direction(RelativeDirection merge_to_relative_direction);
 
   bool drive_on_right() const;
   void set_drive_on_right(bool drive_on_right);
+
+  bool has_time_restrictions() const;
+  void set_has_time_restrictions(bool has_time_restrictions);
+
+  bool has_right_traversable_outbound_intersecting_edge() const;
+  void set_has_right_traversable_outbound_intersecting_edge(
+      bool has_right_traversable_outbound_intersecting_edge);
+
+  bool has_left_traversable_outbound_intersecting_edge() const;
+  void set_has_left_traversable_outbound_intersecting_edge(
+      bool has_left_traversable_outbound_intersecting_edge);
+
+  bool include_verbal_pre_transition_length() const;
+  void set_include_verbal_pre_transition_length(bool include_verbal_pre_transition_length);
+
+  bool contains_obvious_maneuver() const;
+  void set_contains_obvious_maneuver(bool contains_obvious_maneuver);
+
+  bool has_combined_enter_exit_roundabout() const;
+  void set_has_combined_enter_exit_roundabout(bool has_combined_enter_exit_roundabout);
+
+  float roundabout_length(const Options::Units& units = Options::kilometers) const;
+  void set_roundabout_length(float roundabout_km_length); // Kilometers
+
+  float roundabout_exit_length(const Options::Units& units = Options::kilometers) const;
+  void set_roundabout_exit_length(float roundabout_exit_km_length); // Kilometers
 
   TripLeg_TravelMode travel_mode() const;
   void set_travel_mode(TripLeg_TravelMode travel_mode);
@@ -295,6 +332,9 @@ public:
   const std::vector<DirectionsLeg_GuidanceView>& guidance_views() const;
   std::vector<DirectionsLeg_GuidanceView>* mutable_guidance_views();
 
+  DirectionsLeg_Maneuver_BssManeuverType bss_maneuver_type() const;
+  void set_bss_maneuver_type(DirectionsLeg_Maneuver_BssManeuverType);
+
 #ifdef LOGGING_LEVEL_TRACE
   std::string ToString() const;
 
@@ -342,12 +382,22 @@ protected:
   bool unnamed_walkway_;
   bool unnamed_cycleway_;
   bool unnamed_mountain_bike_trail_;
-  bool verbal_multi_cue_;
+  bool imminent_verbal_multi_cue_;
+  bool distant_verbal_multi_cue_;
   bool to_stay_on_;
   std::unique_ptr<StreetNames> roundabout_exit_street_names_;
+  std::unique_ptr<StreetNames> roundabout_exit_begin_street_names_;
+  Signs roundabout_exit_signs_;
   RelativeDirection merge_to_relative_direction_;
   bool drive_on_right_; // Defaults to true
   bool has_time_restrictions_;
+  bool has_right_traversable_outbound_intersecting_edge_;
+  bool has_left_traversable_outbound_intersecting_edge_;
+  bool include_verbal_pre_transition_length_;
+  bool contains_obvious_maneuver_;
+  bool has_combined_enter_exit_roundabout_;
+  float roundabout_length_;      // Kilometers
+  float roundabout_exit_length_; // Kilometers
 
   ////////////////////////////////////////////////////////////////////////////
   // Transit support
@@ -378,6 +428,8 @@ protected:
   TripLeg_PedestrianType pedestrian_type_;
   TripLeg_BicycleType bicycle_type_;
   TripLeg_TransitType transit_type_;
+
+  DirectionsLeg_Maneuver_BssManeuverType bss_maneuver_type_;
 
   std::unique_ptr<VerbalTextFormatter> verbal_formatter_;
 

@@ -1,12 +1,13 @@
 #include "sif/bicyclecost.h"
-#include "sif/costconstants.h"
-
 #include "baldr/accessrestriction.h"
 #include "baldr/directededge.h"
 #include "baldr/graphconstants.h"
 #include "baldr/nodeinfo.h"
 #include "midgard/constants.h"
 #include "midgard/util.h"
+#include "proto_conversions.h"
+#include "sif/costconstants.h"
+#include <cassert>
 
 #ifdef INLINE_TEST
 #include "test/test.h"
@@ -33,6 +34,8 @@ constexpr float kDefaultGatePenalty = 600.0f;            // Seconds
 constexpr float kDefaultFerryCost = 300.0f;              // Seconds
 constexpr float kDefaultCountryCrossingCost = 600.0f;    // Seconds
 constexpr float kDefaultCountryCrossingPenalty = 0.0f;   // Seconds
+constexpr float kDefaultBssCost = 120.0f;                // Seconds
+constexpr float kDefaultBssPenalty = 0.0f;               // Seconds
 
 // Other options
 constexpr float kDefaultDrivewayPenalty = 300.0f; // Seconds
@@ -205,6 +208,9 @@ constexpr ranged_default_t<float> kUseRoadRange{0.0f, kDefaultUseRoad, 1.0f};
 constexpr ranged_default_t<float> kUseFerryRange{0.0f, kDefaultUseFerry, 1.0f};
 constexpr ranged_default_t<float> kUseHillsRange{0.0f, kDefaultUseHills, 1.0f};
 constexpr ranged_default_t<float> kAvoidBadSurfacesRange{0.0f, kDefaultAvoidBadSurfaces, 1.0f};
+
+constexpr ranged_default_t<float> kBSSCostRange{0, kDefaultBssCost, kMaxPenalty};
+constexpr ranged_default_t<float> kBSSPenaltyRange{0, kDefaultBssPenalty, kMaxPenalty};
 } // namespace
 
 /**
@@ -213,11 +219,11 @@ constexpr ranged_default_t<float> kAvoidBadSurfacesRange{0.0f, kDefaultAvoidBadS
 class BicycleCost : public DynamicCost {
 public:
   /**
-   * Construct bicycle costing. Pass in cost type and options using protocol buffer(pbf).
+   * Construct bicycle costing. Pass in cost type and costing_options using protocol buffer(pbf).
    * @param  costing specified costing type.
-   * @param  options pbf with request options.
+   * @param  costing_options pbf with request costing_options.
    */
-  BicycleCost(const Costing costing, const Options& options);
+  BicycleCost(const CostingOptions& costing_options);
 
   // virtual destructor
   virtual ~BicycleCost() {
@@ -248,11 +254,11 @@ public:
    */
   virtual bool Allowed(const baldr::DirectedEdge* edge,
                        const EdgeLabel& pred,
-                       const baldr::GraphTile*& tile,
+                       const GraphTile* tile,
                        const baldr::GraphId& edgeid,
                        const uint64_t current_time,
                        const uint32_t tz_index,
-                       bool& time_restricted) const;
+                       int& restriction_idx) const;
 
   /**
    * Checks if access is allowed for an edge on the reverse path
@@ -275,11 +281,11 @@ public:
   virtual bool AllowedReverse(const baldr::DirectedEdge* edge,
                               const EdgeLabel& pred,
                               const baldr::DirectedEdge* opp_edge,
-                              const baldr::GraphTile*& tile,
+                              const GraphTile* tile,
                               const baldr::GraphId& opp_edgeid,
                               const uint64_t current_time,
                               const uint32_t tz_index,
-                              bool& has_time_restrictions) const;
+                              int& restriction_idx) const;
 
   /**
    * Checks if access is allowed for the provided node. Node access can
@@ -364,13 +370,17 @@ public:
     return static_cast<uint8_t>(type_);
   }
 
+  virtual Cost BSSCost() const override {
+    return {kDefaultBssCost, kDefaultBssPenalty};
+  };
+
   // Hidden in source file so we don't need it to be protected
   // We expose it within the source file for testing purposes
 
-  float speedfactor_[kMaxSpeedKph + 1]; // Cost factors based on speed in kph
-  float use_roads_;                     // Preference of using roads between 0 and 1
-  float road_factor_;                   // Road factor based on use_roads_
-  float avoid_bad_surfaces_;            // Preference of avoiding bad surfaces for the bike type
+  std::vector<float> speedfactor_; // Cost factors based on speed in kph
+  float use_roads_;                // Preference of using roads between 0 and 1
+  float road_factor_;              // Road factor based on use_roads_
+  float avoid_bad_surfaces_;       // Preference of avoiding bad surfaces for the bike type
 
   // Average speed (kph) on smooth, flat roads.
   float speed_;
@@ -408,7 +418,8 @@ protected:
     float a = avoid_bad_surfaces_;
     return [s, a](const baldr::DirectedEdge* edge) {
       if (edge->is_shortcut() || !(edge->forwardaccess() & kBicycleAccess) ||
-          edge->use() == Use::kSteps || (a == 1.0f && edge->surface() > s)) {
+          edge->use() == Use::kSteps || (a == 1.0f && edge->surface() > s) ||
+          edge->bss_connection()) {
         return 0.0f;
       } else {
         // TODO - use classification/use to alter the factor
@@ -433,11 +444,8 @@ protected:
 // is modulated based on surface type and grade factors.
 
 // Constructor
-BicycleCost::BicycleCost(const Costing costing, const Options& options)
-    : DynamicCost(options, TravelMode::kBicycle) {
-  // Grab the costing options based on the specified costing type
-  const CostingOptions& costing_options = options.costing_options(static_cast<int>(costing));
-
+BicycleCost::BicycleCost(const CostingOptions& costing_options)
+    : DynamicCost(costing_options, TravelMode::kBicycle) {
   // Set hierarchy to allow unlimited transitions
   for (auto& h : hierarchy_limits_) {
     h.max_up_transitions = kUnlimitedTransitions;
@@ -488,6 +496,7 @@ BicycleCost::BicycleCost(const Costing costing, const Options& options)
 
   // Create speed cost table and penalty table (to avoid division in costing)
   float avoid_roads = (1.0f - use_roads_) * 0.75f + 0.25;
+  speedfactor_.resize(kMaxSpeedKph + 1, 0);
   speedfactor_[0] = kSecPerHour;
   speedpenalty_[0] = 0.0f;
   for (uint32_t s = 1; s <= kMaxSpeedKph; s++) {
@@ -515,16 +524,17 @@ BicycleCost::BicycleCost(const Costing costing, const Options& options)
 // Check if access is allowed on the specified edge.
 bool BicycleCost::Allowed(const baldr::DirectedEdge* edge,
                           const EdgeLabel& pred,
-                          const baldr::GraphTile*& tile,
+                          const GraphTile* tile,
                           const baldr::GraphId& edgeid,
                           const uint64_t current_time,
                           const uint32_t tz_index,
-                          bool& has_time_restrictions) const {
+                          int& restriction_idx) const {
   // Check bicycle access and turn restrictions. Bicycles should obey
   // vehicular turn restrictions. Allow Uturns at dead ends only.
   // Skip impassable edges and shortcut edges.
   if (!(edge->forwardaccess() & kBicycleAccess) || edge->is_shortcut() ||
-      (!pred.deadend() && pred.opp_local_idx() == edge->localedgeidx()) ||
+      (!pred.deadend() && pred.opp_local_idx() == edge->localedgeidx() &&
+       pred.mode() == TravelMode::kBicycle) ||
       (pred.restrictions() & (1 << edge->localedgeidx())) || IsUserAvoidEdge(edgeid)) {
     return false;
   }
@@ -541,7 +551,7 @@ bool BicycleCost::Allowed(const baldr::DirectedEdge* edge,
     return false;
   }
   return DynamicCost::EvaluateRestrictions(kBicycleAccess, edge, tile, edgeid, current_time, tz_index,
-                                           has_time_restrictions);
+                                           restriction_idx);
 }
 
 // Checks if access is allowed for an edge on the reverse path (from
@@ -549,17 +559,18 @@ bool BicycleCost::Allowed(const baldr::DirectedEdge* edge,
 bool BicycleCost::AllowedReverse(const baldr::DirectedEdge* edge,
                                  const EdgeLabel& pred,
                                  const baldr::DirectedEdge* opp_edge,
-                                 const baldr::GraphTile*& tile,
+                                 const GraphTile* tile,
                                  const baldr::GraphId& opp_edgeid,
                                  const uint64_t current_time,
                                  const uint32_t tz_index,
-                                 bool& has_time_restrictions) const {
+                                 int& restriction_idx) const {
   // Check access, U-turn (allow at dead-ends), and simple turn restriction.
   // Do not allow transit connection edges.
   if (!(opp_edge->forwardaccess() & kBicycleAccess) || opp_edge->is_shortcut() ||
       opp_edge->use() == Use::kTransitConnection || opp_edge->use() == Use::kEgressConnection ||
       opp_edge->use() == Use::kPlatformConnection ||
-      (!pred.deadend() && pred.opp_local_idx() == edge->localedgeidx()) ||
+      (!pred.deadend() && pred.opp_local_idx() == edge->localedgeidx() &&
+       pred.mode() == TravelMode::kBicycle) ||
       (opp_edge->restrictions() & (1 << pred.opp_local_idx())) || IsUserAvoidEdge(opp_edgeid)) {
     return false;
   }
@@ -569,7 +580,7 @@ bool BicycleCost::AllowedReverse(const baldr::DirectedEdge* edge,
     return false;
   }
   return DynamicCost::EvaluateRestrictions(kBicycleAccess, edge, tile, opp_edgeid, current_time,
-                                           tz_index, has_time_restrictions);
+                                           tz_index, restriction_idx);
 }
 
 // Returns the cost to traverse the edge and an estimate of the actual time
@@ -588,6 +599,7 @@ Cost BicycleCost::EdgeCost(const baldr::DirectedEdge* edge,
   // Ferries are a special case - they use the ferry speed (stored on the edge)
   if (edge->use() == Use::kFerry) {
     // Compute elapsed time based on speed. Modulate cost with weighting factors.
+    assert(speed < speedfactor_.size());
     float sec = (edge->length() * speedfactor_[speed]);
     return {sec * ferry_factor_, sec};
   }
@@ -683,6 +695,7 @@ Cost BicycleCost::EdgeCost(const baldr::DirectedEdge* edge,
   float factor = 1.0f + grade_penalty[edge->weighted_grade()] + total_stress + surface_factor;
 
   // Compute elapsed time based on speed. Modulate cost with weighting factors.
+  assert(bike_speed < speedfactor_.size());
   float sec = (edge->length() * speedfactor_[bike_speed]);
   return {sec * factor, sec};
 }
@@ -848,11 +861,13 @@ Cost BicycleCost::TransitionCostReverse(const uint32_t idx,
 void ParseBicycleCostOptions(const rapidjson::Document& doc,
                              const std::string& costing_options_key,
                              CostingOptions* pbf_costing_options) {
+  pbf_costing_options->set_costing(Costing::bicycle);
+  pbf_costing_options->set_name(Costing_Enum_Name(pbf_costing_options->costing()));
   auto json_costing_options = rapidjson::get_child_optional(doc, costing_options_key.c_str());
 
   if (json_costing_options) {
     // TODO: farm more common stuff out to parent class
-    ParseCostOptions(*json_costing_options, pbf_costing_options);
+    ParseSharedCostOptions(*json_costing_options, pbf_costing_options);
 
     // If specified, parse json and set pbf values
 
@@ -945,6 +960,14 @@ void ParseBicycleCostOptions(const rapidjson::Document& doc,
         kCycleSpeedRange(rapidjson::get_optional<float>(*json_costing_options, "/cycling_speed")
                              .get_value_or(kDefaultCyclingSpeed[t])));
 
+    // bss rent cost
+    pbf_costing_options->set_bike_share_cost(
+        kBSSCostRange(rapidjson::get_optional<uint32_t>(*json_costing_options, "/bss_return_cost")
+                          .get_value_or(kDefaultBssCost)));
+
+    pbf_costing_options->set_bike_share_penalty(kBSSPenaltyRange(
+        rapidjson::get_optional<uint32_t>(*json_costing_options, "/bss_return_penalty")
+            .get_value_or(kDefaultBssPenalty)));
   } else {
     // Set pbf values to defaults
     pbf_costing_options->set_maneuver_penalty(kDefaultManeuverPenalty);
@@ -963,11 +986,13 @@ void ParseBicycleCostOptions(const rapidjson::Document& doc,
     pbf_costing_options->set_cycling_speed(
         kDefaultCyclingSpeed[static_cast<uint32_t>(BicycleType::kHybrid)]);
     pbf_costing_options->set_flow_mask(kDefaultFlowMask);
+    pbf_costing_options->set_bike_share_cost(kDefaultBssCost);
+    pbf_costing_options->set_bike_share_penalty(kDefaultBssPenalty);
   }
 }
 
-cost_ptr_t CreateBicycleCost(const Costing costing, const Options& options) {
-  return std::make_shared<BicycleCost>(costing, options);
+cost_ptr_t CreateBicycleCost(const CostingOptions& costing_options) {
+  return std::make_shared<BicycleCost>(costing_options);
 }
 
 } // namespace sif
@@ -984,7 +1009,7 @@ namespace {
 
 class TestBicycleCost : public BicycleCost {
 public:
-  TestBicycleCost(const Costing costing, const Options& options) : BicycleCost(costing, options){};
+  TestBicycleCost(const CostingOptions& costing_options) : BicycleCost(costing_options){};
 
   using BicycleCost::alley_penalty_;
   using BicycleCost::country_crossing_cost_;
@@ -999,7 +1024,7 @@ TestBicycleCost* make_bicyclecost_from_json(const std::string& property, float t
   ss << R"({"costing_options":{"bicycle":{")" << property << R"(":)" << testVal << "}}}";
   Api request;
   ParseApi(ss.str(), valhalla::Options::route, request);
-  return new TestBicycleCost(valhalla::Costing::bicycle, request.options());
+  return new TestBicycleCost(request.options().costing_options(static_cast<int>(Costing::bicycle)));
 }
 
 std::uniform_real_distribution<float>*

@@ -10,7 +10,7 @@
 #include "sif/pedestriancost.h"
 #include "thor/attributes_controller.h"
 
-#include <valhalla/proto/tripcommon.pb.h>
+#include "proto/tripcommon.pb.h"
 
 using namespace valhalla;
 using namespace valhalla::midgard;
@@ -35,7 +35,7 @@ void via_discontinuity(
     const valhalla::Location& loc,
     const GraphId& in,
     const GraphId& out,
-    std::unordered_map<size_t, std::pair<RouteDiscontinuity, RouteDiscontinuity>>& vias,
+    std::unordered_map<size_t, std::pair<EdgeTrimmingInfo, EdgeTrimmingInfo>>& vias,
     const size_t path_index,
     const bool flip_index) {
   // Find the path edges within the locations.
@@ -183,6 +183,7 @@ std::string thor_worker_t::expansion(Api& request) {
            &timedep_reverse,
            &astar,
            &bidir_astar,
+           &bss_astar,
        }) {
     alg->set_track_expansion(track_expansion);
   }
@@ -197,6 +198,7 @@ std::string thor_worker_t::expansion(Api& request) {
            &timedep_reverse,
            &astar,
            &bidir_astar,
+           &bss_astar,
        }) {
     alg->set_track_expansion(nullptr);
   }
@@ -232,8 +234,14 @@ thor::PathAlgorithm* thor_worker_t::get_path_algorithm(const std::string& routet
                                                        const valhalla::Location& destination) {
   // Have to use multimodal for transit based routing
   if (routetype == "multimodal" || routetype == "transit") {
+    valhalla::midgard::logging::Log("algorithm::multimodal ", " [ANALYTICS] ");
     multi_modal_astar.set_interrupt(interrupt);
     return &multi_modal_astar;
+  }
+
+  if (routetype == "bikeshare") {
+    bss_astar.set_interrupt(interrupt);
+    return &bss_astar;
   }
 
   // If the origin has date_time set use timedep_forward method if the distance
@@ -242,6 +250,7 @@ thor::PathAlgorithm* thor_worker_t::get_path_algorithm(const std::string& routet
     PointLL ll1(origin.ll().lng(), origin.ll().lat());
     PointLL ll2(destination.ll().lng(), destination.ll().lat());
     if (ll1.Distance(ll2) < max_timedep_distance) {
+      valhalla::midgard::logging::Log("algorithm::timedep_forward ", " [ANALYTICS] ");
       timedep_forward.set_interrupt(interrupt);
       return &timedep_forward;
     }
@@ -253,6 +262,7 @@ thor::PathAlgorithm* thor_worker_t::get_path_algorithm(const std::string& routet
     PointLL ll1(origin.ll().lng(), origin.ll().lat());
     PointLL ll2(destination.ll().lng(), destination.ll().lat());
     if (ll1.Distance(ll2) < max_timedep_distance) {
+      valhalla::midgard::logging::Log("algorithm::timedep_reverse ", " [ANALYTICS] ");
       timedep_reverse.set_interrupt(interrupt);
       return &timedep_reverse;
     }
@@ -266,11 +276,13 @@ thor::PathAlgorithm* thor_worker_t::get_path_algorithm(const std::string& routet
     for (auto& edge2 : destination.path_edges()) {
       if (edge1.graph_id() == edge2.graph_id() ||
           reader->AreEdgesConnected(GraphId(edge1.graph_id()), GraphId(edge2.graph_id()))) {
+        valhalla::midgard::logging::Log("algorithm::astar ", " [ANALYTICS] ");
         astar.set_interrupt(interrupt);
         return &astar;
       }
     }
   }
+  valhalla::midgard::logging::Log("algorithm::bidirastar ", " [ANALYTICS] ");
   bidir_astar.set_interrupt(interrupt);
   return &bidir_astar;
 }
@@ -336,7 +348,7 @@ void thor_worker_t::path_arrive_by(Api& api, const std::string& costing) {
   // Things we'll need
   TripRoute* route = nullptr;
   GraphId first_edge;
-  std::unordered_map<size_t, std::pair<RouteDiscontinuity, RouteDiscontinuity>> vias;
+  std::unordered_map<size_t, std::pair<EdgeTrimmingInfo, EdgeTrimmingInfo>> vias;
   std::vector<thor::PathInfo> path;
   auto& correlated = *api.mutable_options()->mutable_locations();
 
@@ -365,7 +377,7 @@ void thor_worker_t::path_arrive_by(Api& api, const std::string& costing) {
       // back propagate time information
       if (destination->has_date_time()) {
         auto origin_dt = offset_date(*reader, destination->date_time(), temp_path.back().edgeid,
-                                     -temp_path.back().elapsed_time, temp_path.front().edgeid);
+                                     -temp_path.back().elapsed_cost.secs, temp_path.front().edgeid);
         origin->set_date_time(origin_dt);
       }
 
@@ -374,9 +386,9 @@ void thor_worker_t::path_arrive_by(Api& api, const std::string& costing) {
 
       // Merge through legs by updating the time and splicing the lists
       if (!temp_path.empty()) {
-        auto offset = path.back().elapsed_time;
+        auto offset = path.back().elapsed_cost.secs;
         std::for_each(temp_path.begin(), temp_path.end(),
-                      [offset](PathInfo& i) { i.elapsed_time += offset; });
+                      [offset](PathInfo& i) { i.elapsed_cost.secs += offset; });
         // Connects via the same edge so we only need it once
         if (path.back().edgeid == temp_path.front().edgeid) {
           path.pop_back();
@@ -412,8 +424,8 @@ void thor_worker_t::path_arrive_by(Api& api, const std::string& costing) {
         if (api.trip().routes_size() == 0 || api.options().alternates() > 0)
           route = api.mutable_trip()->mutable_routes()->Add();
         auto& leg = *route->mutable_legs()->Add();
-        TripLegBuilder::Build(controller, *reader, mode_costing, path.begin(), path.end(), *origin,
-                              *destination, throughs, leg, interrupt, &vias);
+        TripLegBuilder::Build(api.options(), controller, *reader, mode_costing, path.begin(),
+                              path.end(), *origin, *destination, throughs, leg, interrupt, &vias);
         path.clear();
         vias.clear();
       }
@@ -428,7 +440,7 @@ void thor_worker_t::path_depart_at(Api& api, const std::string& costing) {
   // Things we'll need
   GraphId last_edge;
   TripRoute* route = nullptr;
-  std::unordered_map<size_t, std::pair<RouteDiscontinuity, RouteDiscontinuity>> vias;
+  std::unordered_map<size_t, std::pair<EdgeTrimmingInfo, EdgeTrimmingInfo>> vias;
   std::vector<thor::PathInfo> path;
   std::list<valhalla::TripLeg> trip_paths;
   auto& correlated = *api.mutable_options()->mutable_locations();
@@ -457,8 +469,9 @@ void thor_worker_t::path_depart_at(Api& api, const std::string& costing) {
     for (auto& temp_path : temp_paths) {
       // forward propagate time information
       if (origin->has_date_time()) {
-        auto destination_dt = offset_date(*reader, origin->date_time(), temp_path.front().edgeid,
-                                          temp_path.back().elapsed_time, temp_path.back().edgeid);
+        auto destination_dt =
+            offset_date(*reader, origin->date_time(), temp_path.front().edgeid,
+                        temp_path.back().elapsed_cost.secs, temp_path.back().edgeid);
         destination->set_date_time(destination_dt);
       }
 
@@ -466,9 +479,9 @@ void thor_worker_t::path_depart_at(Api& api, const std::string& costing) {
 
       // Merge through legs by updating the time and splicing the lists
       if (!path.empty()) {
-        auto offset = path.back().elapsed_time;
+        auto offset = path.back().elapsed_cost.secs;
         std::for_each(temp_path.begin(), temp_path.end(),
-                      [offset](PathInfo& i) { i.elapsed_time += offset; });
+                      [offset](PathInfo& i) { i.elapsed_cost.secs += offset; });
         // Connects via the same edge so we only need it once
         if (path.back().edgeid == temp_path.front().edgeid) {
           path.pop_back();
@@ -500,8 +513,9 @@ void thor_worker_t::path_depart_at(Api& api, const std::string& costing) {
         if (api.trip().routes_size() == 0 || api.options().alternates() > 0)
           route = api.mutable_trip()->mutable_routes()->Add();
         auto& leg = *route->mutable_legs()->Add();
-        thor::TripLegBuilder::Build(controller, *reader, mode_costing, path.begin(), path.end(),
-                                    *origin, *destination, throughs, leg, interrupt, &vias);
+        thor::TripLegBuilder::Build(api.options(), controller, *reader, mode_costing, path.begin(),
+                                    path.end(), *origin, *destination, throughs, leg, interrupt,
+                                    &vias);
         path.clear();
         vias.clear();
       }
@@ -534,7 +548,7 @@ std::string thor_worker_t::offset_date(GraphReader& reader,
     in_tz = node->timezone();
 
   // get the timezone of the output location
-  auto out_nodes = reader.GetDirectedEdgeNodes(in_edge, tile);
+  auto out_nodes = reader.GetDirectedEdgeNodes(out_edge, tile);
   uint32_t out_tz = 0;
   if (const auto* node = reader.nodeinfo(out_nodes.first, tile))
     out_tz = node->timezone();
@@ -545,7 +559,7 @@ std::string thor_worker_t::offset_date(GraphReader& reader,
   uint64_t in_epoch = DateTime::seconds_since_epoch(in_dt, DateTime::get_tz_db().from_index(in_tz));
   double out_epoch = static_cast<double>(in_epoch) + offset;
   auto out_dt = DateTime::seconds_to_date(static_cast<uint64_t>(out_epoch + .5),
-                                          DateTime::get_tz_db().from_index(out_tz));
+                                          DateTime::get_tz_db().from_index(out_tz), false);
   return out_dt;
 }
 } // namespace thor

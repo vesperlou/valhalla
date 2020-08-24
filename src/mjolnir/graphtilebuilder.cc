@@ -6,7 +6,6 @@
 #include "filesystem.h"
 #include "midgard/logging.h"
 #include <algorithm>
-#include <boost/filesystem/operations.hpp>
 #include <boost/format.hpp>
 #include <list>
 #include <set>
@@ -193,12 +192,12 @@ GraphTileBuilder::GraphTileBuilder(const std::string& tile_dir,
 // Output the tile to file. Stores as binary data.
 void GraphTileBuilder::StoreTileData() {
   // Get the name of the file
-  boost::filesystem::path filename(tile_dir_ + filesystem::path::preferred_separator +
-                                   GraphTile::FileSuffix(header_builder_.graphid()));
+  filesystem::path filename(tile_dir_ + filesystem::path::preferred_separator +
+                            GraphTile::FileSuffix(header_builder_.graphid()));
 
   // Make sure the directory exists on the system
-  if (!boost::filesystem::exists(filename.parent_path())) {
-    boost::filesystem::create_directories(filename.parent_path());
+  if (!filesystem::exists(filename.parent_path())) {
+    filesystem::create_directories(filename.parent_path());
   }
 
   // Open file and truncate
@@ -373,12 +372,12 @@ void GraphTileBuilder::StoreTileData() {
 void GraphTileBuilder::Update(const std::vector<NodeInfo>& nodes,
                               const std::vector<DirectedEdge>& directededges) {
   // Get the name of the file
-  boost::filesystem::path filename =
+  filesystem::path filename =
       tile_dir_ + filesystem::path::preferred_separator + GraphTile::FileSuffix(header_->graphid());
 
   // Make sure the directory exists on the system
-  if (!boost::filesystem::exists(filename.parent_path())) {
-    boost::filesystem::create_directories(filename.parent_path());
+  if (!filesystem::exists(filename.parent_path())) {
+    filesystem::create_directories(filename.parent_path());
   }
 
   // Open file. Truncate so we replace the contents.
@@ -510,7 +509,7 @@ template <class shape_container_t>
 uint32_t GraphTileBuilder::AddEdgeInfo(const uint32_t edgeindex,
                                        const GraphId& nodea,
                                        const baldr::GraphId& nodeb,
-                                       const uint32_t wayid,
+                                       const uint64_t wayid,
                                        const float elev,
                                        const uint32_t bike_network,
                                        const uint32_t speed_limit,
@@ -580,7 +579,7 @@ uint32_t GraphTileBuilder::AddEdgeInfo(const uint32_t edgeindex,
 template uint32_t GraphTileBuilder::AddEdgeInfo<std::vector<PointLL>>(const uint32_t edgeindex,
                                                                       const GraphId&,
                                                                       const baldr::GraphId&,
-                                                                      const uint32_t,
+                                                                      const uint64_t,
                                                                       const float,
                                                                       const uint32_t,
                                                                       const uint32_t,
@@ -592,7 +591,7 @@ template uint32_t GraphTileBuilder::AddEdgeInfo<std::vector<PointLL>>(const uint
 template uint32_t GraphTileBuilder::AddEdgeInfo<std::list<PointLL>>(const uint32_t edgeindex,
                                                                     const GraphId&,
                                                                     const baldr::GraphId&,
-                                                                    const uint32_t,
+                                                                    const uint64_t,
                                                                     const float,
                                                                     const uint32_t,
                                                                     const uint32_t,
@@ -606,7 +605,7 @@ template uint32_t GraphTileBuilder::AddEdgeInfo<std::list<PointLL>>(const uint32
 uint32_t GraphTileBuilder::AddEdgeInfo(const uint32_t edgeindex,
                                        const baldr::GraphId& nodea,
                                        const baldr::GraphId& nodeb,
-                                       const uint32_t wayid,
+                                       const uint64_t wayid,
                                        const float elev,
                                        const uint32_t bike_network,
                                        const uint32_t speed_limit,
@@ -762,7 +761,7 @@ DirectedEdge& GraphTileBuilder::directededge(const size_t idx) {
 }
 
 // Gets a pointer to directed edges within the list being built.
-const DirectedEdge* GraphTileBuilder::directededges(const size_t idx) {
+const DirectedEdge* GraphTileBuilder::directededges(const size_t idx) const {
   if (idx < header_->directededgecount()) {
     return &directededges_builder_[idx];
   }
@@ -950,10 +949,10 @@ void GraphTileBuilder::AddBins(const std::string& tile_dir,
   header.set_lane_connectivity_offset(header.lane_connectivity_offset() + shift);
   header.set_end_offset(header.end_offset() + shift);
   // rewrite the tile
-  boost::filesystem::path filename =
+  filesystem::path filename =
       tile_dir + filesystem::path::preferred_separator + GraphTile::FileSuffix(header.graphid());
-  if (!boost::filesystem::exists(filename.parent_path())) {
-    boost::filesystem::create_directories(filename.parent_path());
+  if (!filesystem::exists(filename.parent_path())) {
+    filesystem::create_directories(filename.parent_path());
   }
   std::ofstream file(filename.c_str(), std::ios::out | std::ios::binary | std::ios::trunc);
   // open it
@@ -1011,12 +1010,12 @@ void GraphTileBuilder::UpdatePredictedSpeeds(const std::vector<DirectedEdge>& di
   // with free flow or constrained flow speeds - so don't return if no speed profiles
 
   // Get the name of the file
-  boost::filesystem::path filename = tile_dir_ + filesystem::path::preferred_separator +
-                                     GraphTile::FileSuffix(header_builder_.graphid());
+  filesystem::path filename = tile_dir_ + filesystem::path::preferred_separator +
+                              GraphTile::FileSuffix(header_builder_.graphid());
 
   // Make sure the directory exists on the system
-  if (!boost::filesystem::exists(filename.parent_path()))
-    boost::filesystem::create_directories(filename.parent_path());
+  if (!filesystem::exists(filename.parent_path()))
+    filesystem::create_directories(filename.parent_path());
 
   // Open file and truncate
   std::ofstream file(filename.c_str(), std::ios::out | std::ios::binary | std::ios::trunc);

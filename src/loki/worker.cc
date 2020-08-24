@@ -54,6 +54,9 @@ void loki_worker_t::parse_locations(google::protobuf::RepeatedPtrField<valhalla:
 
       if (!location.has_street_side_tolerance())
         location.set_street_side_tolerance(default_street_side_tolerance);
+
+      if (!location.has_street_side_max_distance())
+        location.set_street_side_max_distance(default_street_side_max_distance);
     }
   } else if (required_exception) {
     throw *required_exception;
@@ -95,6 +98,7 @@ void loki_worker_t::parse_costing(Api& api, bool allow_none) {
       auto avoid_locations = PathLocation::fromPBF(options.avoid_locations());
       auto results = loki::Search(avoid_locations, *reader, costing);
       std::unordered_set<uint64_t> avoids;
+      auto* co = options.mutable_costing_options(static_cast<uint8_t>(costing->travel_mode()));
       for (const auto& result : results) {
         for (const auto& edge : result.second.edges) {
           auto inserted = avoids.insert(edge.id);
@@ -103,7 +107,7 @@ void loki_worker_t::parse_costing(Api& api, bool allow_none) {
           // Also insert shortcut edge if one includes this edge
           if (inserted.second) {
             // Add edge and percent along to pbf
-            auto* avoid = options.add_avoid_edges();
+            auto* avoid = co->add_avoid_edges();
             avoid->set_id(edge.id);
             avoid->set_percent_along(edge.percent_along);
 
@@ -116,7 +120,7 @@ void loki_worker_t::parse_costing(Api& api, bool allow_none) {
                 avoids.insert(shortcut);
 
                 // Add to pbf (with 0 percent along)
-                auto* avoid = options.add_avoid_edges();
+                auto* avoid = co->add_avoid_edges();
                 avoid->set_id(shortcut);
                 avoid->set_percent_along(0);
               }
@@ -145,7 +149,7 @@ loki_worker_t::loki_worker_t(const boost::property_tree::ptree& config,
       max_contours(config.get<size_t>("service_limits.isochrone.max_contours")),
       max_time(config.get<size_t>("service_limits.isochrone.max_time")),
       max_trace_shape(config.get<size_t>("service_limits.trace.max_shape")),
-      sample(config.get<std::string>("additional_data.elevation", "test/data/")),
+      sample(config.get<std::string>("additional_data.elevation", "")),
       max_elevation_shape(config.get<size_t>("service_limits.skadi.max_shape")),
       min_resample(config.get<float>("service_limits.skadi.min_resample")) {
   // If we weren't provided with a graph reader make our own
@@ -159,6 +163,7 @@ loki_worker_t::loki_worker_t(const boost::property_tree::ptree& config,
     if (!Options_Action_Enum_Parse(path, &action)) {
       throw std::runtime_error("Action not supported " + path);
     }
+    actions.insert(action);
     action_str.append("'/" + path + "' ");
   }
   // Make sure we have at least something to support!
@@ -220,14 +225,14 @@ loki_worker_t::loki_worker_t(const boost::property_tree::ptree& config,
   default_search_cutoff = config.get<unsigned int>("loki.service_defaults.search_cutoff");
   default_street_side_tolerance =
       config.get<unsigned int>("loki.service_defaults.street_side_tolerance");
+  default_street_side_max_distance =
+      config.get<unsigned int>("loki.service_defaults.street_side_max_distance");
+  default_breakage_distance = config.get<float>("meili.default.breakage_distance");
   max_gps_accuracy = config.get<float>("service_limits.trace.max_gps_accuracy");
   max_search_radius = config.get<float>("service_limits.trace.max_search_radius");
   max_best_paths = config.get<unsigned int>("service_limits.trace.max_best_paths");
   max_best_paths_shape = config.get<size_t>("service_limits.trace.max_best_paths_shape");
   max_alternates = config.get<unsigned int>("service_limits.max_alternates");
-
-  // Register standard edge/node costing methods
-  factory.RegisterStandardCostingModels();
 }
 
 void loki_worker_t::cleanup() {
@@ -236,8 +241,12 @@ void loki_worker_t::cleanup() {
   }
 }
 
-#ifdef HAVE_HTTP
+void loki_worker_t::set_interrupt(const std::function<void()>* interrupt_function) {
+  interrupt = interrupt_function;
+  reader->SetInterrupt(interrupt);
+}
 
+#ifdef HAVE_HTTP
 prime_server::worker_t::result_t
 loki_worker_t::work(const std::list<zmq::message_t>& job,
                     void* request_info,
@@ -256,12 +265,12 @@ loki_worker_t::work(const std::list<zmq::message_t>& job,
     const auto& options = request.options();
 
     // check there is a valid action
-    if (!options.has_action()) {
+    if (!options.has_action() || actions.find(options.action()) == actions.cend()) {
       return jsonify_error({106, action_str}, info, request);
     }
 
     // Set the interrupt function
-    service_worker_t::set_interrupt(interrupt_function);
+    service_worker_t::set_interrupt(&interrupt_function);
 
     prime_server::worker_t::result_t result{true};
     // do request specific processing
@@ -272,7 +281,7 @@ loki_worker_t::work(const std::list<zmq::message_t>& job,
         result.messages.emplace_back(request.SerializeAsString());
         break;
       case Options::locate:
-        result = to_response_json(locate(request), info, request);
+        result = to_response(locate(request), info, request);
         break;
       case Options::sources_to_targets:
       case Options::optimized_route:
@@ -289,10 +298,10 @@ loki_worker_t::work(const std::list<zmq::message_t>& job,
         result.messages.emplace_back(request.SerializeAsString());
         break;
       case Options::height:
-        result = to_response_json(height(request), info, request);
+        result = to_response(height(request), info, request);
         break;
       case Options::transit_available:
-        result = to_response_json(transit_available(request), info, request);
+        result = to_response(transit_available(request), info, request);
         break;
       default:
         // apparently you wanted something that we figured we'd support but havent written yet

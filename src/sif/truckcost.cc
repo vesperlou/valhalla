@@ -1,11 +1,12 @@
 #include "sif/truckcost.h"
-
 #include "baldr/accessrestriction.h"
 #include "baldr/directededge.h"
 #include "baldr/graphconstants.h"
 #include "baldr/nodeinfo.h"
 #include "midgard/constants.h"
 #include "midgard/util.h"
+#include "proto_conversions.h"
+#include <cassert>
 
 #ifdef INLINE_TEST
 #include "test/test.h"
@@ -108,11 +109,11 @@ constexpr ranged_default_t<float> kUseTollsRange{0, kDefaultUseTolls, 1.0f};
 class TruckCost : public DynamicCost {
 public:
   /**
-   * Construct truck costing. Pass in cost type and options using protocol buffer(pbf).
+   * Construct truck costing. Pass in cost type and costing_options using protocol buffer(pbf).
    * @param  costing specified costing type.
-   * @param  options pbf with request options.
+   * @param  costing_options pbf with request costing_options.
    */
-  TruckCost(const Costing costing, const Options& options);
+  TruckCost(const CostingOptions& costing_options);
 
   virtual ~TruckCost();
 
@@ -153,11 +154,11 @@ public:
    */
   virtual bool Allowed(const baldr::DirectedEdge* edge,
                        const EdgeLabel& pred,
-                       const baldr::GraphTile*& tile,
+                       const GraphTile* tile,
                        const baldr::GraphId& edgeid,
                        const uint64_t current_time,
                        const uint32_t tz_index,
-                       bool& time_restricted) const;
+                       int& restriction_idx) const;
 
   /**
    * Checks if access is allowed for an edge on the reverse path
@@ -180,11 +181,11 @@ public:
   virtual bool AllowedReverse(const baldr::DirectedEdge* edge,
                               const EdgeLabel& pred,
                               const baldr::DirectedEdge* opp_edge,
-                              const baldr::GraphTile*& tile,
+                              const GraphTile* tile,
                               const baldr::GraphId& opp_edgeid,
                               const uint64_t current_time,
                               const uint32_t tz_index,
-                              bool& has_time_restrictions) const;
+                              int& restriction_idx) const;
 
   /**
    * Checks if access is allowed for the provided node. Node access can
@@ -277,7 +278,7 @@ public:
   virtual const EdgeFilter GetEdgeFilter() const {
     // Throw back a lambda that checks the access for this type of costing
     return [](const baldr::DirectedEdge* edge) {
-      if (edge->is_shortcut() || !(edge->forwardaccess() & kTruckAccess)) {
+      if (edge->is_shortcut() || !(edge->forwardaccess() & kTruckAccess) || edge->bss_connection()) {
         return 0.0f;
       } else {
         // TODO - use classification/use to alter the factor
@@ -298,7 +299,7 @@ public:
 
 public:
   VehicleType type_; // Vehicle type: tractor trailer
-  float speedfactor_[kMaxSpeedKph + 1];
+  std::vector<float> speedfactor_;
   float density_factor_[16]; // Density factor
   float toll_factor_;        // Factor applied when road has a toll
   float low_class_penalty_;  // Penalty (seconds) to go to residential or service road
@@ -316,14 +317,10 @@ public:
 };
 
 // Constructor
-TruckCost::TruckCost(const Costing costing, const Options& options)
-    : DynamicCost(options, TravelMode::kDrive), trans_density_factor_{1.0f, 1.0f, 1.0f, 1.0f,
-                                                                      1.0f, 1.1f, 1.2f, 1.3f,
-                                                                      1.4f, 1.6f, 1.9f, 2.2f,
-                                                                      2.5f, 2.8f, 3.1f, 3.5f} {
-
-  // Grab the costing options based on the specified costing type
-  const CostingOptions& costing_options = options.costing_options(static_cast<int>(costing));
+TruckCost::TruckCost(const CostingOptions& costing_options)
+    : DynamicCost(costing_options, TravelMode::kDrive),
+      trans_density_factor_{1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.1f, 1.2f, 1.3f,
+                            1.4f, 1.6f, 1.9f, 2.2f, 2.5f, 2.8f, 3.1f, 3.5f} {
 
   type_ = VehicleType::kTractorTrailer;
 
@@ -341,6 +338,7 @@ TruckCost::TruckCost(const Costing costing, const Options& options)
   length_ = costing_options.length();
 
   // Create speed cost table
+  speedfactor_.resize(kMaxSpeedKph + 1, 0);
   speedfactor_[0] = kSecPerHour; // TODO - what to make speed=0?
   for (uint32_t s = 1; s <= kMaxSpeedKph; s++) {
     speedfactor_[s] = (kSecPerHour * 0.001f) / static_cast<float>(s);
@@ -420,11 +418,15 @@ bool TruckCost::ModeSpecificAllowed(const baldr::AccessRestriction& restriction)
 // Check if access is allowed on the specified edge.
 inline bool TruckCost::Allowed(const baldr::DirectedEdge* edge,
                                const EdgeLabel& pred,
-                               const baldr::GraphTile*& tile,
+                               const GraphTile* tile,
                                const baldr::GraphId& edgeid,
                                const uint64_t current_time,
                                const uint32_t tz_index,
-                               bool& has_time_restrictions) const {
+                               int& restriction_idx) const {
+  if (flow_mask_ & kCurrentFlowMask) {
+    if (tile->IsClosedDueToTraffic(edgeid))
+      return false;
+  }
   // Check access, U-turn, and simple turn restriction.
   // TODO - perhaps allow U-turns at dead-end nodes?
   if (!(edge->forwardaccess() & kTruckAccess) || (pred.opp_local_idx() == edge->localedgeidx()) ||
@@ -435,7 +437,7 @@ inline bool TruckCost::Allowed(const baldr::DirectedEdge* edge,
   }
 
   return DynamicCost::EvaluateRestrictions(kTruckAccess, edge, tile, edgeid, current_time, tz_index,
-                                           has_time_restrictions);
+                                           restriction_idx);
 }
 
 // Checks if access is allowed for an edge on the reverse path (from
@@ -443,11 +445,15 @@ inline bool TruckCost::Allowed(const baldr::DirectedEdge* edge,
 bool TruckCost::AllowedReverse(const baldr::DirectedEdge* edge,
                                const EdgeLabel& pred,
                                const baldr::DirectedEdge* opp_edge,
-                               const baldr::GraphTile*& tile,
+                               const GraphTile* tile,
                                const baldr::GraphId& opp_edgeid,
                                const uint64_t current_time,
                                const uint32_t tz_index,
-                               bool& has_time_restrictions) const {
+                               int& restriction_idx) const {
+  if (flow_mask_ & kCurrentFlowMask) {
+    if (tile->IsClosedDueToTraffic(opp_edgeid))
+      return false;
+  }
   // Check access, U-turn, and simple turn restriction.
   // TODO - perhaps allow U-turns at dead-end nodes?
   if (!(opp_edge->forwardaccess() & kTruckAccess) || (pred.opp_local_idx() == edge->localedgeidx()) ||
@@ -458,7 +464,7 @@ bool TruckCost::AllowedReverse(const baldr::DirectedEdge* edge,
   }
 
   return DynamicCost::EvaluateRestrictions(kTruckAccess, edge, tile, opp_edgeid, current_time,
-                                           tz_index, has_time_restrictions);
+                                           tz_index, restriction_idx);
 }
 
 // Check if access is allowed at the specified node.
@@ -482,6 +488,7 @@ Cost TruckCost::EdgeCost(const baldr::DirectedEdge* edge,
 
   // Use the lower or truck speed (ir present) and speed
   uint32_t s = (edge->truck_speed() > 0) ? std::min(edge->truck_speed(), speed) : speed;
+  assert(s < speedfactor_.size());
   float sec = edge->length() * speedfactor_[s];
   return {sec * factor, sec};
 }
@@ -496,8 +503,8 @@ Cost TruckCost::TransitionCost(const baldr::DirectedEdge* edge,
   Cost c = base_transition_cost(node, edge, pred, idx);
 
   // Penalty to transition onto low class roads.
-  if (edge->classification() == RoadClass::kResidential ||
-      edge->classification() == RoadClass::kServiceOther) {
+  if (edge->classification() == baldr::RoadClass::kResidential ||
+      edge->classification() == baldr::RoadClass::kServiceOther) {
     c.cost += low_class_penalty_;
   }
 
@@ -546,8 +553,8 @@ Cost TruckCost::TransitionCostReverse(const uint32_t idx,
   Cost c = base_transition_cost(node, edge, pred, idx);
 
   // Penalty to transition onto low class roads.
-  if (edge->classification() == RoadClass::kResidential ||
-      edge->classification() == RoadClass::kServiceOther) {
+  if (edge->classification() == baldr::RoadClass::kResidential ||
+      edge->classification() == baldr::RoadClass::kServiceOther) {
     c.cost += low_class_penalty_;
   }
 
@@ -601,11 +608,13 @@ uint8_t TruckCost::travel_type() const {
 void ParseTruckCostOptions(const rapidjson::Document& doc,
                            const std::string& costing_options_key,
                            CostingOptions* pbf_costing_options) {
+  pbf_costing_options->set_costing(Costing::truck);
+  pbf_costing_options->set_name(Costing_Enum_Name(pbf_costing_options->costing()));
   auto json_costing_options = rapidjson::get_child_optional(doc, costing_options_key.c_str());
 
   if (json_costing_options) {
     // TODO: farm more common stuff out to parent class
-    ParseCostOptions(*json_costing_options, pbf_costing_options);
+    ParseSharedCostOptions(*json_costing_options, pbf_costing_options);
 
     // If specified, parse json and set pbf values
 
@@ -715,8 +724,8 @@ void ParseTruckCostOptions(const rapidjson::Document& doc,
   }
 }
 
-cost_ptr_t CreateTruckCost(const Costing costing, const Options& options) {
-  return std::make_shared<TruckCost>(costing, options);
+cost_ptr_t CreateTruckCost(const CostingOptions& costing_options) {
+  return std::make_shared<TruckCost>(costing_options);
 }
 
 } // namespace sif
@@ -733,7 +742,7 @@ namespace {
 
 class TestTruckCost : public TruckCost {
 public:
-  TestTruckCost(const Costing costing, const Options& options) : TruckCost(costing, options){};
+  TestTruckCost(const CostingOptions& costing_options) : TruckCost(costing_options){};
 
   using TruckCost::alley_penalty_;
   using TruckCost::country_crossing_cost_;
@@ -749,7 +758,7 @@ TestTruckCost* make_truckcost_from_json(const std::string& property, float testV
   ss << R"({"costing_options":{"truck":{")" << property << R"(":)" << testVal << "}}}";
   Api request;
   ParseApi(ss.str(), valhalla::Options::route, request);
-  return new TestTruckCost(valhalla::Costing::truck, request.options());
+  return new TestTruckCost(request.options().costing_options(static_cast<int>(Costing::truck)));
 }
 
 std::uniform_real_distribution<float>*
