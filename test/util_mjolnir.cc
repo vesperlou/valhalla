@@ -34,7 +34,7 @@ TEST(UtilMjolnir, BuildTileSet) {
   config.put<std::string>("mjolnir.tile_dir", tile_dir);
   config.put<unsigned long>("mjolnir.id_table_size", 1000);
   EXPECT_TRUE(build_tile_set(config, {VALHALLA_SOURCE_DIR "test/data/harrisburg.osm.pbf"},
-                             mjolnir::BuildStage::kInitialize, mjolnir::BuildStage::kCleanup));
+                             mjolnir::BuildStage::kInitialize, mjolnir::BuildStage::kCleanup, false));
   // Clear the tile directory so it doesn't interfere with the next test.
   EXPECT_TRUE(filesystem::remove_all(tile_dir));
 }
