@@ -7,6 +7,8 @@
 namespace valhalla {
 namespace baldr {
 
+constexpr size_t kMaxLanesPerRestriction = 19;
+
 /**
  * Information held for each access restriction.
  */
@@ -16,6 +18,7 @@ public:
   AccessRestriction(const uint32_t edgeindex,
                     const AccessType type,
                     const uint32_t modes,
+                    const uint32_t lanes,
                     const uint64_t value);
 
   /**
@@ -43,6 +46,12 @@ public:
   uint32_t modes() const;
 
   /**
+   * Get the lanes mask impacted by access restriction.
+   * @return  Returns a bit field of affected lanes.
+   */
+  uint32_t lanes() const;
+
+  /**
    * Get the value for this restriction.
    * @return  Returns the value
    */
@@ -66,7 +75,8 @@ protected:
                             // kMaxTileEdgeCount in nodeinfo.h: 22 bits.
   uint64_t type_ : 6;       // Access type
   uint64_t modes_ : 12;     // Mode(s) this access restriction applies to
-  uint64_t spare_ : 24;
+  uint64_t lanes_ : 19;     // Mask for which lanes to apply this restriction.
+  uint64_t spare_ : 5;
 
   uint64_t value_; // Value for this restriction. Can take on
                    // different meanings per type
