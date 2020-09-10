@@ -419,10 +419,11 @@ uint32_t AddShortcutEdges(GraphReader& reader,
       // Add any access restriction records. TODO - make sure we don't contract
       // across edges with different restrictions.
       if (newedge.access_restriction()) {
-        auto restrictions = tile->GetAccessRestrictions(edge_id.id(), kAllAccess);
+        auto restrictions = tile->GetAllAccessRestrictions(edge_id.id(), kAllAccess);
         for (const auto& res : restrictions) {
           tilebuilder.AddAccessRestriction(AccessRestriction(tilebuilder.directededges().size(),
-                                                             res.type(), res.modes(), res.value()));
+                                                             res.type(), res.modes(), res.lanes(),
+                                                             res.value()));
         }
       }
 
@@ -628,10 +629,11 @@ uint32_t FormShortcuts(GraphReader& reader, const TileLevel& level) {
         // the list of access restrictions in the new tile. Update the
         // edge index in the restriction to be the current directed edge Id
         if (directededge->access_restriction()) {
-          auto restrictions = tile->GetAccessRestrictions(edgeid.id(), kAllAccess);
+          auto restrictions = tile->GetAllAccessRestrictions(edgeid.id(), kAllAccess);
           for (const auto& res : restrictions) {
             tilebuilder.AddAccessRestriction(AccessRestriction(tilebuilder.directededges().size(),
-                                                               res.type(), res.modes(), res.value()));
+                                                               res.type(), res.modes(), res.lanes(),
+                                                               res.value()));
           }
         }
 
