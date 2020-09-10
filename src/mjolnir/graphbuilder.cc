@@ -385,7 +385,7 @@ uint32_t AddAccessRestrictions(const uint32_t edgeid,
   uint32_t modes = 0;
   for (auto r = res.first; r != res.second; ++r) {
     AccessRestriction access_restriction(edgeid, r->second.type(), r->second.modes(),
-                                         r->second.value());
+                                         r->second.lanes(), r->second.value());
     graphtile.AddAccessRestriction(access_restriction);
     modes |= r->second.modes();
   }
@@ -839,6 +839,7 @@ void BuildTileSet(const std::string& ways_file,
               std::vector<LaneConnectivity> v;
               for (; ei.first != ei.second; ++ei.first) {
                 const auto& lc = ei.first->second;
+
                 v.emplace_back(idx, lc.from_way_id, osmdata.name_offset_map.name(lc.to_lanes_index),
                                osmdata.name_offset_map.name(lc.from_lanes_index));
               }
@@ -869,8 +870,6 @@ void BuildTileSet(const std::string& ways_file,
             }
           }
 
-          // Add restrictions..For now only storing access restrictions for trucks
-          // TODO - support more than one mode
           if (directededge.forwardaccess()) {
             uint32_t ar_modes = AddAccessRestrictions(idx, w.way_id(), osmdata, graphtile);
             if (ar_modes) {
@@ -895,6 +894,7 @@ void BuildTileSet(const std::string& ways_file,
           while (res_to_it != complex_restrictions_to.end() &&
                  (restriction_to = *res_to_it).from() == w.way_id()) {
             directededge.set_end_restriction(directededge.end_restriction() | restriction_to.modes());
+
             res_to_it++;
           }
 
