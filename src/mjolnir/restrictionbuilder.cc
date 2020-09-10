@@ -328,8 +328,11 @@ void build(const std::string& complex_restriction_from_file,
           while (res_it != complex_restrictions_from.end() &&
                  (restriction = *res_it).from() == e_offset.wayid() && restriction.vias().size()) {
 
-            if (restriction.type() < RestrictionType::kOnlyRightTurn ||
-                restriction.type() > RestrictionType::kOnlyStraightOn) {
+            if ((restriction.type() < RestrictionType::kOnlyRightTurn ||
+                 restriction.type() > RestrictionType::kOnlyStraightOn) &&
+                restriction.type() != RestrictionType::kLaneRestriction &&
+                restriction.type() !=
+                    RestrictionType::kComplexLane) { // don't add in reverse for Lane restrictions
 
               GraphId currentNode = GraphId(tile->id().tileid(), tile->id().level(), i);
               GraphId tileid = tile->id();
