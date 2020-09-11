@@ -1919,14 +1919,48 @@ public:
             return;
           std::string from_lane = lanes.at(0);
           // skip center lanes.  they should be set on the way as lanes:both_ways=1
-          if (from_lane == "bw")
+          if (from_lane == "bw") {
+
+            uint32_t lanes_mask = 0;
+            lanes_mask |= static_cast<uint64_t>(1) << 1; // assumes lane one is the center lane
+
+            OSMAccessRestriction access_restriction;
+            access_restriction.set_type(static_cast<AccessType>(AccessType::kCenterLane));
+            access_restriction.set_modes((kAutoAccess | kMopedAccess | kTaxiAccess | kBusAccess |
+                                   kBicycleAccess | kTruckAccess | kEmergencyAccess | kMotorcycleAccess));
+            access_restriction.set_value(0);
+            access_restriction.set_lanes(lanes_mask);
+            osmdata_.access_restrictions.insert({from_way_id, access_restriction});
+
+            uint32_t to_idx = osmdata_.name_offset_map.index("1");
+            osmdata_.lane_connectivity_map.insert(
+                OSMLaneConnectivityMultiMap::value_type(from_way_id,
+                                                        OSMLaneConnectivity{from_way_id, 0, to_idx, to_idx}));
             continue;
+          }
 
           std::vector<std::string> tolanes = GetTagTokens(lanes.at(1), ',');
           for (const auto& l : tolanes) {
             // skip center lanes.  they should be set on the way as lanes:both_ways=1
-            if (l == "bw")
+            if (l == "bw") {
+              uint32_t lanes_mask = 0;
+              lanes_mask |= static_cast<uint64_t>(1) << 1; // assumes lane one is the center lane
+
+              OSMAccessRestriction access_restriction;
+              access_restriction.set_type(static_cast<AccessType>(AccessType::kCenterLane));
+              access_restriction.set_modes((kAutoAccess | kMopedAccess | kTaxiAccess | kBusAccess |
+                                     kBicycleAccess | kTruckAccess | kEmergencyAccess | kMotorcycleAccess));
+              access_restriction.set_value(0);
+              access_restriction.set_lanes(lanes_mask);
+              osmdata_.access_restrictions.insert({restriction.to(), access_restriction});
+
+              uint32_t to_idx = osmdata_.name_offset_map.index("1");
+              osmdata_.lane_connectivity_map.insert(
+                  OSMLaneConnectivityMultiMap::value_type(restriction.to(),
+                                                          OSMLaneConnectivity{restriction.to(), 0, to_idx, to_idx}));
               continue;
+
+            }
 
             from_lanes += (from_lanes.empty() ? "" : "|") + from_lane;
             to_lanes += (to_lanes.empty() ? "" : "|") + l;
