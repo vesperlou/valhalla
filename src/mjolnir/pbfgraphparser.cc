@@ -1909,6 +1909,8 @@ public:
       if (from_way_id != 0 && isConnectivity && !connectivity.empty()) {
         // connectivity = connectivity=1:1,2|2:3
         std::string from_lanes, to_lanes;
+        bool from_center_lane = false, to_center_lane;
+
         connectivity.erase(boost::remove_if(connectivity, boost::is_any_of("()")),
                            connectivity.end());
 
@@ -1918,9 +1920,19 @@ public:
           if (lanes.size() != 2)
             return;
           std::string from_lane = lanes.at(0);
-          // skip center lanes.  they should be set on the way as lanes:both_ways=1
-          if (from_lane == "bw") {
 
+          if (from_center_lane) {//increment lanes by 1 since there is a center lane
+            int f = get_number(("laneconnectivity " + std::to_string(osmid) + " "),from_lane);
+            if (f >= 1) {
+              f++;
+              from_lane = std::to_string(f);
+            } else continue;
+          }
+
+          // skip center lanes.  they should be set on the way as lanes:both_ways=1
+          if (from_lane == "bw" && !from_center_lane) {
+
+            from_center_lane = true;
             uint32_t lanes_mask = 0;
             lanes_mask |= static_cast<uint64_t>(1) << 1; // assumes lane one is the center lane
 
@@ -1942,7 +1954,7 @@ public:
           std::vector<std::string> tolanes = GetTagTokens(lanes.at(1), ',');
           for (const auto& l : tolanes) {
             // skip center lanes.  they should be set on the way as lanes:both_ways=1
-            if (l == "bw") {
+            if (l == "bw" && !to_center_lane) {
               uint32_t lanes_mask = 0;
               lanes_mask |= static_cast<uint64_t>(1) << 1; // assumes lane one is the center lane
 
@@ -1962,8 +1974,17 @@ public:
 
             }
 
+            std::string to = l;
+            if (to_center_lane) {//increment lanes by 1 since there is a center lane
+              int t = get_number(("laneconnectivity " + std::to_string(osmid) + " "),to);
+              if (t >= 1) {
+                t++;
+                to = std::to_string(t);
+              } else continue;
+            }
+
             from_lanes += (from_lanes.empty() ? "" : "|") + from_lane;
-            to_lanes += (to_lanes.empty() ? "" : "|") + l;
+            to_lanes += (to_lanes.empty() ? "" : "|") + to;
           }
         }
         uint32_t to_idx = osmdata_.name_offset_map.index(to_lanes);
