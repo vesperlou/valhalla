@@ -69,6 +69,8 @@ const std::string kEdgeTruckSpeed = "edge.truck_speed";
 const std::string kEdgeTruckRoute = "edge.truck_route";
 const std::string kEdgeDefaultSpeed = "edge.default_speed";
 const std::string kEdgeDestinationOnly = "edge.destination_only";
+const std::string kEdgeIsUrban = "edge.is_urban";
+const std::string kEdgeTaggedNames = "edge.tagged_names";
 
 // Node keys
 const std::string kNodeIntersectingEdgeBeginHeading = "node.intersecting_edge.begin_heading";
@@ -82,7 +84,7 @@ const std::string kNodeIntersectingEdgeWalkability = "node.intersecting_edge.wal
 const std::string kNodeIntersectingEdgeUse = "node.intersecting_edge.use";
 const std::string kNodeIntersectingEdgeRoadClass = "node.intersecting_edge.road_class";
 const std::string kNodeElapsedTime = "node.elapsed_time";
-const std::string kNodeaAdminIndex = "node.admin_index";
+const std::string kNodeAdminIndex = "node.admin_index";
 const std::string kNodeType = "node.type";
 const std::string kNodeFork = "node.fork";
 const std::string kNodeTransitPlatformInfoType = "node.transit_platform_info.type";
@@ -107,6 +109,7 @@ const std::string kNodeTransitEgressInfoName = "node.transit_egress_info.name";
 const std::string kNodeTransitEgressInfoLatLon = "node.transit_egress_info.lat_lon";
 const std::string kNodeTimeZone = "node.time_zone";
 const std::string kNodeTransitionTime = "node.transition_time";
+const std::string kNodeIncidents = "node.incidents";
 
 // Top level: osm changeset, admin list, and full shape keys
 const std::string kOsmChangeset = "osm_changeset";
