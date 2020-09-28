@@ -1137,6 +1137,7 @@ public:
         ((highway_junction != results.end()) && (highway_junction->second == "motorway_junction"));
 
     way_.set_drive_on_right(true); // default
+    bool conn_added = false;
 
     for (const auto& kv : results) {
       tag_ = kv;
@@ -1151,75 +1152,76 @@ public:
       // motor_vehicle:lanes=yes|yes|no
       // bus:lanes=yes|yes|no
 
-      else if (tag_.first.substr(0, 26) == "motorcar:lanes:conditional" ||
-               tag_.first.substr(0, 31) == "motor_vehicle:lanes:conditional" ||
-               tag_.first.substr(0, 25) == "bicycle:lanes:conditional" ||
-               tag_.first.substr(0, 28) == "motorcycle:lanes:conditional" ||
-               tag_.first.substr(0, 22) == "foot:lanes:conditional" ||
-               tag_.first.substr(0, 28) == "pedestrian:lanes:conditional" ||
-               tag_.first.substr(0, 21) == "hgv:lanes:conditional" ||
-               tag_.first.substr(0, 23) == "moped:lanes:conditional" ||
-               tag_.first.substr(0, 22) == "mofa:lanes:conditional" ||
-               tag_.first.substr(0, 21) == "psv:lanes:conditional" ||
-               tag_.first.substr(0, 22) == "taxi:lanes:conditional" ||
-               tag_.first.substr(0, 21) == "bus:lanes:conditional" ||
-               tag_.first.substr(0, 21) == "hov:lanes:conditional" ||
-               tag_.first.substr(0, 27) == "emergency:lanes:conditional" ||
-               tag_.first.substr(0, 26) == "lanes:motorcar:conditional" ||
-               tag_.first.substr(0, 31) == "lanes:motor_vehicle:conditional" ||
-               tag_.first.substr(0, 25) == "lanes:bicycle:conditional" ||
-               tag_.first.substr(0, 28) == "lanes:motorcycle:conditional" ||
-               tag_.first.substr(0, 22) == "lanes:foot:conditional" ||
-               tag_.first.substr(0, 28) == "lanes:pedestrian:conditional" ||
-               tag_.first.substr(0, 21) == "lanes:hgv:conditional" ||
-               tag_.first.substr(0, 23) == "lanes:moped:conditional" ||
-               tag_.first.substr(0, 22) == "lanes:mofa:conditional" ||
-               tag_.first.substr(0, 21) == "lanes:psv:conditional" ||
-               tag_.first.substr(0, 22) == "lanes:taxi:conditional" ||
-               tag_.first.substr(0, 21) == "lanes:bus:conditional" ||
-               tag_.first.substr(0, 21) == "lanes:hov:conditional" ||
-               tag_.first.substr(0, 27) == "lanes:emergency:conditional") {
+      // motor_vehicle:conditional=no @ (16:30-07:00)
+      else if (tag_.first.substr(0, 14) == "motorcar:lanes" ||
+               tag_.first.substr(0, 19) == "motor_vehicle:lanes" ||
+               tag_.first.substr(0, 13) == "bicycle:lanes" ||
+               tag_.first.substr(0, 16) == "motorcycle:lanes" ||
+               tag_.first.substr(0, 10) == "foot:lanes" ||
+               tag_.first.substr(0, 16) == "pedestrian:lanes" ||
+               tag_.first.substr(0, 9)  == "hgv:lanes" ||
+               tag_.first.substr(0, 11) == "moped:lanes" ||
+               tag_.first.substr(0, 10) == "mofa:lanes" ||
+               tag_.first.substr(0, 9)  == "psv:lanes" ||
+               tag_.first.substr(0, 10) == "taxi:lanes" ||
+               tag_.first.substr(0, 9)  == "bus:lanes" ||
+               tag_.first.substr(0, 9)  == "hov:lanes" ||
+               tag_.first.substr(0, 15) == "emergency:lanes" ||
+               tag_.first.substr(0, 14) == "lanes:motorcar" ||
+               tag_.first.substr(0, 19) == "lanes:motor_vehicle" ||
+               tag_.first.substr(0, 13) == "lanes:bicycle" ||
+               tag_.first.substr(0, 16) == "lanes:motorcycle" ||
+               tag_.first.substr(0, 10) == "lanes:foot" ||
+               tag_.first.substr(0, 16) == "lanes:pedestrian" ||
+               tag_.first.substr(0, 9) == "lanes:hgv" ||
+               tag_.first.substr(0, 11) == "lanes:moped" ||
+               tag_.first.substr(0, 10) == "lanes:mofa" ||
+               tag_.first.substr(0, 9) == "lanes:psv" ||
+               tag_.first.substr(0, 10) == "lanes:taxi" ||
+               tag_.first.substr(0, 9) == "lanes:bus" ||
+               tag_.first.substr(0, 9) == "lanes:hov" ||
+               tag_.first.substr(0, 15) == "lanes:emergency") {
 
         uint16_t mode = 0;
-        if (tag_.first.substr(0, 26) == "motorcar:lanes:conditional" ||
-            tag_.first.substr(0, 31) == "motor_vehicle:lanes:conditional" ||
-            tag_.first.substr(0, 26) == "lanes:motorcar:conditional" ||
-            tag_.first.substr(0, 31) == "lanes:motor_vehicle:conditional") {
+        if (tag_.first.substr(0, 14) == "motorcar:lanes" ||
+            tag_.first.substr(0, 19) == "motor_vehicle:lanes" ||
+            tag_.first.substr(0, 14) == "lanes:motorcar" ||
+            tag_.first.substr(0, 19) == "lanes:motor_vehicle") {
           mode = (kAutoAccess | kTruckAccess | kEmergencyAccess | kTaxiAccess | kBusAccess |
                   kHOVAccess | kMopedAccess | kMotorcycleAccess);
-        } else if (tag_.first.substr(0, 25) == "bicycle:lanes:conditional" ||
-                   tag_.first.substr(0, 25) == "lanes:bicycle:conditional") {
+        } else if (tag_.first.substr(0, 13) == "bicycle:lanes" ||
+                   tag_.first.substr(0, 13) == "lanes:bicycle") {
           mode = kBicycleAccess;
-        } else if (tag_.first.substr(0, 22) == "foot:lanes:conditional" ||
-                   tag_.first.substr(0, 28) == "pedestrian:lanes:conditional" ||
-                   tag_.first.substr(0, 22) == "lanes:foot:conditional" ||
-                   tag_.first.substr(0, 28) == "lanes:pedestrian:conditional") {
+        } else if (tag_.first.substr(0, 10) == "foot:lanes" ||
+                   tag_.first.substr(0, 16) == "pedestrian:lanes" ||
+                   tag_.first.substr(0, 10) == "lanes:foot" ||
+                   tag_.first.substr(0, 16) == "lanes:pedestrian") {
           mode = (kPedestrianAccess | kWheelchairAccess);
-        } else if (tag_.first.substr(0, 21) == "hgv:lanes:conditional" ||
-                   tag_.first.substr(0, 21) == "lanes:hgv:conditional") {
+        } else if (tag_.first.substr(0, 9) == "hgv:lanes" ||
+                   tag_.first.substr(0, 9) == "lanes:hgv") {
           mode = kTruckAccess;
-        } else if (tag_.first.substr(0, 23) == "moped:lanes:conditional" ||
-                   tag_.first.substr(0, 22) == "mofa:lanes:conditional" ||
-                   tag_.first.substr(0, 23) == "lanes:moped:conditional" ||
-                   tag_.first.substr(0, 22) == "lanes:mofa:conditional") {
+        } else if (tag_.first.substr(0, 11) == "moped:lanes" ||
+                   tag_.first.substr(0, 10) == "mofa:lanes" ||
+                   tag_.first.substr(0, 11) == "lanes:moped" ||
+                   tag_.first.substr(0, 10) == "lanes:mofa") {
           mode = kMopedAccess;
-        } else if (tag_.first.substr(0, 28) == "motorcycle:lanes:conditional" ||
-                   tag_.first.substr(0, 28) == "lanes:motorcycle:conditional") {
+        } else if (tag_.first.substr(0, 16) == "motorcycle:lanes" ||
+                   tag_.first.substr(0, 16) == "lanes:motorcycle") {
           mode = kMotorcycleAccess;
-        } else if (tag_.first.substr(0, 21) == "psv:lanes:conditional" ||
-                   tag_.first.substr(0, 21) == "lanes:psv:conditional") {
+        } else if (tag_.first.substr(0, 9) == "psv:lanes" ||
+                   tag_.first.substr(0, 9) == "lanes:psv") {
           mode = (kTaxiAccess | kBusAccess);
-        } else if (tag_.first.substr(0, 22) == "taxi:lanes:conditional" ||
-                   tag_.first.substr(0, 22) == "lanes:taxi:conditional") {
+        } else if (tag_.first.substr(0, 10) == "taxi:lanes" ||
+                   tag_.first.substr(0, 10) == "lanes:taxi") {
           mode = kTaxiAccess;
-        } else if (tag_.first.substr(0, 21) == "bus:lanes:conditional" ||
-                   tag_.first.substr(0, 21) == "lanes:bus:conditional") {
+        } else if (tag_.first.substr(0, 9) == "bus:lanes" ||
+                   tag_.first.substr(0, 9) == "lanes:bus") {
           mode = kBusAccess;
-        } else if (tag_.first.substr(0, 21) == "hov:lanes:conditional" ||
-                   tag_.first.substr(0, 21) == "lanes:hov:conditional") {
+        } else if (tag_.first.substr(0, 9) == "hov:lanes" ||
+                   tag_.first.substr(0, 9) == "lanes:hov") {
           mode = kHOVAccess;
-        } else if (tag_.first.substr(0, 27) == "emergency:lanes:conditional" ||
-                   tag_.first.substr(0, 27) == "lanes:emergency:conditional") {
+        } else if (tag_.first.substr(0, 15) == "emergency:lanes" ||
+                   tag_.first.substr(0, 15) == "lanes:emergency") {
           mode = kEmergencyAccess;
         }
 
@@ -1270,7 +1272,7 @@ public:
             tmp = l;
             if (tmp == "no") {
               type = AccessType::kLaneDenied;
-            } else if (tmp == "designated")
+            } else if (tmp == "yes" || tmp == "private" || tmp == "delivery" || tmp == "designated")
               type = AccessType::kLaneAllowed;
           }
           if (tmp.size()) {
@@ -1309,15 +1311,19 @@ public:
           osmdata_.access_restrictions.insert({osmid_, restriction});
         }
         if (allowed_mask) {
-          OSMAccessRestriction restriction;
-          restriction.set_type(static_cast<AccessType>(AccessType::kLaneAllowed));
-          restriction.set_modes(mode);
-          restriction.set_value(0);
-          restriction.set_lanes(allowed_mask);
-          osmdata_.access_restrictions.insert({osmid_, restriction});
+          if (!denied_mask) { // no need to add both.
+            OSMAccessRestriction restriction;
+            restriction.set_type(static_cast<AccessType>(AccessType::kLaneAllowed));
+            restriction.set_modes(mode);
+            restriction.set_value(0);
+            restriction.set_lanes(allowed_mask);
+            osmdata_.access_restrictions.insert({osmid_, restriction});
+          }
         }
 
-        if (to_lanes.size()) {
+        if (to_lanes.size() && !conn_added) {
+
+          conn_added = true;
           uint32_t to_idx = osmdata_.name_offset_map.index(to_lanes);
           osmdata_.lane_connectivity_map.insert(
               OSMLaneConnectivityMultiMap::value_type(osmid_, OSMLaneConnectivity{osmid_, 0, to_idx,
