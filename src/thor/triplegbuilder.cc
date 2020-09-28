@@ -533,7 +533,7 @@ TripLeg_Edge* AddTripEdge(const AttributesController& controller,
       path_lane->set_to_lanes(l.to_lanes());
       path_lane->set_from_lanes(l.from_lanes());
 
-      std::cout << "|lane connectivity| wayid:" << edgeinfo.wayid() << " from wayid: " << l.from()
+      std::cout << "|lane connectivity| from wayid: " << l.from() << " to wayid: " << edgeinfo.wayid()
                 << " from lanes: " << l.from_lanes() << " to lanes: " << l.to_lanes() << std::endl;
 
       if (directededge->access_restriction()) {
@@ -602,8 +602,12 @@ TripLeg_Edge* AddTripEdge(const AttributesController& controller,
               }
             } else if (r.type() == baldr::AccessType::kLaneAllowed ||
                        r.type() == baldr::AccessType::kLaneDenied) {
+
+              std::string type = (r.type() == baldr::AccessType::kLaneAllowed) ? "Allowed" : "Denied";
+
               std::cout << std::endl;
-              std::cout << "|non-timed access restriction| lane: " << t
+              std::cout << "|non-timed access restriction| Type: " << type <<
+                  " lane: " << t
                         << " does this restriction apply to this lane: " << res << " for "
                         << r.modes() << std::endl;
             }
