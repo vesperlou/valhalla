@@ -40,14 +40,10 @@ std::shared_ptr<const valhalla::IncidentsTile> read_tile(const std::string& file
   }
 
   // prepare a stream for parsing
-  std::string buffer((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
-  google::protobuf::io::ArrayInputStream as(static_cast<const void*>(buffer.c_str()), buffer.size());
-  google::protobuf::io::CodedInputStream cs(
-      static_cast<google::protobuf::io::ZeroCopyInputStream*>(&as));
 
   // try to parse the stream
   std::shared_ptr<valhalla::IncidentsTile> tile(new valhalla::IncidentsTile);
-  if (!tile->ParseFromCodedStream(&cs)) {
+  if (!tile->ParseFromIstream(&file)) {
     LOG_WARN("Incident Watcher failed to parse " + filename);
     return {};
   }
