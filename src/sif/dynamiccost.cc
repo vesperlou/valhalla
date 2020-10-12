@@ -87,9 +87,9 @@ Cost DynamicCost::EdgeCost(const baldr::DirectedEdge* edge, const baldr::GraphTi
 // Returns the cost to make the transition from the predecessor edge.
 // Defaults to 0. Costing models that wish to include edge transition
 // costs (i.e., intersection/turn costs) must override this method.
-Cost DynamicCost::TransitionCost(const DirectedEdge* edge,
-                                 const NodeInfo* node,
-                                 const EdgeLabel& pred) const {
+Cost DynamicCost::TransitionCost(const DirectedEdge* /*edge*/,
+                                 const NodeInfo* /*node*/,
+                                 const EdgeLabel& /*pred*/) const {
   return {0.0f, 0.0f};
 }
 
@@ -97,10 +97,10 @@ Cost DynamicCost::TransitionCost(const DirectedEdge* edge,
 // when using a reverse search (from destination towards the origin).
 // Defaults to 0. Costing models that wish to include edge transition
 // costs (i.e., intersection/turn costs) must override this method.
-Cost DynamicCost::TransitionCostReverse(const uint32_t idx,
-                                        const baldr::NodeInfo* node,
-                                        const baldr::DirectedEdge* opp_edge,
-                                        const baldr::DirectedEdge* opp_pred_edge) const {
+Cost DynamicCost::TransitionCostReverse(const uint32_t /*idx*/,
+                                        const baldr::NodeInfo* /*node*/,
+                                        const baldr::DirectedEdge* /*opp_edge*/,
+                                        const baldr::DirectedEdge* /*opp_pred_edge*/) const {
   return {0.0f, 0.0f};
 }
 
@@ -189,16 +189,16 @@ bool DynamicCost::bicycle() const {
 }
 
 // Add to the exclude list.
-void DynamicCost::AddToExcludeList(const baldr::GraphTile*& tile) {
+void DynamicCost::AddToExcludeList(const baldr::GraphTile*& /*tile*/) {
 }
 
 // Checks if we should exclude or not.
-bool DynamicCost::IsExcluded(const baldr::GraphTile*& tile, const baldr::DirectedEdge* edge) {
+bool DynamicCost::IsExcluded(const baldr::GraphTile*& /*tile*/, const baldr::DirectedEdge* /*edge*/) {
   return false;
 }
 
 // Checks if we should exclude or not.
-bool DynamicCost::IsExcluded(const baldr::GraphTile*& tile, const baldr::NodeInfo* node) {
+bool DynamicCost::IsExcluded(const baldr::GraphTile*& /*tile*/, const baldr::NodeInfo* /*node*/) {
   return false;
 }
 

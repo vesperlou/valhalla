@@ -264,13 +264,14 @@ public:
    * @param curr_time
    * @return
    */
-  virtual Cost EdgeCost(const baldr::DirectedEdge* edge,
-                        const baldr::TransitDeparture* departure,
-                        const uint32_t curr_time) const override {
+  virtual Cost EdgeCost(const baldr::DirectedEdge* /*edge*/,
+                        const baldr::TransitDeparture* /*departure*/,
+                        const uint32_t /*curr_time*/) const override {
     throw std::runtime_error("PedestrianCost::EdgeCost does not support transit edges");
   }
 
-  bool IsClosed(const baldr::DirectedEdge* edge, const baldr::GraphTile* tile) const override {
+  bool IsClosed(const baldr::DirectedEdge* /*edge*/,
+                const baldr::GraphTile* /*tile*/) const override {
     return false;
   }
 
@@ -918,8 +919,7 @@ public:
   using PedestrianCost::maneuver_penalty_;
 };
 
-TestPedestrianCost*
-make_pedestriancost_from_json(const std::string& property, float testVal, const std::string& type) {
+TestPedestrianCost* make_pedestriancost_from_json(const std::string& property, float testVal) {
   std::stringstream ss;
   ss << R"({"costing_options":{"pedestrian":{")" << property << R"(":)" << testVal << "}}}";
   Api request;
@@ -953,7 +953,7 @@ TEST(PedestrianCost, testPedestrianCostParams) {
   real_distributor.reset(make_distributor_from_range(kManeuverPenaltyRange));
   for (unsigned i = 0; i < testIterations; ++i) {
     ctorTester.reset(
-        make_pedestriancost_from_json("maneuver_penalty", (*real_distributor)(generator), "foot"));
+        make_pedestriancost_from_json("maneuver_penalty", (*real_distributor)(generator)));
     EXPECT_THAT(ctorTester->maneuver_penalty_,
                 test::IsBetween(kManeuverPenaltyRange.min, kManeuverPenaltyRange.max));
   }
@@ -961,8 +961,7 @@ TEST(PedestrianCost, testPedestrianCostParams) {
   // gate_penalty_
   real_distributor.reset(make_distributor_from_range(kGatePenaltyRange));
   for (unsigned i = 0; i < testIterations; ++i) {
-    ctorTester.reset(
-        make_pedestriancost_from_json("gate_penalty", (*real_distributor)(generator), "foot"));
+    ctorTester.reset(make_pedestriancost_from_json("gate_penalty", (*real_distributor)(generator)));
     EXPECT_THAT(ctorTester->gate_cost_.cost,
                 test::IsBetween(kGatePenaltyRange.min, kGatePenaltyRange.max));
   }
@@ -970,8 +969,7 @@ TEST(PedestrianCost, testPedestrianCostParams) {
   // alley_factor_
   real_distributor.reset(make_distributor_from_range(kAlleyFactorRange));
   for (unsigned i = 0; i < testIterations; ++i) {
-    ctorTester.reset(
-        make_pedestriancost_from_json("alley_factor", (*real_distributor)(generator), "foot"));
+    ctorTester.reset(make_pedestriancost_from_json("alley_factor", (*real_distributor)(generator)));
     EXPECT_THAT(ctorTester->alley_factor_,
                 test::IsBetween(kAlleyFactorRange.min, kAlleyFactorRange.max));
   }
@@ -979,8 +977,7 @@ TEST(PedestrianCost, testPedestrianCostParams) {
   // ferry_cost_
   real_distributor.reset(make_distributor_from_range(kFerryCostRange));
   for (unsigned i = 0; i < testIterations; ++i) {
-    ctorTester.reset(
-        make_pedestriancost_from_json("ferry_cost", (*real_distributor)(generator), "foot"));
+    ctorTester.reset(make_pedestriancost_from_json("ferry_cost", (*real_distributor)(generator)));
     EXPECT_THAT(ctorTester->ferry_transition_cost_.secs,
                 test::IsBetween(kFerryCostRange.min, kFerryCostRange.max));
   }
@@ -988,8 +985,8 @@ TEST(PedestrianCost, testPedestrianCostParams) {
   // country_crossing_cost_
   real_distributor.reset(make_distributor_from_range(kCountryCrossingCostRange));
   for (unsigned i = 0; i < testIterations; ++i) {
-    ctorTester.reset(make_pedestriancost_from_json("country_crossing_cost",
-                                                   (*real_distributor)(generator), "foot"));
+    ctorTester.reset(
+        make_pedestriancost_from_json("country_crossing_cost", (*real_distributor)(generator)));
     EXPECT_THAT(ctorTester->country_crossing_cost_.secs,
                 test::IsBetween(kCountryCrossingCostRange.min, kCountryCrossingCostRange.max));
   }
@@ -997,8 +994,8 @@ TEST(PedestrianCost, testPedestrianCostParams) {
   // country_crossing_penalty_
   real_distributor.reset(make_distributor_from_range(kCountryCrossingPenaltyRange));
   for (unsigned i = 0; i < testIterations; ++i) {
-    ctorTester.reset(make_pedestriancost_from_json("country_crossing_penalty",
-                                                   (*real_distributor)(generator), "foot"));
+    ctorTester.reset(
+        make_pedestriancost_from_json("country_crossing_penalty", (*real_distributor)(generator)));
     EXPECT_THAT(ctorTester->country_crossing_cost_.cost,
                 test::IsBetween(kCountryCrossingPenaltyRange.min,
                                 kCountryCrossingPenaltyRange.max + kDefaultCountryCrossingCost));
@@ -1008,8 +1005,7 @@ TEST(PedestrianCost, testPedestrianCostParams) {
   // max_distance_
   int_distributor.reset(make_distributor_from_range(kMaxDistanceWheelchairRange));
   for (unsigned i = 0; i < 100; ++i) {
-    ctorTester.reset(
-        make_pedestriancost_from_json("max_distance", (*int_distributor)(generator), "wheelchair"));
+    ctorTester.reset(make_pedestriancost_from_json("max_distance", (*int_distributor)(generator)));
     EXPECT_THAT(ctorTester->max_distance_,
                 test::IsBetween(kMaxDistanceWheelchairRange.min, kMaxDistanceWheelchairRange.max));
   }
@@ -1017,8 +1013,7 @@ TEST(PedestrianCost, testPedestrianCostParams) {
   // speed_
   real_distributor.reset(make_distributor_from_range(kSpeedWheelchairRange));
   for (unsigned i = 0; i < testIterations; ++i) {
-    ctorTester.reset(
-        make_pedestriancost_from_json("walking_speed", (*real_distributor)(generator), "wheelchair"));
+    ctorTester.reset(make_pedestriancost_from_json("walking_speed", (*real_distributor)(generator)));
     EXPECT_THAT(ctorTester->speed_,
                 test::IsBetween(kSpeedWheelchairRange.min, kSpeedWheelchairRange.max));
   }
@@ -1026,8 +1021,7 @@ TEST(PedestrianCost, testPedestrianCostParams) {
   // step_penalty_
   real_distributor.reset(make_distributor_from_range(kStepPenaltyWheelchairRange));
   for (unsigned i = 0; i < testIterations; ++i) {
-    ctorTester.reset(
-        make_pedestriancost_from_json("step_penalty", (*real_distributor)(generator), "wheelchair"));
+    ctorTester.reset(make_pedestriancost_from_json("step_penalty", (*real_distributor)(generator)));
     EXPECT_THAT(ctorTester->step_penalty_,
                 test::IsBetween(kStepPenaltyWheelchairRange.min, kStepPenaltyWheelchairRange.max));
   }
@@ -1035,8 +1029,7 @@ TEST(PedestrianCost, testPedestrianCostParams) {
   // max_grade_
   int_distributor.reset(make_distributor_from_range(kMaxGradeWheelchairRange));
   for (unsigned i = 0; i < testIterations; ++i) {
-    ctorTester.reset(
-        make_pedestriancost_from_json("max_grade", (*int_distributor)(generator), "wheelchair"));
+    ctorTester.reset(make_pedestriancost_from_json("max_grade", (*int_distributor)(generator)));
     EXPECT_THAT(ctorTester->max_grade_,
                 test::IsBetween(kMaxGradeWheelchairRange.min, kMaxGradeWheelchairRange.max));
   }
@@ -1045,8 +1038,7 @@ TEST(PedestrianCost, testPedestrianCostParams) {
   // max_distance_
   int_distributor.reset(make_distributor_from_range(kMaxDistanceFootRange));
   for (unsigned i = 0; i < testIterations; ++i) {
-    ctorTester.reset(
-        make_pedestriancost_from_json("max_distance", (*int_distributor)(generator), "foot"));
+    ctorTester.reset(make_pedestriancost_from_json("max_distance", (*int_distributor)(generator)));
     EXPECT_THAT(ctorTester->max_distance_,
                 test::IsBetween(kMaxDistanceFootRange.min, kMaxDistanceFootRange.max));
   }
@@ -1054,16 +1046,14 @@ TEST(PedestrianCost, testPedestrianCostParams) {
   // speed_
   real_distributor.reset(make_distributor_from_range(kSpeedFootRange));
   for (unsigned i = 0; i < testIterations; ++i) {
-    ctorTester.reset(
-        make_pedestriancost_from_json("walking_speed", (*real_distributor)(generator), "foot"));
+    ctorTester.reset(make_pedestriancost_from_json("walking_speed", (*real_distributor)(generator)));
     EXPECT_THAT(ctorTester->speed_, test::IsBetween(kSpeedFootRange.min, kSpeedFootRange.max));
   }
 
   // step_penalty_
   real_distributor.reset(make_distributor_from_range(kStepPenaltyFootRange));
   for (unsigned i = 0; i < testIterations; ++i) {
-    ctorTester.reset(
-        make_pedestriancost_from_json("step_penalty", (*real_distributor)(generator), "foot"));
+    ctorTester.reset(make_pedestriancost_from_json("step_penalty", (*real_distributor)(generator)));
     EXPECT_THAT(ctorTester->step_penalty_,
                 test::IsBetween(kStepPenaltyFootRange.min, kStepPenaltyFootRange.max));
   }
@@ -1071,8 +1061,7 @@ TEST(PedestrianCost, testPedestrianCostParams) {
   // max_grade_
   int_distributor.reset(make_distributor_from_range(kMaxGradeFootRange));
   for (unsigned i = 0; i < testIterations; ++i) {
-    ctorTester.reset(
-        make_pedestriancost_from_json("max_grade", (*int_distributor)(generator), "foot"));
+    ctorTester.reset(make_pedestriancost_from_json("max_grade", (*int_distributor)(generator)));
     EXPECT_THAT(ctorTester->max_grade_,
                 test::IsBetween(kMaxGradeFootRange.min, kMaxGradeFootRange.max));
   }
@@ -1081,8 +1070,7 @@ TEST(PedestrianCost, testPedestrianCostParams) {
   // mode_factor_
   real_distributor.reset(make_distributor_from_range(kModeFactorRange));
   for (unsigned i = 0; i < testIterations; ++i) {
-    ctorTester.reset(
-        make_pedestriancost_from_json("mode_factor", (*real_distributor)(generator), "foot"));
+    ctorTester.reset(make_pedestriancost_from_json("mode_factor", (*real_distributor)(generator)));
     EXPECT_THAT(ctorTester->mode_factor_,
                 test::IsBetween(kModeFactorRange.min, kModeFactorRange.max));
   }
@@ -1101,8 +1089,7 @@ EXPECT_THAT(ctorTester->use_ferry_ , test::IsBetween( kUseFerryRange.min ,kUseFe
   // walkway_factor_
   real_distributor.reset(make_distributor_from_range(kWalkwayFactorRange));
   for (unsigned i = 0; i < testIterations; ++i) {
-    ctorTester.reset(
-        make_pedestriancost_from_json("walkway_factor", (*real_distributor)(generator), "foot"));
+    ctorTester.reset(make_pedestriancost_from_json("walkway_factor", (*real_distributor)(generator)));
     EXPECT_THAT(ctorTester->walkway_factor_,
                 test::IsBetween(kWalkwayFactorRange.min, kWalkwayFactorRange.max));
   }
@@ -1111,7 +1098,7 @@ EXPECT_THAT(ctorTester->use_ferry_ , test::IsBetween( kUseFerryRange.min ,kUseFe
   real_distributor.reset(make_distributor_from_range(kSideWalkFactorRange));
   for (unsigned i = 0; i < testIterations; ++i) {
     ctorTester.reset(
-        make_pedestriancost_from_json("sidewalk_factor", (*real_distributor)(generator), "foot"));
+        make_pedestriancost_from_json("sidewalk_factor", (*real_distributor)(generator)));
     EXPECT_THAT(ctorTester->sidewalk_factor_,
                 test::IsBetween(kSideWalkFactorRange.min, kSideWalkFactorRange.max));
   }
@@ -1120,7 +1107,7 @@ EXPECT_THAT(ctorTester->use_ferry_ , test::IsBetween( kUseFerryRange.min ,kUseFe
   real_distributor.reset(make_distributor_from_range(kDrivewayFactorRange));
   for (unsigned i = 0; i < testIterations; ++i) {
     ctorTester.reset(
-        make_pedestriancost_from_json("driveway_factor", (*real_distributor)(generator), "foot"));
+        make_pedestriancost_from_json("driveway_factor", (*real_distributor)(generator)));
     EXPECT_THAT(ctorTester->driveway_factor_,
                 test::IsBetween(kDrivewayFactorRange.min, kDrivewayFactorRange.max));
   }
@@ -1129,7 +1116,7 @@ EXPECT_THAT(ctorTester->use_ferry_ , test::IsBetween( kUseFerryRange.min ,kUseFe
   int_distributor.reset(make_distributor_from_range(kTransitStartEndMaxDistanceRange));
   for (unsigned i = 0; i < testIterations; ++i) {
     ctorTester.reset(make_pedestriancost_from_json("transit_start_end_max_distance",
-                                                   (*int_distributor)(generator), "foot"));
+                                                   (*int_distributor)(generator)));
     EXPECT_THAT(ctorTester->transit_start_end_max_distance_,
                 test::IsBetween(kTransitStartEndMaxDistanceRange.min,
                                 kTransitStartEndMaxDistanceRange.max));
@@ -1139,7 +1126,7 @@ EXPECT_THAT(ctorTester->use_ferry_ , test::IsBetween( kUseFerryRange.min ,kUseFe
   int_distributor.reset(make_distributor_from_range(kTransitTransferMaxDistanceRange));
   for (unsigned i = 0; i < testIterations; ++i) {
     ctorTester.reset(make_pedestriancost_from_json("transit_transfer_max_distance",
-                                                   (*int_distributor)(generator), "foot"));
+                                                   (*int_distributor)(generator)));
     EXPECT_THAT(ctorTester->transit_transfer_max_distance_,
                 test::IsBetween(kTransitTransferMaxDistanceRange.min,
                                 kTransitTransferMaxDistanceRange.max));

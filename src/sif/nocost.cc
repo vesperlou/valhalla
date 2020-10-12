@@ -7,6 +7,7 @@
 #include "sif/costconstants.h"
 #include "sif/dynamiccost.h"
 
+
 #ifdef INLINE_TEST
 #include "test/test.h"
 #include "worker.h"
@@ -54,12 +55,12 @@ public:
    * @return Returns true if access is allowed, false if not.
    */
   virtual bool Allowed(const baldr::DirectedEdge* edge,
-                       const EdgeLabel& pred,
-                       const GraphTile* tile,
-                       const baldr::GraphId& edgeid,
-                       const uint64_t current_time,
-                       const uint32_t tz_index,
-                       int& restriction_idx) const override {
+                       const EdgeLabel& /*pred*/,
+                       const GraphTile* /*tile*/,
+                       const baldr::GraphId& /*edgeid*/,
+                       const uint64_t /*current_time*/,
+                       const uint32_t /*tz_index*/,
+                       int& /*restriction_idx*/) const override {
     return !edge->is_shortcut();
   }
 
@@ -81,14 +82,14 @@ public:
    * @param  tz_index       timezone index for the node
    * @return  Returns true if access is allowed, false if not.
    */
-  virtual bool AllowedReverse(const baldr::DirectedEdge* edge,
-                              const EdgeLabel& pred,
+  virtual bool AllowedReverse(const baldr::DirectedEdge* /*edge*/,
+                              const EdgeLabel& /*pred*/,
                               const baldr::DirectedEdge* opp_edge,
-                              const GraphTile* tile,
-                              const baldr::GraphId& opp_edgeid,
-                              const uint64_t current_time,
-                              const uint32_t tz_index,
-                              int& restriction_idx) const override {
+                              const GraphTile* /*tile*/,
+                              const baldr::GraphId& /*opp_edgeid*/,
+                              const uint64_t /*current_time*/,
+                              const uint32_t /*tz_index*/,
+                              int& /*restriction_idx*/) const override {
     return !opp_edge->is_shortcut();
   }
 
@@ -98,7 +99,7 @@ public:
    * @param  node  Pointer to node information.
    * @return  Returns true if access is allowed, false if not.
    */
-  bool Allowed(const baldr::NodeInfo* node) const override {
+  bool Allowed(const baldr::NodeInfo* /*node*/) const override {
     return true;
   }
 
@@ -108,11 +109,12 @@ public:
    * @param   edge  Pointer to edge information.
    * @return  Returns true if access is allowed, false if not.
    */
-  virtual bool IsAccessible(const baldr::DirectedEdge* edge) const override {
+  virtual bool IsAccessible(const baldr::DirectedEdge* /*edge*/) const override {
     return true;
   }
 
-  bool IsClosed(const baldr::DirectedEdge* edge, const baldr::GraphTile* tile) const override {
+  bool IsClosed(const baldr::DirectedEdge* /*edge*/,
+                const baldr::GraphTile* /*tile*/) const override {
     return false;
   }
 
@@ -123,9 +125,9 @@ public:
    * @param curr_time
    * @return
    */
-  virtual Cost EdgeCost(const baldr::DirectedEdge* edge,
-                        const baldr::TransitDeparture* departure,
-                        const uint32_t curr_time) const override {
+  virtual Cost EdgeCost(const baldr::DirectedEdge* /*edge*/,
+                        const baldr::TransitDeparture* /*departure*/,
+                        const uint32_t /*curr_time*/) const override {
     throw std::runtime_error("NoCost::EdgeCost does not support transit edges");
   }
 
@@ -138,8 +140,8 @@ public:
    * @return  Returns the cost and time (seconds)
    */
   virtual Cost EdgeCost(const baldr::DirectedEdge* edge,
-                        const baldr::GraphTile* tile,
-                        const uint32_t seconds) const override {
+                        const baldr::GraphTile* /*tile*/,
+                        const uint32_t /*seconds*/) const override {
     return {static_cast<float>(edge->length()), static_cast<float>(edge->length())};
   }
 
@@ -152,9 +154,9 @@ public:
    * @param  pred  Predecessor edge information.
    * @return  Returns the cost and time (seconds)
    */
-  virtual Cost TransitionCost(const baldr::DirectedEdge* edge,
-                              const baldr::NodeInfo* node,
-                              const EdgeLabel& pred) const override {
+  virtual Cost TransitionCost(const baldr::DirectedEdge* /*edge*/,
+                              const baldr::NodeInfo* /*node*/,
+                              const EdgeLabel& /*pred*/) const override {
     return {};
   }
 
@@ -167,10 +169,10 @@ public:
    * @param  edge  the opposing predecessor in the reverse tree
    * @return  Returns the cost and time (seconds)
    */
-  virtual Cost TransitionCostReverse(const uint32_t idx,
-                                     const baldr::NodeInfo* node,
-                                     const baldr::DirectedEdge* pred,
-                                     const baldr::DirectedEdge* edge) const override {
+  virtual Cost TransitionCostReverse(const uint32_t /*idx*/,
+                                     const baldr::NodeInfo* /*node*/,
+                                     const baldr::DirectedEdge* /*pred*/,
+                                     const baldr::DirectedEdge* /*edge*/) const override {
     return {};
   }
 
@@ -198,8 +200,8 @@ public:
   }
 };
 
-void ParseNoCostOptions(const rapidjson::Document& doc,
-                        const std::string& costing_options_key,
+void ParseNoCostOptions(const rapidjson::Document& /*doc*/,
+                        const std::string& /*costing_options_key*/,
                         CostingOptions* pbf_costing_options) {
   // this is probably not needed but its part of the contract for costing..
   pbf_costing_options->set_costing(Costing::none_);
