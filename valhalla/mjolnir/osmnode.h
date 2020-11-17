@@ -46,8 +46,8 @@ struct OSMNode {
   uint32_t spare1_ : 5;
 
   // Lat,lng of the node
-  float lng_;
-  float lat_;
+  double lng_;
+  double lat_;
 
   OSMNode() {
     memset(this, 0, sizeof(OSMNode));
@@ -57,8 +57,8 @@ struct OSMNode {
    * Constructor with OSM node Id
    */
   OSMNode(const uint64_t id,
-          const float lat = baldr::kInvalidLongitude,
-          const float lng = baldr::kInvalidLatitude) {
+          const double lat = baldr::kInvalidLongitude,
+          const double lng = baldr::kInvalidLatitude) {
     memset(this, 0, sizeof(OSMNode));
     set_id(id);
     set_latlng(lat, lng);
@@ -79,7 +79,7 @@ struct OSMNode {
    * @param  lat  Latitude of the node.
    *
    */
-  void set_latlng(const float lng, const float lat) {
+  void set_latlng(const double lng, const double lat) {
     lng_ = lng;
     lat_ = lat;
   }
@@ -88,7 +88,7 @@ struct OSMNode {
    * Gets the lat,lng.
    * @return   Returns the lat,lng of the node.
    */
-  std::pair<float, float> latlng() const {
+  std::pair<double, double> latlng() const {
     return std::make_pair(lng_, lat_);
   }
 

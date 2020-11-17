@@ -95,12 +95,12 @@ std::vector<OSMConnectionEdge> project(const GraphTile& local_tile,
     auto latlng = bss.latlng();
     osm_conn.bss_ll = PointLL{latlng.first, latlng.second};
 
-    float mindist = std::numeric_limits<float>::max();
+    double mindist = std::numeric_limits<double>::max();
 
     const DirectedEdge* best_directededge = nullptr;
     uint32_t best_startnode_index = 0;
     std::vector<PointLL> closest_shape;
-    std::tuple<PointLL, float, int> closest;
+    std::tuple<PointLL, double, int> closest;
 
     // Loop over all nodes in the tile to find the nearest edge
     for (uint32_t i = 0; i < local_tile.header()->nodecount(); ++i) {
