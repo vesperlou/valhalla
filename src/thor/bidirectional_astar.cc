@@ -615,9 +615,8 @@ BidirectionalAStar::GetBestPath(valhalla::Location& origin,
         // reverse search tree. Do not expand further past this edge since it will just
         // result in other connections.
         if (edgestatus_reverse_.Get(fwd_pred.opp_edgeid()).set() == EdgeSet::kPermanent) {
-          if (SetForwardConnection(graphreader, fwd_pred)) {
-            continue;
-          }
+          SetForwardConnection(graphreader, fwd_pred);
+          continue;
         }
       } else {
         // Search is exhausted. If a connection has been found, return it
@@ -648,9 +647,8 @@ BidirectionalAStar::GetBestPath(valhalla::Location& origin,
         // forward search tree. Do not expand further past this edge since it will just
         // result in other connections.
         if (edgestatus_forward_.Get(rev_pred.opp_edgeid()).set() == EdgeSet::kPermanent) {
-          if (SetReverseConnection(graphreader, rev_pred)) {
-            continue;
-          }
+          SetReverseConnection(graphreader, rev_pred);
+          continue;
         }
       } else {
         // Search is exhausted. If a connection has been found, return it
