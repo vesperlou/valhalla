@@ -686,6 +686,11 @@ BidirectionalAStar::GetBestPath(valhalla::Location& origin,
       // Expand from the end node in forward direction.
       ExpandForward(graphreader, fwd_pred.endnode(), fwd_pred, forward_pred_idx, forward_time_info,
                     invariant);
+      // Edge status for the label could have been changed after expansion due to
+      // the logic in `DynamicCost::Restricted` method. But if it's a deadend we should
+      // change it back because there is only one path to this edge.
+      if (fwd_pred.deadend())
+        edgestatus_forward_.Update(fwd_pred.edgeid(), EdgeSet::kPermanent);
     } else {
       // Expand reverse - set to get next edge from reverse adj. list on the next pass
       expand_forward = false;
@@ -710,6 +715,11 @@ BidirectionalAStar::GetBestPath(valhalla::Location& origin,
       // Expand from the end node in reverse direction.
       ExpandReverse(graphreader, rev_pred.endnode(), rev_pred, reverse_pred_idx, opp_pred_edge,
                     reverse_time_info, invariant);
+      // Edge status for the label could have been changed after expansion due to
+      // the logic in `DynamicCost::Restricted` method. But if it's a deadend we should
+      // change it back because there is only one path to this edge.
+      if (rev_pred.deadend())
+        edgestatus_reverse_.Update(rev_pred.edgeid(), EdgeSet::kPermanent);
     }
   }
   return {}; // If we are here the route failed
