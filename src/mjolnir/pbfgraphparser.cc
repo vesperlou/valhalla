@@ -26,6 +26,8 @@
 #include "midgard/tiles.h"
 #include "mjolnir/timeparsing.h"
 
+#include "mjolnir/external_sort/external_sort.hpp"
+
 using namespace valhalla::midgard;
 using namespace valhalla::baldr;
 using namespace valhalla::mjolnir;
@@ -841,12 +843,10 @@ public:
     // for then it must be in another pbf file. so we need to move on to the next waynode that could
     // possibly actually be in this pbf file
     if (osmid > (*(*way_nodes_)[current_way_node_index_]).node.osmid_) {
-      current_way_node_index_ =
-          way_nodes_->find_first_of(OSMWayNode{{osmid}},
-                                    [](const OSMWayNode& a, const OSMWayNode& b) {
-                                      return a.node.osmid_ <= b.node.osmid_;
-                                    },
-                                    current_way_node_index_);
+      current_way_node_index_ = way_nodes_->find_first_of(
+          OSMWayNode{{osmid}},
+          [](const OSMWayNode& a, const OSMWayNode& b) { return a.node.osmid_ <= b.node.osmid_; },
+          current_way_node_index_);
     }
 
     // if this nodes id is less than the waynode we are looking for then we know its a node we can
@@ -2010,6 +2010,31 @@ public:
   Tags empty_relation_results_;
 };
 
+void CopyFile(const std::string& src, const std::string& dst) {
+  std::ifstream in(src, std::ios::binary);
+  std::ofstream out(dst, std::ios::binary);
+  out << in.rdbuf();
+}
+
+template <typename T>
+void SortMy(const std::string& file, const std::function<bool(const T&, const T&)>& predicate) {
+  CopyFile(file, file + "_origin");
+  external_sort::SplitParams sp;
+  external_sort::MergeParams mp;
+  sp.mem.size = 32;
+  sp.mem.unit = external_sort::MB;
+  mp.mem = sp.mem;
+  sp.spl.ifile = file;
+
+  std::string output_file = file + "_";
+  mp.mrg.ofile = output_file;
+  external_sort::sort<T>(sp, mp, predicate);
+
+  std::rename(output_file.c_str(), file.c_str());
+  CopyFile(file, file + "_mySorted");
+
+}
+
 } // namespace
 
 namespace valhalla {
@@ -2065,8 +2090,9 @@ OSMData PBFGraphParser::ParseWays(const boost::property_tree::ptree& pt,
   // we need to sort the access tags so that we can easily find them.
   LOG_INFO("Sorting osm access tags by way id...");
   {
-    sequence<OSMAccess> access(access_file, false);
-    access.sort([](const OSMAccess& a, const OSMAccess& b) { return a.way_id() < b.way_id(); });
+//    sequence<OSMAccess> access(access_file, false);
+    SortMy<OSMAccess>(access_file, [](const OSMAccess& a, const OSMAccess& b) { return a.way_id() < b.way_id(); });
+//    access.sort([](const OSMAccess& a, const OSMAccess& b) { return a.way_id() < b.way_id(); });
   }
 
   LOG_INFO("Finished");
@@ -2130,17 +2156,16 @@ void PBFGraphParser::ParseRelations(const boost::property_tree::ptree& pt,
   // Sort complex restrictions. Keep this scoped so the file handles are closed when done sorting.
   LOG_INFO("Sorting complex restrictions by from id...");
   {
-    sequence<OSMRestriction> complex_restrictions_from(complex_restriction_from_file, false);
-    complex_restrictions_from.sort(
-        [](const OSMRestriction& a, const OSMRestriction& b) { return a < b; });
+    SortMy<OSMRestriction>(complex_restriction_from_file, [](const OSMRestriction& a, const OSMRestriction& b) { return a < b; });
   }
 
   // Sort complex restrictions. Keep this scoped so the file handles are closed when done sorting.
   LOG_INFO("Sorting complex restrictions by to id...");
   {
-    sequence<OSMRestriction> complex_restrictions_to(complex_restriction_to_file, false);
-    complex_restrictions_to.sort(
-        [](const OSMRestriction& a, const OSMRestriction& b) { return a < b; });
+    SortMy<OSMRestriction>(complex_restriction_to_file, [](const OSMRestriction& a, const OSMRestriction& b) { return a < b; });
+//    sequence<OSMRestriction> complex_restrictions_to(complex_restriction_to_file, false);
+//    complex_restrictions_to.sort(
+//        [](const OSMRestriction& a, const OSMRestriction& b) { return a < b; });
   }
   LOG_INFO("Finished");
 }
@@ -2195,9 +2220,11 @@ void PBFGraphParser::ParseNodes(const boost::property_tree::ptree& pt,
   // using much mem, the scoping makes sure to let it go when done sorting
   LOG_INFO("Sorting osm way node references by node id...");
   {
-    sequence<OSMWayNode> way_nodes(way_nodes_file, false);
-    way_nodes.sort(
-        [](const OSMWayNode& a, const OSMWayNode& b) { return a.node.osmid_ < b.node.osmid_; });
+    SortMy<OSMWayNode>(way_nodes_file, [](const OSMWayNode& a, const OSMWayNode& b) { return a.node.osmid_ < b.node.osmid_; });
+//                       [](const OSMRestriction& a, const OSMRestriction& b) { return a < b; })
+//    sequence<OSMWayNode> way_nodes(way_nodes_file, false);
+//    way_nodes.sort(
+
   }
 
   // Parse node in all the input files. Skip any that are not marked from
