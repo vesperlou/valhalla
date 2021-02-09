@@ -1013,7 +1013,46 @@ const TransitSchedule* GraphTile::GetTransitSchedule(const uint32_t idx) const {
   throw std::runtime_error("GraphTile GetTransitSchedule index out of bounds");
 }
 
-// Get the access restriction given its directed edge index
+// Get all of the access restrictions given its directed edge index...includes lane restrictions
+std::vector<AccessRestriction> GraphTile::GetAllAccessRestrictions(const uint32_t idx,
+                                                                   const uint32_t access) const {
+
+  std::vector<AccessRestriction> restrictions;
+  uint32_t count = header_->access_restriction_count();
+  if (count == 0) {
+    return restrictions;
+  }
+  // Access restriction are sorted by edge Id.
+  // Binary search to find a access restriction with matching edge Id.
+  int32_t low = 0;
+  int32_t high = count - 1;
+  int32_t mid;
+  int32_t found = count;
+  while (low <= high) {
+    mid = (low + high) / 2;
+    const auto& res = access_restrictions_[mid];
+    // find the first matching index in the list
+    if (idx == res.edgeindex()) {
+      found = mid;
+      high = mid - 1;
+    } // need a smaller index
+    else if (idx < res.edgeindex()) {
+      high = mid - 1;
+    } // need a bigger index
+    else {
+      low = mid + 1;
+    }
+  }
+  // Add restrictions for only the access that we are interested in
+  for (; found < count && access_restrictions_[found].edgeindex() == idx; ++found) {
+    if (access_restrictions_[found].modes() & access) {
+      restrictions.emplace_back(access_restrictions_[found]);
+    }
+  }
+  return restrictions;
+}
+
+// Get all of the access restrictions given its directed edge index.  one can get all the non lane restrictions or just the lane restrictions.
 std::vector<AccessRestriction> GraphTile::GetAccessRestrictions(const uint32_t idx,
                                                                 const uint32_t access,
                                                                 const bool lanes_only) const {

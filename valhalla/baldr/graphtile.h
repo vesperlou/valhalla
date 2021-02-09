@@ -491,6 +491,17 @@ public:
    * @param   edgeid  Directed edge Id.
    * @param   access  Access.  Used to obtain the restrictions for the access
    *                   that we are interested in (see graphconstants.h)
+   * @return  Returns a list (vector) of AccessRestrictions.
+   */
+  std::vector<AccessRestriction> GetAllAccessRestrictions(const uint32_t edgeid,
+                                                          const uint32_t access) const;
+
+  /**
+   * Convenience method to get the access restrictions for an edge given the
+   * edge Id.
+   * @param   edgeid  Directed edge Id.
+   * @param   access  Access.  Used to obtain the restrictions for the access
+   *                   that we are interested in (see graphconstants.h)
    * @param   lanes_only -  only return restrictions that are lanes
    * @return  Returns a list (vector) of AccessRestrictions.
    */

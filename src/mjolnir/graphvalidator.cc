@@ -345,7 +345,7 @@ void validate(
         uint32_t ar_modes = de->access_restriction();
         if (ar_modes) {
           // since only truck restrictions exist, we can still get all restrictions
-          auto res = tile->GetAccessRestrictions(idx, kAllAccess);
+          auto res = tile->GetAllAccessRestrictions(idx, kAllAccess);
           if (res.size() == 0) {
             LOG_ERROR(
                 "Directed edge marked as having access restriction but none found ; tile level = " +
