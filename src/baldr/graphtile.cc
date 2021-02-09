@@ -616,8 +616,10 @@ EdgeInfo GraphTile::edgeinfo(const size_t offset) const {
 
 // Get the complex restrictions in the forward or reverse order based on
 // the id and modes.
-std::vector<ComplexRestriction*>
-GraphTile::GetRestrictions(const bool forward, const GraphId id, const uint64_t modes) const {
+std::vector<ComplexRestriction*> GraphTile::GetRestrictions(const bool forward,
+                                                            const GraphId id,
+                                                            const uint64_t modes,
+                                                            const bool lanes_only) const {
   size_t offset = 0;
   std::vector<ComplexRestriction*> cr_vector;
   if (forward) {
@@ -625,7 +627,12 @@ GraphTile::GetRestrictions(const bool forward, const GraphId id, const uint64_t 
       ComplexRestriction* cr =
           reinterpret_cast<ComplexRestriction*>(complex_restriction_forward_ + offset);
       if (cr->to_graphid() == id && (cr->modes() & modes)) {
-        cr_vector.push_back(cr);
+        if (lanes_only && (cr->type() == RestrictionType::kLaneRestriction ||
+                           cr->type() == RestrictionType::kComplexLane))
+          cr_vector.push_back(cr);
+        else if (!lanes_only && (cr->type() != RestrictionType::kLaneRestriction &&
+                                 cr->type() != RestrictionType::kComplexLane))
+          cr_vector.push_back(cr);
       }
       offset += cr->SizeOf();
     }
@@ -633,8 +640,14 @@ GraphTile::GetRestrictions(const bool forward, const GraphId id, const uint64_t 
     while (offset < complex_restriction_reverse_size_) {
       ComplexRestriction* cr =
           reinterpret_cast<ComplexRestriction*>(complex_restriction_reverse_ + offset);
-      if (cr->from_graphid() == id && (cr->modes() & modes)) {
-        cr_vector.push_back(cr);
+      if (cr->from_graphid() == id && (cr->modes() & modes) &&
+          cr->type() != RestrictionType::kLaneRestriction) {
+        if (lanes_only && (cr->type() == RestrictionType::kLaneRestriction ||
+                           cr->type() == RestrictionType::kComplexLane))
+          cr_vector.push_back(cr);
+        else if (!lanes_only && (cr->type() != RestrictionType::kLaneRestriction &&
+                                 cr->type() != RestrictionType::kComplexLane))
+          cr_vector.push_back(cr);
       }
       offset += cr->SizeOf();
     }
@@ -1002,7 +1015,8 @@ const TransitSchedule* GraphTile::GetTransitSchedule(const uint32_t idx) const {
 
 // Get the access restriction given its directed edge index
 std::vector<AccessRestriction> GraphTile::GetAccessRestrictions(const uint32_t idx,
-                                                                const uint32_t access) const {
+                                                                const uint32_t access,
+                                                                const bool lanes_only) const {
 
   std::vector<AccessRestriction> restrictions;
   uint32_t count = header_->access_restriction_count();
@@ -1035,7 +1049,10 @@ std::vector<AccessRestriction> GraphTile::GetAccessRestrictions(const uint32_t i
   // Add restrictions for only the access that we are interested in
   for (; found < count && access_restrictions_[found].edgeindex() == idx; ++found) {
     if (access_restrictions_[found].modes() & access) {
-      restrictions.emplace_back(access_restrictions_[found]);
+      if (!access_restrictions_[found].lanes() && !lanes_only)
+        restrictions.emplace_back(access_restrictions_[found]);
+      else if (access_restrictions_[found].lanes() && lanes_only)
+        restrictions.emplace_back(access_restrictions_[found]);
     }
   }
 

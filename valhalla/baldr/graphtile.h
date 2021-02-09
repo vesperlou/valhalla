@@ -331,11 +331,14 @@ public:
    * @param   forward - do we want the restrictions in reverse order?
    * @param   id - edge id
    * @param   modes - access modes
+   * @param   lanes_only -  only return restrictions that are lanes
    * @return  Returns the vector of complex restrictions in the order requested
    *          based on the id and modes.
    */
-  std::vector<ComplexRestriction*>
-  GetRestrictions(const bool forward, const GraphId id, const uint64_t modes) const;
+  std::vector<ComplexRestriction*> GetRestrictions(const bool forward,
+                                                   const GraphId id,
+                                                   const uint64_t modes,
+                                                   const bool lanes_only = false) const;
 
   /**
    * Convenience method to get the directed edges originating at a node.
@@ -488,10 +491,12 @@ public:
    * @param   edgeid  Directed edge Id.
    * @param   access  Access.  Used to obtain the restrictions for the access
    *                   that we are interested in (see graphconstants.h)
+   * @param   lanes_only -  only return restrictions that are lanes
    * @return  Returns a list (vector) of AccessRestrictions.
    */
   std::vector<AccessRestriction> GetAccessRestrictions(const uint32_t edgeid,
-                                                       const uint32_t access) const;
+                                                       const uint32_t access,
+                                                       const bool lanes_only = false) const;
 
   /**
    * Get an iteratable list of GraphIds given a bin in the tile
