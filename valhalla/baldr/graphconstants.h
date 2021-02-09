@@ -521,7 +521,9 @@ enum class RestrictionType : uint8_t {
   kOnlyStraightOn = 6,
   kNoEntry = 7,
   kNoExit = 8,
-  kNoTurn = 9
+  kNoTurn = 9,
+  kLaneRestriction = 10,
+  kComplexLane = 11
 };
 
 // Access Restriction types. Maximum value supported is 31. DO NOT EXCEED.
@@ -533,7 +535,12 @@ enum class AccessType : uint8_t {
   kMaxWeight = 4,
   kMaxAxleLoad = 5,
   kTimedAllowed = 6,
-  kTimedDenied = 7
+  kTimedDenied = 7,
+  kLaneAllowed = 8,
+  kLaneDenied = 9,
+  kLaneTimedAllowed = 10,
+  kLaneTimedDenied = 11,
+  kCenterLane = 12
 };
 
 // Minimum meters offset from start/end of shape for finding heading
