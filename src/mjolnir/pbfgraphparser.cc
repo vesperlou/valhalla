@@ -1145,13 +1145,10 @@ public:
                tag_.first.substr(0, 16) == "motorcycle:lanes" ||
                tag_.first.substr(0, 10) == "foot:lanes" ||
                tag_.first.substr(0, 16) == "pedestrian:lanes" ||
-               tag_.first.substr(0, 9)  == "hgv:lanes" ||
-               tag_.first.substr(0, 11) == "moped:lanes" ||
-               tag_.first.substr(0, 10) == "mofa:lanes" ||
-               tag_.first.substr(0, 9)  == "psv:lanes" ||
-               tag_.first.substr(0, 10) == "taxi:lanes" ||
-               tag_.first.substr(0, 9)  == "bus:lanes" ||
-               tag_.first.substr(0, 9)  == "hov:lanes" ||
+               tag_.first.substr(0, 9) == "hgv:lanes" || tag_.first.substr(0, 11) == "moped:lanes" ||
+               tag_.first.substr(0, 10) == "mofa:lanes" || tag_.first.substr(0, 9) == "psv:lanes" ||
+               tag_.first.substr(0, 10) == "taxi:lanes" || tag_.first.substr(0, 9) == "bus:lanes" ||
+               tag_.first.substr(0, 9) == "hov:lanes" ||
                tag_.first.substr(0, 15) == "emergency:lanes" ||
                tag_.first.substr(0, 14) == "lanes:motorcar" ||
                tag_.first.substr(0, 19) == "lanes:motor_vehicle" ||
@@ -1159,12 +1156,9 @@ public:
                tag_.first.substr(0, 16) == "lanes:motorcycle" ||
                tag_.first.substr(0, 10) == "lanes:foot" ||
                tag_.first.substr(0, 16) == "lanes:pedestrian" ||
-               tag_.first.substr(0, 9) == "lanes:hgv" ||
-               tag_.first.substr(0, 11) == "lanes:moped" ||
-               tag_.first.substr(0, 10) == "lanes:mofa" ||
-               tag_.first.substr(0, 9) == "lanes:psv" ||
-               tag_.first.substr(0, 10) == "lanes:taxi" ||
-               tag_.first.substr(0, 9) == "lanes:bus" ||
+               tag_.first.substr(0, 9) == "lanes:hgv" || tag_.first.substr(0, 11) == "lanes:moped" ||
+               tag_.first.substr(0, 10) == "lanes:mofa" || tag_.first.substr(0, 9) == "lanes:psv" ||
+               tag_.first.substr(0, 10) == "lanes:taxi" || tag_.first.substr(0, 9) == "lanes:bus" ||
                tag_.first.substr(0, 9) == "lanes:hov" ||
                tag_.first.substr(0, 15) == "lanes:emergency") {
 
@@ -1183,8 +1177,7 @@ public:
                    tag_.first.substr(0, 10) == "lanes:foot" ||
                    tag_.first.substr(0, 16) == "lanes:pedestrian") {
           mode = (kPedestrianAccess | kWheelchairAccess);
-        } else if (tag_.first.substr(0, 9) == "hgv:lanes" ||
-                   tag_.first.substr(0, 9) == "lanes:hgv") {
+        } else if (tag_.first.substr(0, 9) == "hgv:lanes" || tag_.first.substr(0, 9) == "lanes:hgv") {
           mode = kTruckAccess;
         } else if (tag_.first.substr(0, 11) == "moped:lanes" ||
                    tag_.first.substr(0, 10) == "mofa:lanes" ||
@@ -1194,17 +1187,14 @@ public:
         } else if (tag_.first.substr(0, 16) == "motorcycle:lanes" ||
                    tag_.first.substr(0, 16) == "lanes:motorcycle") {
           mode = kMotorcycleAccess;
-        } else if (tag_.first.substr(0, 9) == "psv:lanes" ||
-                   tag_.first.substr(0, 9) == "lanes:psv") {
+        } else if (tag_.first.substr(0, 9) == "psv:lanes" || tag_.first.substr(0, 9) == "lanes:psv") {
           mode = (kTaxiAccess | kBusAccess);
         } else if (tag_.first.substr(0, 10) == "taxi:lanes" ||
                    tag_.first.substr(0, 10) == "lanes:taxi") {
           mode = kTaxiAccess;
-        } else if (tag_.first.substr(0, 9) == "bus:lanes" ||
-                   tag_.first.substr(0, 9) == "lanes:bus") {
+        } else if (tag_.first.substr(0, 9) == "bus:lanes" || tag_.first.substr(0, 9) == "lanes:bus") {
           mode = kBusAccess;
-        } else if (tag_.first.substr(0, 9) == "hov:lanes" ||
-                   tag_.first.substr(0, 9) == "lanes:hov") {
+        } else if (tag_.first.substr(0, 9) == "hov:lanes" || tag_.first.substr(0, 9) == "lanes:hov") {
           mode = kHOVAccess;
         } else if (tag_.first.substr(0, 15) == "emergency:lanes" ||
                    tag_.first.substr(0, 15) == "lanes:emergency") {
@@ -1971,12 +1961,13 @@ public:
             return;
           std::string from_lane = lanes.at(0);
 
-          if (from_center_lane) {//increment lanes by 1 since there is a center lane
-            int f = get_number(("laneconnectivity " + std::to_string(osmid) + " "),from_lane);
+          if (from_center_lane) { // increment lanes by 1 since there is a center lane
+            int f = get_number(("laneconnectivity " + std::to_string(osmid) + " "), from_lane);
             if (f >= 1) {
               f++;
               from_lane = std::to_string(f);
-            } else continue;
+            } else
+              continue;
           }
 
           // skip center lanes.  they should be set on the way as lanes:both_ways=1
@@ -1989,7 +1980,8 @@ public:
             OSMAccessRestriction access_restriction;
             access_restriction.set_type(static_cast<AccessType>(AccessType::kCenterLane));
             access_restriction.set_modes((kAutoAccess | kMopedAccess | kTaxiAccess | kBusAccess |
-                                   kBicycleAccess | kTruckAccess | kEmergencyAccess | kMotorcycleAccess));
+                                          kBicycleAccess | kTruckAccess | kEmergencyAccess |
+                                          kMotorcycleAccess));
             access_restriction.set_value(0);
             access_restriction.set_lanes(lanes_mask);
             osmdata_.access_restrictions.insert({from_way_id, access_restriction});
@@ -1997,7 +1989,8 @@ public:
             uint32_t to_idx = osmdata_.name_offset_map.index("1");
             osmdata_.lane_connectivity_map.insert(
                 OSMLaneConnectivityMultiMap::value_type(from_way_id,
-                                                        OSMLaneConnectivity{from_way_id, 0, to_idx, to_idx}));
+                                                        OSMLaneConnectivity{from_way_id, 0, to_idx,
+                                                                            to_idx}));
             continue;
           }
 
@@ -2011,7 +2004,8 @@ public:
               OSMAccessRestriction access_restriction;
               access_restriction.set_type(static_cast<AccessType>(AccessType::kCenterLane));
               access_restriction.set_modes((kAutoAccess | kMopedAccess | kTaxiAccess | kBusAccess |
-                                     kBicycleAccess | kTruckAccess | kEmergencyAccess | kMotorcycleAccess));
+                                            kBicycleAccess | kTruckAccess | kEmergencyAccess |
+                                            kMotorcycleAccess));
               access_restriction.set_value(0);
               access_restriction.set_lanes(lanes_mask);
               osmdata_.access_restrictions.insert({restriction.to(), access_restriction});
@@ -2019,18 +2013,19 @@ public:
               uint32_t to_idx = osmdata_.name_offset_map.index("1");
               osmdata_.lane_connectivity_map.insert(
                   OSMLaneConnectivityMultiMap::value_type(restriction.to(),
-                                                          OSMLaneConnectivity{restriction.to(), 0, to_idx, to_idx}));
+                                                          OSMLaneConnectivity{restriction.to(), 0,
+                                                                              to_idx, to_idx}));
               continue;
-
             }
 
             std::string to = l;
-            if (to_center_lane) {//increment lanes by 1 since there is a center lane
-              int t = get_number(("laneconnectivity " + std::to_string(osmid) + " "),to);
+            if (to_center_lane) { // increment lanes by 1 since there is a center lane
+              int t = get_number(("laneconnectivity " + std::to_string(osmid) + " "), to);
               if (t >= 1) {
                 t++;
                 to = std::to_string(t);
-              } else continue;
+              } else
+                continue;
             }
 
             from_lanes += (from_lanes.empty() ? "" : "|") + from_lane;
@@ -2179,7 +2174,7 @@ public:
           complex_restrictions_to_->push_back(to_restriction);
           complex_restrictions_from_->push_back(restriction);
         } else if (!isConnectivity) // simple restriction
-            osmdata_.restrictions.insert(RestrictionsMultiMap::value_type(from_way_id, restriction));
+          osmdata_.restrictions.insert(RestrictionsMultiMap::value_type(from_way_id, restriction));
       }
     }
   }

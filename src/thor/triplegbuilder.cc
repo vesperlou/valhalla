@@ -905,8 +905,7 @@ TripLeg_Edge* AddTripEdge(const AttributesController& controller,
               std::string type = (r.type() == baldr::AccessType::kLaneAllowed) ? "Allowed" : "Denied";
 
               std::cout << std::endl;
-              std::cout << "|non-timed access restriction| Type: " << type <<
-                  " lane: " << t
+              std::cout << "|non-timed access restriction| Type: " << type << " lane: " << t
                         << " does this restriction apply to this lane: " << res << " for "
                         << r.modes() << std::endl;
             }
