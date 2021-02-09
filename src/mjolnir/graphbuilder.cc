@@ -322,7 +322,7 @@ uint32_t AddAccessRestrictions(const uint32_t edgeid,
   uint32_t modes = 0;
   for (auto r = res.first; r != res.second; ++r) {
     AccessRestriction access_restriction(edgeid, r->second.type(), r->second.modes(),
-                                         r->second.value());
+                                         r->second.lanes(), r->second.value());
     graphtile.AddAccessRestriction(access_restriction);
     modes |= r->second.modes();
   }
