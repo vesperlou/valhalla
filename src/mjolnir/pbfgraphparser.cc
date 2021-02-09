@@ -1308,7 +1308,6 @@ public:
         }
 
         if (to_lanes.size() && !conn_added) {
-
           conn_added = true;
           uint32_t to_idx = osmdata_.name_offset_map.index(to_lanes);
           osmdata_.lane_connectivity_map.insert(
