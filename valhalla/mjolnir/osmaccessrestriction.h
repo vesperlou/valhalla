@@ -55,15 +55,23 @@ public:
    */
   void set_modes(uint16_t modes);
 
+  // Get the lanes mask
+  uint32_t lanes() const;
+
+  // Set the lanes mask
+  void set_lanes(uint32_t lanes);
+
 protected:
   uint64_t value_;
+
+  uint32_t lanes_ : 20; // Mask for which lanes to apply this restriction.
+  uint32_t spare_ : 12;
 
   struct Attributes {
     uint16_t type_ : 4;
     uint16_t modes_ : 12;
   };
   Attributes attributes_;
-  uint16_t spare_[3];
 };
 
 } // namespace mjolnir

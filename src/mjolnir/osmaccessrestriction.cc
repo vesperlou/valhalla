@@ -44,5 +44,15 @@ uint16_t OSMAccessRestriction::modes() const {
   return attributes_.modes_;
 }
 
+// Set the lanes mask
+void OSMAccessRestriction::set_lanes(uint32_t lanes) {
+  lanes_ = lanes;
+}
+
+// Get the lanes mask
+uint32_t OSMAccessRestriction::lanes() const {
+  return lanes_;
+}
+
 } // namespace mjolnir
 } // namespace valhalla
