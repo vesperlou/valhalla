@@ -407,9 +407,11 @@ void validate(
         if (de->end_restriction()) {
           uint32_t modes = 0;
           for (uint32_t mode = 1; mode < kAllAccess; mode *= 2) {
-            if ((de->end_restriction() & mode) &&
-                tile->GetRestrictions(true, edgeid, mode).size() > 0) {
-              modes |= mode;
+            if (de->end_restriction() & mode) {
+              if (tile->GetRestrictions(true, edgeid, mode).size() > 0)
+                modes |= mode;
+              else if (tile->GetRestrictions(true, edgeid, mode, true).size() > 0)
+                modes |= mode;
             }
           }
           directededge.set_end_restriction(modes);
@@ -417,9 +419,11 @@ void validate(
         if (de->start_restriction()) {
           uint32_t modes = 0;
           for (uint32_t mode = 1; mode < kAllAccess; mode *= 2) {
-            if ((de->start_restriction() & mode) &&
-                tile->GetRestrictions(false, edgeid, mode).size() > 0) {
-              modes |= mode;
+            if (de->start_restriction() & mode) {
+              if (tile->GetRestrictions(false, edgeid, mode).size() > 0)
+                modes |= mode;
+              else if (tile->GetRestrictions(false, edgeid, mode, true).size() > 0)
+                modes |= mode;
             }
           }
           directededge.set_start_restriction(modes);
