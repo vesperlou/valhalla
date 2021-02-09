@@ -33,6 +33,28 @@ using namespace valhalla::thor;
 
 namespace {
 
+std::vector<std::string> split(const std::string& source, char delimiter) {
+  std::vector<std::string> tokens;
+  std::string token;
+  std::istringstream tokenStream(source);
+  while (std::getline(tokenStream, token, delimiter)) {
+    tokens.push_back(token);
+  }
+  return tokens;
+}
+
+static bool
+IsConditionalActive(const uint64_t restriction, const uint64_t local_time, const uint32_t tz_index) {
+
+  baldr::TimeDomain td(restriction);
+  return baldr::DateTime::is_conditional_active(td.type(), td.begin_hrs(), td.begin_mins(),
+                                                td.end_hrs(), td.end_mins(), td.dow(),
+                                                td.begin_week(), td.begin_month(), td.begin_day_dow(),
+                                                td.end_week(), td.end_month(), td.end_day_dow(),
+                                                local_time,
+                                                baldr::DateTime::get_tz_db().from_index(tz_index));
+}
+
 uint32_t
 GetAdminIndex(const AdminInfo& admin_info,
               std::unordered_map<AdminInfo, uint32_t, AdminInfo::AdminInfoHasher>& admin_info_map,
@@ -451,7 +473,9 @@ TripLeg_Edge* AddTripEdge(const AttributesController& controller,
                           const uint32_t start_node_idx,
                           const bool has_junction_name,
                           const graph_tile_ptr& start_tile,
-                          const uint8_t restrictions_idx) {
+                          const uint8_t restrictions_idx,
+                          const uint64_t local_time,
+                          const uint32_t tz_index) {
 
   // Index of the directed edge within the tile
   uint32_t idx = edge.id();
@@ -801,14 +825,169 @@ TripLeg_Edge* AddTripEdge(const AttributesController& controller,
     trip_edge->set_lane_count(directededge->lanecount());
   }
 
-  if (directededge->laneconnectivity() && controller.attributes.at(kEdgeLaneConnectivity)) {
-    auto laneconnectivity = graphtile->GetLaneConnectivity(idx);
-    trip_edge->mutable_lane_connectivity()->Reserve(laneconnectivity.size());
-    for (const auto& l : laneconnectivity) {
+  if (directededge->laneconnectivity()) { // && controller.attributes.at(kEdgeLaneConnectivity)) {
+    for (const auto& l : graphtile->GetLaneConnectivity(idx)) {
       TripLeg_LaneConnectivity* path_lane = trip_edge->add_lane_connectivity();
       path_lane->set_from_way_id(l.from());
       path_lane->set_to_lanes(l.to_lanes());
       path_lane->set_from_lanes(l.from_lanes());
+
+      std::cout << "|lane connectivity| from wayid: " << l.from() << " to wayid: " << edgeinfo.wayid()
+                << " from lanes: " << l.from_lanes() << " to lanes: " << l.to_lanes() << std::endl;
+
+      if (directededge->access_restriction()) {
+        const std::vector<baldr::AccessRestriction>& restrictions =
+            graphtile->GetAccessRestrictions(edge.id(), kAllAccess, true);
+        for (const auto& r : restrictions) {
+
+          baldr::TimeDomain td(r.value());
+          auto tokens = split(l.to_lanes(), '|');
+
+          for (const auto& t : tokens) {
+
+            std::string res =
+                (r.lanes() & (1ULL << static_cast<uint32_t>(std::stoul(t)))) ? "true" : "false";
+
+            if (r.type() == AccessType::kCenterLane && res == "true") {
+              std::cout << std::endl;
+              std::cout << "|center turn lane| lane " << t << std::endl;
+              break;
+
+            } else if (r.type() == baldr::AccessType::kLaneTimedAllowed ||
+                       r.type() == baldr::AccessType::kLaneTimedDenied) {
+
+              std::cout << std::endl;
+              std::cout << "|timed access restriction| lane: " << t
+                        << " does this restriction apply to this lane: " << res << std::endl;
+
+              if (res == "true" && local_time && tz_index) {
+                std::cout << "type: " << (int)td.type() << " beging hrs: " << (int)td.begin_hrs()
+                          << " begin mins: " << (int)td.begin_mins()
+                          << " end hrs: " << (int)td.end_hrs() << " end mins " << (int)td.end_mins()
+                          << " dow: " << (int)td.dow() << " begin week: " << (int)td.begin_week()
+                          << " begin month: " << (int)td.begin_month()
+                          << " begin dow: " << (int)td.begin_day_dow()
+                          << " end week: " << (int)td.end_week()
+                          << " end month: " << (int)td.end_month()
+                          << " end dow: " << (int)td.end_day_dow() << std::endl;
+
+                if (IsConditionalActive(r.value(), local_time, tz_index)) {
+
+                  if (r.type() == baldr::AccessType::kLaneTimedAllowed) {
+                    if (r.modes() & costing->access_mode())
+                      std::cout << "allowed" << std::endl << std::endl;
+                    else
+                      std::cout << "restricted" << std::endl << std::endl;
+                  } else {
+                    if (r.modes() & costing->access_mode())
+                      std::cout << "restricted" << std::endl << std::endl;
+                    else
+                      std::cout << "allowed" << std::endl << std::endl;
+                  }
+                } else
+                  std::cout << "allowed" << std::endl << std::endl;
+              } else if (res == "true" && !local_time) {
+                if (r.type() == baldr::AccessType::kLaneTimedAllowed) {
+                  if (r.modes() & costing->access_mode())
+                    std::cout << "allowed: no date time specified" << std::endl << std::endl;
+                  else
+                    std::cout << "restricted: no date time specified" << std::endl << std::endl;
+                } else {
+                  if (r.modes() & costing->access_mode())
+                    std::cout << "restricted: no date time specified" << std::endl << std::endl;
+                  else
+                    std::cout << "allowed: no date time specified" << std::endl << std::endl;
+                }
+              }
+            } else if (r.type() == baldr::AccessType::kLaneAllowed ||
+                       r.type() == baldr::AccessType::kLaneDenied) {
+
+              std::string type = (r.type() == baldr::AccessType::kLaneAllowed) ? "Allowed" : "Denied";
+
+              std::cout << std::endl;
+              std::cout << "|non-timed access restriction| Type: " << type <<
+                  " lane: " << t
+                        << " does this restriction apply to this lane: " << res << " for "
+                        << r.modes() << std::endl;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  if (directededge->end_restriction()) // if there is a restriction here.
+  {
+    auto restrictions =
+        graphtile->GetRestrictions(true, edge, kAllAccess, true); // only get lane restrictions.
+    if (restrictions.size() != 0) {
+      for (const auto& cr : restrictions) {
+
+        // cr->type() == RestrictionType::kLaneRestriction || cr->type() ==
+        // RestrictionType::kComplexLane)
+
+        if (cr->type() == RestrictionType::kComplexLane) {
+          std::cout << std::endl;
+          std::cout << "|complex lane| " << std::endl << std::endl;
+
+          // Walk all vias
+          std::vector<GraphId> vias;
+          cr->WalkVias([&vias](const GraphId* via) {
+            vias.push_back(*via);
+            return WalkingVia::KeepWalking;
+          });
+
+          for (const auto& v : vias) {
+            std::cout << "via graphid: " << v << std::endl;
+          }
+
+        } else if (cr->type() == RestrictionType::kLaneRestriction) {
+
+          std::cout << std::endl;
+          std::cout << "|complex restricted lane| "
+                    << "type: " << cr->dt_type() << " beging hrs: " << cr->begin_hrs()
+                    << " begin mins: " << cr->begin_mins() << " end hrs: " << cr->end_hrs()
+                    << " end mins " << cr->end_mins() << " dow: " << cr->dow()
+                    << " begin week: " << cr->begin_week() << " begin month: " << cr->begin_month()
+                    << " begin dow: " << cr->begin_day_dow() << " end week: " << cr->end_week()
+                    << " end month: " << cr->end_month() << " end dow: " << cr->end_day_dow()
+                    << std::endl
+                    << std::endl;
+
+          if (local_time && tz_index) {
+            if (cr->modes() & costing->access_mode()) {
+              if (baldr::DateTime::is_conditional_active(cr->dt_type(), cr->begin_hrs(),
+                                                         cr->begin_mins(), cr->end_hrs(),
+                                                         cr->end_mins(), cr->dow(), cr->begin_week(),
+                                                         cr->begin_month(), cr->begin_day_dow(),
+                                                         cr->end_week(), cr->end_month(),
+                                                         cr->end_day_dow(), local_time,
+                                                         baldr::DateTime::get_tz_db().from_index(
+                                                             tz_index))) {
+                std::cout << "restricted" << std::endl << std::endl;
+              } else
+                std::cout << "allowed" << std::endl << std::endl;
+            } else
+              std::cout << "allowed" << std::endl << std::endl;
+          } else {
+            if (cr->has_dt() && cr->modes() & costing->access_mode())
+              std::cout << "restricted: no date time specified" << std::endl << std::endl;
+            else
+              std::cout << "allowed: no date time specified" << std::endl << std::endl;
+          }
+
+          // Walk all vias
+          std::vector<GraphId> vias;
+          cr->WalkVias([&vias](const GraphId* via) {
+            vias.push_back(*via);
+            return WalkingVia::KeepWalking;
+          });
+
+          for (const auto& v : vias) {
+            std::cout << "via graphid: " << v << std::endl;
+          }
+        }
+      }
     }
   }
 
@@ -1237,7 +1416,7 @@ void TripLegBuilder::Build(
         AddTripEdge(controller, edge, edge_itr->trip_id, multimodal_builder.block_id, mode,
                     travel_type, costing, directededge, node->drive_on_right(), trip_node, graphtile,
                     time_info.second_of_week, startnode.id(), node->named_intersection(), start_tile,
-                    edge_itr->restriction_index);
+                    edge_itr->restriction_index, time_info.local_time, node->timezone());
 
     // some information regarding shape/length trimming
     float trim_start_pct = is_first_edge ? start_pct : 0;
