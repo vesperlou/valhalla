@@ -36,8 +36,8 @@ struct OSMBike {
 
 // OSM lane connectivity (stored within OSMData)
 struct OSMLaneConnectivity {
-  uint32_t to_way_id;
-  uint32_t from_way_id;
+  uint64_t to_way_id;
+  uint64_t from_way_id;
   uint32_t to_lanes_index;   // Index to string in UniqueNames
   uint32_t from_lanes_index; // Index to string in UniqueNames
 };
