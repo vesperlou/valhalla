@@ -1163,12 +1163,13 @@ public:
                tag_.first.substr(0, 15) == "lanes:emergency") {
 
         uint16_t mode = 0;
-        if (tag_.first.substr(0, 14) == "motorcar:lanes" ||
-            tag_.first.substr(0, 19) == "motor_vehicle:lanes" ||
-            tag_.first.substr(0, 14) == "lanes:motorcar" ||
+        if (tag_.first.substr(0, 19) == "motor_vehicle:lanes" ||
             tag_.first.substr(0, 19) == "lanes:motor_vehicle") {
           mode = (kAutoAccess | kTruckAccess | kEmergencyAccess | kTaxiAccess | kBusAccess |
                   kHOVAccess | kMopedAccess | kMotorcycleAccess);
+        } else if (tag_.first.substr(0, 14) == "motorcar:lanes" ||
+            tag_.first.substr(0, 14) == "lanes:motorcar") {
+          mode = (kAutoAccess);
         } else if (tag_.first.substr(0, 13) == "bicycle:lanes" ||
                    tag_.first.substr(0, 13) == "lanes:bicycle") {
           mode = kBicycleAccess;
