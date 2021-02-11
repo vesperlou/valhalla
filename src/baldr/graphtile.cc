@@ -1052,7 +1052,8 @@ std::vector<AccessRestriction> GraphTile::GetAllAccessRestrictions(const uint32_
   return restrictions;
 }
 
-// Get all of the access restrictions given its directed edge index.  one can get all the non lane restrictions or just the lane restrictions.
+// Get all of the access restrictions given its directed edge index.  one can get all the non lane
+// restrictions or just the lane restrictions.
 std::vector<AccessRestriction> GraphTile::GetAccessRestrictions(const uint32_t idx,
                                                                 const uint32_t access,
                                                                 const bool lanes_only) const {
