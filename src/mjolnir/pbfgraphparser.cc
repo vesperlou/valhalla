@@ -1131,12 +1131,12 @@ public:
       if (it != tag_handlers_.end()) {
         it->second();
       }
-
       // lanes:bus:conditional=yes @ (Mo-Fr 07:00-19:00)
       //
       // hgv:lanes:conditional=no|yes @ (Mo-Fr 07:00-09:00,16:00-18:00)|designated
       // motor_vehicle:lanes=yes|yes|no
       // bus:lanes=yes|yes|no
+      // hov:lanes:conditional : designated @ (Mo-Fr 16:00-18:00;Mo-Fr 07:00-09:00)|||||
 
       // motor_vehicle:conditional=no @ (16:30-07:00)
       else if (tag_.first.substr(0, 14) == "motorcar:lanes" ||
@@ -1219,8 +1219,7 @@ public:
           to_lanes = std::to_string(count);
 
           if (skip_lanes & (1ULL << count)) // skip this lane as it was added to another lane mask for
-                                            // the same restriction
-            continue;
+            continue;                       // the same restriction
 
           uint32_t conditional_mask = static_cast<uint64_t>(1) << count;
           std::vector<std::string> lane_tokens = GetTagTokens(l, '@');
@@ -1230,7 +1229,7 @@ public:
           if (lane_tokens.size() == 2) {
 
             // check for this restriction in another lane
-            for (uint32_t x = count; x < lanes.size(); x) {
+            for (uint32_t x = count; x < lanes.size(); x++) {
               if (lanes.at(x) == l) {
                 conditional_mask |= static_cast<uint64_t>(1) << (x + 1);
                 skip_lanes |= static_cast<uint64_t>(1) << (x + 1);
@@ -1238,27 +1237,33 @@ public:
             }
 
             tmp = lane_tokens.at(0);
+
             boost::algorithm::trim(tmp);
+
             if (tmp == "no") {
               type = AccessType::kLaneTimedDenied;
-            } else if (tmp == "yes" || tmp == "private" || tmp == "delivery" || tmp == "designated") {
+            } else if (tmp == "yes" || tmp == "private" || tmp == "delivery" || tmp == "designated" ||
+                       tmp == "destination") {
               type = AccessType::kLaneTimedAllowed;
             }
           } else {
-            tmp = l;
+            tmp = l.size() ? l : "yes"; // blank defaults to yes based on osm specifications
             if (tmp == "no") {
               type = AccessType::kLaneDenied;
-            } else if (tmp == "yes" || tmp == "private" || tmp == "delivery" || tmp == "designated")
+            } else if (tmp == "yes" || tmp == "private" || tmp == "delivery" || tmp == "designated" ||
+                       tmp == "destination")
               type = AccessType::kLaneAllowed;
           }
           if (tmp.size()) {
             if (lane_tokens.size() == 2) {
 
               std::string tmp = lane_tokens.at(1);
+
               boost::algorithm::trim(tmp);
               std::vector<std::string> conditions = GetTagTokens(tmp, ';');
 
               for (const auto& condition : conditions) {
+
                 std::vector<uint64_t> values = get_time_range(condition);
 
                 for (const auto& v : values) {
@@ -1329,7 +1334,8 @@ public:
         AccessType type = AccessType::kTimedDenied;
         if (tmp == "no") {
           type = AccessType::kTimedDenied;
-        } else if (tmp == "yes" || tmp == "private" || tmp == "delivery" || tmp == "designated") {
+        } else if (tmp == "yes" || tmp == "private" || tmp == "delivery" || tmp == "designated" ||
+                   tmp == "destination") {
           type = AccessType::kTimedAllowed;
         }
 
