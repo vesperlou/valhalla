@@ -43,8 +43,8 @@ namespace thor {
 constexpr uint32_t kInitialEdgeLabelCount = 500000;
 
 // Default constructor
-Isochrone::Isochrone(uint32_t max_reserved_labels_count)
-    : Dijkstras(max_reserved_labels_count), shape_interval_(50.0f) {
+Isochrone::Isochrone(const boost::property_tree::ptree& config)
+    : Dijkstras(config), shape_interval_(50.0f) {
 }
 
 // Construct the isotile. Use a fixed grid size. Convert time in minutes to
@@ -233,7 +233,7 @@ void Isochrone::UpdateIsoTile(const EdgeLabel& pred,
   // the shape interval to get regular spacing. Use the faster resample method.
   // This does not use spherical interpolation - so it is not as accurate but
   // interpolation is over short distances so accuracy should be fine.
-  auto shape = tile->edgeinfo(edge->edgeinfo_offset()).shape();
+  auto shape = tile->edgeinfo(edge).shape();
   auto resampled = resample_polyline(shape, edge->length(), shape_interval_);
   if (!edge->forward()) {
     std::reverse(resampled.begin(), resampled.end());

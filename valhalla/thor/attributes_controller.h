@@ -63,6 +63,7 @@ const std::string kEdgeLaneCount = "edge.lane_count";
 const std::string kEdgeLaneConnectivity = "edge.lane_connectivity";
 const std::string kEdgeCycleLane = "edge.cycle_lane";
 const std::string kEdgeBicycleNetwork = "edge.bicycle_network";
+const std::string kEdgeSacScale = "edge.sac_scale";
 const std::string kEdgeSidewalk = "edge.sidewalk";
 const std::string kEdgeDensity = "edge.density";
 const std::string kEdgeSpeedLimit = "edge.speed_limit";
@@ -136,6 +137,7 @@ const std::string kShapeAttributesTime = "shape_attributes.time";
 const std::string kShapeAttributesLength = "shape_attributes.length";
 const std::string kShapeAttributesSpeed = "shape_attributes.speed";
 const std::string kShapeAttributesSpeedLimit = "shape_attributes.speed_limit";
+const std::string kShapeAttributesClosure = "shape_attributes.closure";
 
 // Categories
 const std::string kNodeCategory = "node.";

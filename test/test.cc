@@ -21,6 +21,7 @@
 
 #include <boost/algorithm/string.hpp>
 
+#include "filesystem.h"
 #include "microtar.h"
 
 namespace {
@@ -137,7 +138,8 @@ boost::property_tree::ptree make_config(const std::string& path_prefix,
           "trace_attributes",
           "transit_available",
           "expansion",
-          "centroid"
+          "centroid",
+          "status"
         ],
         "logging": {
           "color": false,
@@ -307,6 +309,7 @@ boost::property_tree::ptree make_config(const std::string& path_prefix,
         },
         "max_alternates": 2,
         "max_avoid_locations": 50,
+        "max_avoid_polygons_length": 10000,
         "max_radius": 200,
         "max_reachability": 100,
         "max_timedep_distance": 500000,
@@ -438,6 +441,13 @@ void build_live_traffic_data(const boost::property_tree::ptree& config,
   std::string tile_dir = config.get<std::string>("mjolnir.tile_dir");
   std::string traffic_extract = config.get<std::string>("mjolnir.traffic_extract");
 
+  filesystem::path parent_dir = filesystem::path(traffic_extract).parent_path();
+  if (!filesystem::exists(parent_dir)) {
+    std::stringstream ss;
+    ss << "Traffic extract directory " << parent_dir.string() << " does not exist";
+    throw std::runtime_error(ss.str());
+  }
+
   // Begin by seeding the traffic file,
   // per-edge customizations come in the step after
   {
@@ -453,7 +463,7 @@ void build_live_traffic_data(const boost::property_tree::ptree& config,
     // Traffic data works like this:
     //   1. There is a separate .tar file containing tile entries matching the main tiles
     //   2. Each tile is a fixed-size, with a header, and entries
-    // This loop iterates ofer the routing tiles, and creates blank
+    // This loop iterates over the routing tiles, and creates blank
     // traffic tiles with empty records.
     // Valhalla mmap()'s this file and reads from it during route calculation.
     // This loop below creates initial .tar file entries .  Lower down, we make changes to
@@ -561,7 +571,7 @@ void customize_historical_traffic(const boost::property_tree::ptree& config,
         auto coefs = valhalla::baldr::compress_speed_buckets(historical->data());
         tile.AddPredictedSpeed(edges.size() - 1, coefs, tile.header()->directededgecount());
       }
-      edges.back().set_has_predicted_speed(historical.has_value());
+      edges.back().set_has_predicted_speed(static_cast<bool>(historical));
     }
     tile.UpdatePredictedSpeeds(edges);
   }

@@ -20,14 +20,12 @@
 #include <vector>
 
 #include <boost/format.hpp>
-#include <boost/geometry.hpp>
 #include <boost/geometry/geometries/point_xy.hpp>
 #include <boost/geometry/geometries/polygon.hpp>
 #include <boost/geometry/io/wkt/wkt.hpp>
 #include <boost/geometry/multi/geometries/multi_polygon.hpp>
 #include <sqlite3.h>
 
-#include "baldr/admininfo.h"
 #include "baldr/datetime.h"
 #include "baldr/graphconstants.h"
 #include "baldr/graphid.h"
@@ -35,7 +33,6 @@
 #include "baldr/graphtile.h"
 #include "baldr/streetnames.h"
 #include "baldr/streetnames_factory.h"
-#include "baldr/streetnames_us.h"
 #include "baldr/tilehierarchy.h"
 #include "midgard/aabb2.h"
 #include "midgard/constants.h"
@@ -210,7 +207,7 @@ void GetTurnTypes(const DirectedEdge& directededge,
                   GraphReader& reader,
                   std::mutex& lock) {
   // Get the heading value at the end of incoming edge based on edge shape
-  auto incoming_shape = tile->edgeinfo(directededge.edgeinfo_offset()).shape();
+  auto incoming_shape = tile->edgeinfo(&directededge).shape();
   if (directededge.forward()) {
     std::reverse(incoming_shape.begin(), incoming_shape.end());
   }
@@ -241,7 +238,7 @@ void GetTurnTypes(const DirectedEdge& directededge,
 
     // Get the heading of the outbound edge (unfortunately GraphEnhancer may
     // not have yet computed and stored headings for this node).
-    auto shape = tile->edgeinfo(diredge->edgeinfo_offset()).shape();
+    auto shape = tile->edgeinfo(diredge).shape();
     if (!diredge->forward()) {
       std::reverse(shape.begin(), shape.end());
     }
@@ -755,7 +752,7 @@ bool IsIntersectionInternal(const graph_tile_ptr& start_tile,
   for (uint32_t i = 0; i < node->edge_count(); i++, diredge++) {
     // Find the opposing directed edge and its heading
     if (i == directededge.opp_local_idx()) {
-      auto shape = tile->edgeinfo(diredge->edgeinfo_offset()).shape();
+      auto shape = tile->edgeinfo(diredge).shape();
       if (!diredge->forward()) {
         std::reverse(shape.begin(), shape.end());
       }
@@ -789,7 +786,7 @@ bool IsIntersectionInternal(const graph_tile_ptr& start_tile,
 
     // Get the heading of the outbound edge (unfortunately GraphEnhancer may
     // not have yet computed and stored headings for this node).
-    auto shape = tile->edgeinfo(diredge->edgeinfo_offset()).shape();
+    auto shape = tile->edgeinfo(diredge).shape();
     if (!diredge->forward()) {
       std::reverse(shape.begin(), shape.end());
     }
@@ -842,7 +839,7 @@ void GetHeadings(const graph_tile_ptr& tile, NodeInfo& nodeinfo, uint32_t ntrans
   for (uint32_t j = 0; j < ntrans; j++) {
     const DirectedEdge* de = tile->directededge(nodeinfo.edge_index() + j);
 
-    auto e_offset = tile->edgeinfo(de->edgeinfo_offset());
+    auto e_offset = tile->edgeinfo(de);
     auto shape = e_offset.shape();
     if (!de->forward()) {
       std::reverse(shape.begin(), shape.end());
@@ -854,67 +851,6 @@ void GetHeadings(const graph_tile_ptr& tile, NodeInfo& nodeinfo, uint32_t ntrans
     // same heading - should one be "adjusted" so the relative direction
     // is maintained.
     nodeinfo.set_heading(j, heading[j]);
-  }
-}
-
-bool IsNextEdgeInternalImpl(const DirectedEdge directededge,
-                            const graph_tile_ptr& tilebuilder,
-                            const graph_tile_ptr& end_node_tile,
-                            const NodeInfo& end_node_info,
-                            GraphReader& reader,
-                            std::mutex& lock,
-                            bool infer_internal_intersections) {
-  // Iterate through outbound edges to find the next edge
-  for (uint32_t i = 0; i < end_node_info.edge_count(); i++) {
-    const DirectedEdge* diredge = end_node_tile->directededge(end_node_info.edge_index() + i);
-
-    // Skip opposing directed edge and any edge that is not a road. Skip any
-    // edges that are not driveable outbound.
-    if (i == directededge.opp_local_idx() || !diredge->is_road() ||
-        !(diredge->forwardaccess() & kAutoAccess)) {
-      continue;
-    }
-
-    // if the edge from the endnode is the next edge for this way, then
-    // check if it is internal.
-    if (tilebuilder->edgeinfo(directededge.edgeinfo_offset()).wayid() ==
-        end_node_tile->edgeinfo(diredge->edgeinfo_offset()).wayid()) {
-
-      if (!infer_internal_intersections)
-        return diredge->internal();
-      else
-        return IsIntersectionInternal(end_node_tile, reader, lock, end_node_info, *diredge, i);
-    }
-  }
-  return false;
-}
-
-// Is the next edge from the end node of the directededge is internal or not.
-bool IsNextEdgeInternal(const DirectedEdge directededge,
-                        const graph_tile_ptr& tilebuilder,
-                        GraphReader& reader,
-                        std::mutex& lock,
-                        bool infer_internal_intersections) {
-  if (tilebuilder->id() == directededge.endnode().Tile_Base()) {
-    const NodeInfo& end_node_info = *tilebuilder->node(directededge.endnode().id());
-    return IsNextEdgeInternalImpl(directededge, tilebuilder, tilebuilder, end_node_info, reader, lock,
-                                  infer_internal_intersections);
-  } else {
-    // Get the tile at the end node. and find inbound heading of the candidate
-    // edge to the end node.
-    lock.lock();
-    auto end_node_tile = GraphTile::Create(reader.tile_dir(), directededge.endnode());
-    lock.unlock();
-
-    // this tile may not have been updated yet; therefore, we must
-    // compute the headings for the end node as they are needed for the
-    // IsIntersectionInternal function
-    NodeInfo end_node_info = *end_node_tile->node(directededge.endnode().id());
-    uint32_t count = end_node_info.edge_count();
-    uint32_t ntrans = std::min(count, kNumberOfEdgeTransitions);
-    GetHeadings(end_node_tile, end_node_info, ntrans);
-    return IsNextEdgeInternalImpl(directededge, tilebuilder, end_node_tile, end_node_info, reader,
-                                  lock, infer_internal_intersections);
   }
 }
 
@@ -1389,8 +1325,8 @@ uint32_t GetOpposingEdgeIndex(const graph_tile_ptr& endnodetile,
       } else {
         // Need to compare shape if not in the same tile or different EdgeInfo (could be different
         // names in opposing directions)
-        if (shapes_match(tile->edgeinfo(edge.edgeinfo_offset()).shape(),
-                         endnodetile->edgeinfo(directededge->edgeinfo_offset()).shape())) {
+        if (shapes_match(tile->edgeinfo(&edge).shape(),
+                         endnodetile->edgeinfo(directededge).shape())) {
           return i;
         }
       }
@@ -1523,7 +1459,7 @@ void enhance(const boost::property_tree::ptree& pt,
       for (uint32_t j = 0; j < ntrans; j++) {
         DirectedEdge& directededge = tilebuilder->directededge_builder(nodeinfo.edge_index() + j);
 
-        auto e_offset = tilebuilder->edgeinfo(directededge.edgeinfo_offset());
+        auto e_offset = tilebuilder->edgeinfo(&directededge);
         auto shape = e_offset.shape();
         if (!directededge.forward()) {
           std::reverse(shape.begin(), shape.end());
@@ -1604,7 +1540,7 @@ void enhance(const boost::property_tree::ptree& pt,
       for (uint32_t j = 0; j < nodeinfo.edge_count(); j++) {
         DirectedEdge& directededge = tilebuilder->directededge_builder(nodeinfo.edge_index() + j);
 
-        auto e_offset = tilebuilder->edgeinfo(directededge.edgeinfo_offset());
+        auto e_offset = tilebuilder->edgeinfo(&directededge);
         std::string end_node_code = "";
         uint32_t end_admin_index = 0;
         // Get the tile at the end node
@@ -1723,7 +1659,7 @@ void enhance(const boost::property_tree::ptree& pt,
         UpdateSpeed(directededge, density, urban_rc_speed, infer_turn_channels);
 
         // Update the named flag
-        auto names = tilebuilder->edgeinfo(directededge.edgeinfo_offset()).GetNamesAndTypes(true);
+        auto names = tilebuilder->edgeinfo(&directededge).GetNamesAndTypes(true);
         directededge.set_named(names.size() > 0);
 
         // Name continuity - on the directededge.
@@ -1731,7 +1667,7 @@ void enhance(const boost::property_tree::ptree& pt,
         for (uint32_t k = 0; k < ntrans; k++) {
           DirectedEdge& fromedge = tilebuilder->directededge(nodeinfo.edge_index() + k);
           if (ConsistentNames(country_code, names,
-                              tilebuilder->edgeinfo(fromedge.edgeinfo_offset()).GetNamesAndTypes())) {
+                              tilebuilder->edgeinfo(&fromedge).GetNamesAndTypes())) {
             directededge.set_name_consistency(k, true);
           }
         }

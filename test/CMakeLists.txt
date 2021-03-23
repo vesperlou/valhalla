@@ -40,7 +40,7 @@ if(ENABLE_DATA_TOOLS)
 endif()
 
 if(ENABLE_SERVICES)
-  list(APPEND tests loki_service skadi_service thor_service)
+  list(APPEND tests loki_service skadi_service)
 endif()
 
 ## TODO: fix apple tests!
@@ -48,12 +48,13 @@ if(NOT APPLE)
   list(APPEND tests narrativebuilder util_odin)
 endif()
 
-if (UNIX)
+if (UNIX AND ENABLE_SINGLE_FILES_WERROR)
   # Enables stricter compiler checks on a file-by-file basis
   # which allows us to migrate piecemeal
   set_source_files_properties(
     openlr.cc
     incidents.cc
+    incident_loading.cc
     PROPERTIES COMPILE_FLAGS "-Wall -Werror")
 endif (UNIX)
 

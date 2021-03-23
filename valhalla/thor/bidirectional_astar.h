@@ -43,11 +43,9 @@ class BidirectionalAStar : public PathAlgorithm {
 public:
   /**
    * Constructor.
-   * @param max_reserved_labels_count maximum capacity of edgelabels container
-   *                                  that allowed to keep reserved
+   * @param config A config object of key, value pairs
    */
-  explicit BidirectionalAStar(
-      uint32_t max_reserved_labels_count = std::numeric_limits<uint32_t>::max());
+  explicit BidirectionalAStar(const boost::property_tree::ptree& config = {});
 
   /**
    * Destructor
@@ -122,7 +120,9 @@ protected:
   EdgeStatus edgestatus_reverse_;
 
   // Best candidate connection and threshold to extend search.
-  float threshold_;
+  float cost_threshold_;
+  uint32_t iterations_threshold_;
+  uint32_t desired_paths_count_;
   std::vector<CandidateConnection> best_connections_;
 
   /**

@@ -41,10 +41,9 @@ class Dijkstras {
 public:
   /**
    * Constructor.
-   * @param max_reserved_labels_count maximum capacity of edgelabels container
-   *                                  that allowed to keep reserved
+   * @param config A config object of key, value pairs
    */
-  explicit Dijkstras(uint32_t max_reserved_labels_count = std::numeric_limits<uint32_t>::max());
+  explicit Dijkstras(const boost::property_tree::ptree& config = {});
 
   Dijkstras(const Dijkstras&) = delete;
   Dijkstras& operator=(const Dijkstras&) = delete;
@@ -65,11 +64,11 @@ public:
    * @param  costings       List of costing objects
    * @param  mode           Travel mode
    */
-  virtual void Expand(ExpansionType expansion_type,
-                      valhalla::Api& api,
-                      baldr::GraphReader& reader,
-                      const sif::mode_costing_t& costings,
-                      const sif::TravelMode mode);
+  void Expand(ExpansionType expansion_type,
+              valhalla::Api& api,
+              baldr::GraphReader& reader,
+              const sif::mode_costing_t& costings,
+              const sif::TravelMode mode);
 
 protected:
   /**
