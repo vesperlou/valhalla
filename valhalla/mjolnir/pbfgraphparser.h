@@ -28,7 +28,7 @@ public:
                            const std::vector<std::string>& input_files,
                            const std::string& ways_file,
                            const std::string& way_nodes_file,
-                           const std::string& access_file);
+                           const std::string& access_file) {}
 
   /**
    * Loads given input files
@@ -45,7 +45,7 @@ public:
                              const std::vector<std::string>& input_files,
                              const std::string& complex_restriction_from_file,
                              const std::string& complex_restriction_to_file,
-                             OSMData& osmdata);
+                             OSMData& osmdata) {}
 
   /**
    * Loads given input files
@@ -59,7 +59,17 @@ public:
                          const std::vector<std::string>& input_files,
                          const std::string& way_nodes_file,
                          const std::string& bss_nodes_file,
-                         OSMData& osmdata);
+                         OSMData& osmdata) {}
+
+  static OSMData ParseAll(const boost::property_tree::ptree& pt,
+                          const std::vector<std::string>& input_files,
+                          const std::string& nodes_file,
+                          const std::string& ways_file,
+                          const std::string& way_nodes_file,
+                          const std::string& bss_nodes_file,
+                          const std::string& access_file,
+                          const std::string& complex_restriction_from_file,
+                          const std::string& complex_restriction_to_file);
 };
 
 } // namespace mjolnir

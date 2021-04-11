@@ -171,6 +171,7 @@ void ConstructEdges(const std::string& ways_file,
   while (current_way_node_index < way_nodes.size()) {
     // Grab the way and its first node
     auto way_node = *way_nodes[current_way_node_index];
+//    std::cout << way_node.way_index << ' ' << ways.size() << '\n';
     const auto way = *ways[way_node.way_index];
     const auto first_way_node_index = current_way_node_index;
     const auto last_way_node_index =
@@ -204,7 +205,7 @@ void ConstructEdges(const std::string& ways_file,
                      graph_id_predicate(way_node.node)});
 
     // Iterate through the nodes of the way until we find an intersection
-    while (current_way_node_index < way_nodes.size()) {
+    while (current_way_node_index + 1 < way_nodes.size()) {
       // Get the next shape point on this edge
       way_node = *way_nodes[++current_way_node_index];
       edge.attributes.llcount++;
