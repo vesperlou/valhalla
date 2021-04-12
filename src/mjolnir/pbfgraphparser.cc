@@ -7,6 +7,8 @@
 #include "mjolnir/osmaccess.h"
 
 #include <boost/algorithm/string.hpp>
+#include <boost/asio/post.hpp>
+#include <boost/asio/thread_pool.hpp>
 #include <boost/format.hpp>
 #include <boost/optional.hpp>
 #include <boost/range/algorithm/remove_if.hpp>
@@ -25,6 +27,8 @@
 #include "midgard/sequence.h"
 #include "midgard/tiles.h"
 #include "mjolnir/timeparsing.h"
+
+#define MAX_UNCOMPRESSED_BLOB_SIZE 33554432
 
 using namespace valhalla::midgard;
 using namespace valhalla::baldr;
@@ -2036,7 +2040,7 @@ OSMData PBFGraphParser::ParseAll(const boost::property_tree::ptree& pt,
   //    fout << (*way_nodes[i]).way_index << std::endl;
   //  }
   //  return {};
-  unsigned int threads =
+  unsigned int concurrency =
       std::max(static_cast<unsigned int>(1),
                pt.get<unsigned int>("concurrency", std::thread::hardware_concurrency()));
 
@@ -2056,6 +2060,34 @@ OSMData PBFGraphParser::ParseAll(const boost::property_tree::ptree& pt,
     }
   }
 
+  const OSMPBF::Interest interests = OSMPBF::Interest::WAYS | OSMPBF::Interest::RELATIONS |
+                                     OSMPBF::Interest::NODES | OSMPBF::Interest::CHANGESETS;
+  std::vector<std::thread> threads(concurrency);
+  std::queue<std::pair<int32_t, char*>> jobs;
+  std::mutex mutex;
+  std::condition_variable cv;
+  for (size_t i = 0; i < threads.size(); ++i) {
+    threads[i] = [&, i]() {
+      char* unpack_buffer = new char[MAX_UNCOMPRESSED_BLOB_SIZE];
+      while (true) {
+        std::unique_lock<std::mutex> lock(mutex);
+        cv.wait(lock, [] { return !jobs.empty(); });
+        auto job = jobs.pop();
+        lock.unlock();
+      }
+      //      callback.reset(new sequence<OSMNode>(nodes_file + std::to_string(i), true),
+      //                     new sequence<OSMWay>(ways_file + std::to_string(i), true),
+      //                     new sequence<OSMWayNode>(way_nodes_file + std::to_string(i), true),
+      //                     new sequence<OSMAccess>(access_file + std::to_string(i), true),
+      //                     new sequence<OSMRestriction>(complex_restriction_from_file +
+      //                     std::to_string(i),
+      //                                                  true),
+      //                     new sequence<OSMRestriction>(complex_restriction_to_file +
+      //                     std::to_string(i),
+      //                                                  true),
+      //                     nullptr);
+    };
+  }
   callback.reset(new sequence<OSMNode>(nodes_file, true), new sequence<OSMWay>(ways_file, true),
                  new sequence<OSMWayNode>(way_nodes_file, true),
                  new sequence<OSMAccess>(access_file, true),
@@ -2065,17 +2097,13 @@ OSMData PBFGraphParser::ParseAll(const boost::property_tree::ptree& pt,
   // way's node list. Iterate through each pbf input file.
   LOG_INFO("Parsing ...");
   for (auto& file_handle : file_handles) {
-    OSMPBF::Parser::parse(file_handle,
-                          static_cast<OSMPBF::Interest>(
-                              OSMPBF::Interest::WAYS | OSMPBF::Interest::RELATIONS |
-                              OSMPBF::Interest::NODES | OSMPBF::Interest::CHANGESETS),
-                          callback);
+    OSMPBF::Parser::parse(file_handle, , callback);
   }
   //  return osmdata;
 
   LOG_INFO("Finished with " + std::to_string(osmdata.osm_way_count) + " routable ways containing " +
            std::to_string(osmdata.osm_way_node_count) + " nodes");
-  callback.reset(nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr);
+  //  callback.reset(nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr);
 
   {
     sequence<OSMWayNode> way_nodes(way_nodes_file, false);
@@ -2170,7 +2198,8 @@ OSMData PBFGraphParser::ParseAll(const boost::property_tree::ptree& pt,
     }
   }
 
-  uint64_t max_osm_id = callback.last_node_;
+  //  uint64_t max_osm_id = callback.last_node_;
+  uint64_t max_osm_id = 0;
   LOG_INFO("Finished with " + std::to_string(osmdata.osm_node_count) +
            " nodes contained in routable ways");
 
@@ -2180,7 +2209,7 @@ OSMData PBFGraphParser::ParseAll(const boost::property_tree::ptree& pt,
   {
     sequence<OSMWayNode> way_nodes(way_nodes_file, false);
     way_nodes.sort([](const OSMWayNode& a, const OSMWayNode& b) {
-//      std::cout << a.way_index << ' ' << b.way_index << '\n';
+      //      std::cout << a.way_index << ' ' << b.way_index << '\n';
       if (a.way_index == b.way_index) {
         // TODO: if its equal we have screwed something up, should we check and throw here?
         return a.way_shape_node_index < b.way_shape_node_index;
