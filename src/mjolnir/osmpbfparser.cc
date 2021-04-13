@@ -33,14 +33,46 @@
 #else
 #include <netinet/in.h>
 #endif
+#include "mjolnir/osmpbfparser.h"
+#include "mjolnir/pbfgraphparser.h"
+#include "mjolnir/util.h"
 #include <unordered_map>
 #include <vector>
 #include <zlib.h>
+
+#include "graph_lua_proc.h"
+#include "mjolnir/luatagtransform.h"
+#include "mjolnir/osmaccess.h"
+
+#include <boost/algorithm/string.hpp>
+#include <boost/asio/post.hpp>
+#include <boost/asio/thread_pool.hpp>
+#include <boost/format.hpp>
+#include <boost/optional.hpp>
+#include <boost/range/algorithm/remove_if.hpp>
+#include <future>
+#include <thread>
+#include <utility>
+
+#include "baldr/complexrestriction.h"
+#include "baldr/datetime.h"
+#include "baldr/graphconstants.h"
+#include "baldr/tilehierarchy.h"
+#include "midgard/aabb2.h"
+#include "midgard/logging.h"
+#include "midgard/pointll.h"
+#include "midgard/polyline2.h"
+#include "midgard/sequence.h"
+#include "midgard/tiles.h"
+#include "mjolnir/timeparsing.h"
 
 #include "midgard/logging.h"
 #include "mjolnir/osmpbfparser.h"
 
 using namespace OSMPBF;
+using namespace valhalla::midgard;
+using namespace valhalla::baldr;
+using namespace valhalla::mjolnir;
 
 namespace {
 
@@ -81,7 +113,11 @@ BlobHeader read_header(char* buffer, std::ifstream& file, bool& finished) {
   return result;
 }
 
-int32_t read_blob(char* buffer, char* unpack_buffer, std::ifstream& file, const BlobHeader& header, std::mutex& lock) {
+int32_t read_blob(char* buffer,
+                  char* unpack_buffer,
+                  std::ifstream& file,
+                  const BlobHeader& header,
+                  std::unique_lock<std::mutex> lock) {
   Blob blob;
 
   // is the size of the following blob sane
@@ -287,25 +323,29 @@ Member::Member(Member&& other)
     : member_type(other.member_type), member_id(other.member_id), role(std::move(other.role)) {
 }
 
-void worker_fn(std::mutex& mutex, std::ifstream& file) {
-  std::unique_ptr<char[]> buffer = new char[MAX_UNCOMPRESSED_BLOB_SIZE];
-  std::unique_ptr<char[]> unpack_buffer = new char[MAX_UNCOMPRESSED_BLOB_SIZE];
+void Parser::worker_fn(Callback& callback,
+                       std::mutex& mutex,
+                       std::ifstream& file,
+                       const OSMPBF::Interest& interest) {
+  std::unique_ptr<char[]> buffer(new char[MAX_UNCOMPRESSED_BLOB_SIZE]);
+  std::unique_ptr<char[]> unpack_buffer(new char[MAX_UNCOMPRESSED_BLOB_SIZE]);
 
   while (true) {
     std::unique_lock<std::mutex> lock(mutex);
     if (file.eof())
       break;
-    BlobHeader header = read_header(buffer, file, finished);
+    bool finished = false;
+    BlobHeader header = read_header(buffer.get(), file, finished);
     // if we didnt hit the end
     if (!finished) {
       // grab the blob that goes with the blob header
-      int32_t sz = read_blob(buffer, unpack_buffer, file, header, mutex);
+      int32_t sz = read_blob(buffer.get(), unpack_buffer.get(), file, header, std::move(lock));
       // if its data parse it
       if (header.type() == "OSMData") {
-        parse_primitive_block(unpack_buffer, sz, interest, callback);
+        parse_primitive_block(unpack_buffer.get(), sz, interest, callback);
         // if its something other than a header
       } else if (header.type() == "OSMHeader") {
-        parse_header_block(unpack_buffer, sz);
+        parse_header_block(unpack_buffer.get(), sz);
       } else {
         LOG_WARN("Unknown blob type: " + header.type());
       }
@@ -331,7 +371,8 @@ void Parser::parse(std::ifstream& file, const Interest interest, Callback& callb
     // if we didnt hit the end
     if (!finished) {
       // grab the blob that goes with the blob header
-      int32_t sz = read_blob(buffer, unpack_buffer, file, header);
+//      int32_t sz = read_blob(buffer, unpack_buffer, file, header);
+      int32_t sz = 0;
       // if its data parse it
       if (header.type() == "OSMData") {
         parse_primitive_block(unpack_buffer, sz, interest, callback);

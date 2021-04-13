@@ -15,6 +15,8 @@
 #include <future>
 #include <thread>
 #include <utility>
+#include <list>
+#include <vector>
 
 #include "baldr/complexrestriction.h"
 #include "baldr/datetime.h"
@@ -2060,34 +2062,9 @@ OSMData PBFGraphParser::ParseAll(const boost::property_tree::ptree& pt,
     }
   }
 
-  const OSMPBF::Interest interests = OSMPBF::Interest::WAYS | OSMPBF::Interest::RELATIONS |
-                                     OSMPBF::Interest::NODES | OSMPBF::Interest::CHANGESETS;
-  std::vector<std::thread> threads(concurrency);
-  std::queue<std::pair<int32_t, char*>> jobs;
-  std::mutex mutex;
-  std::condition_variable cv;
-  for (size_t i = 0; i < threads.size(); ++i) {
-    threads[i] = [&, i]() {
-      char* unpack_buffer = new char[MAX_UNCOMPRESSED_BLOB_SIZE];
-      while (true) {
-        std::unique_lock<std::mutex> lock(mutex);
-        cv.wait(lock, [] { return !jobs.empty(); });
-        auto job = jobs.pop();
-        lock.unlock();
-      }
-      //      callback.reset(new sequence<OSMNode>(nodes_file + std::to_string(i), true),
-      //                     new sequence<OSMWay>(ways_file + std::to_string(i), true),
-      //                     new sequence<OSMWayNode>(way_nodes_file + std::to_string(i), true),
-      //                     new sequence<OSMAccess>(access_file + std::to_string(i), true),
-      //                     new sequence<OSMRestriction>(complex_restriction_from_file +
-      //                     std::to_string(i),
-      //                                                  true),
-      //                     new sequence<OSMRestriction>(complex_restriction_to_file +
-      //                     std::to_string(i),
-      //                                                  true),
-      //                     nullptr);
-    };
-  }
+  const OSMPBF::Interest interests =
+      static_cast<OSMPBF::Interest>(OSMPBF::Interest::WAYS | OSMPBF::Interest::RELATIONS |
+                                    OSMPBF::Interest::NODES | OSMPBF::Interest::CHANGESETS);
   callback.reset(new sequence<OSMNode>(nodes_file, true), new sequence<OSMWay>(ways_file, true),
                  new sequence<OSMWayNode>(way_nodes_file, true),
                  new sequence<OSMAccess>(access_file, true),
@@ -2097,8 +2074,31 @@ OSMData PBFGraphParser::ParseAll(const boost::property_tree::ptree& pt,
   // way's node list. Iterate through each pbf input file.
   LOG_INFO("Parsing ...");
   for (auto& file_handle : file_handles) {
-    OSMPBF::Parser::parse(file_handle, , callback);
+    std::mutex mutex;
+    std::vector<std::thread> threads(concurrency);
+    std::vector<OSMData> osmdatas(concurrency);
+    std::list<graph_callback> callbacks;
+    for (size_t i = 0; i < concurrency; ++i) {
+      callbacks.emplace_back(pt, osmdatas[i]);
+      //      callbacks.push_back(graph_callback(pt, osmdatas[i]));
+      callbacks.back()
+          .reset(new sequence<OSMNode>(nodes_file + std::to_string(i), true),
+                 new sequence<OSMWay>(ways_file + std::to_string(i), true),
+                 new sequence<OSMWayNode>(way_nodes_file + std::to_string(i), true),
+                 new sequence<OSMAccess>(access_file + std::to_string(i), true),
+                 new sequence<OSMRestriction>(complex_restriction_from_file + std::to_string(i),
+                                              true),
+                 new sequence<OSMRestriction>(complex_restriction_to_file + std::to_string(i), true),
+                 nullptr);
+      threads[i] = std::thread(&OSMPBF::Parser::worker_fn, std::ref(callbacks.back()),
+                               std::ref(mutex), std::ref(file_handle), std::cref(interests));
+    }
+    for (auto& t : threads) {
+      t.join();
+    }
+    //    OSMPBF::Parser::parse(file_handle, , callback);
   }
+  return {};
   //  return osmdata;
 
   LOG_INFO("Finished with " + std::to_string(osmdata.osm_way_count) + " routable ways containing " +

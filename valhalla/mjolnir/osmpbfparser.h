@@ -83,6 +83,10 @@ public:
   Parser() = delete;
   // parse the pbf file for the things you are interested in
   static void parse(std::ifstream& file, const Interest interest, Callback& callback);
+  static void worker_fn(Callback& callback,
+                        std::mutex& mutex,
+                        std::ifstream& file,
+                        const OSMPBF::Interest& interest);
   // clean up protobuf library level memory, this will make protobuf unusable after its called
   static void free();
 };
