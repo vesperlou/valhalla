@@ -307,7 +307,8 @@ public:
    */
   virtual Cost TransitionCost(const baldr::DirectedEdge* edge,
                               const baldr::NodeInfo* node,
-                              const EdgeLabel& pred) const;
+                              const EdgeLabel& pred,
+                              const uint8_t probability = 0) const;
 
   /**
    * Returns the cost to make the transition from the predecessor edge
@@ -329,7 +330,8 @@ public:
                                      const baldr::DirectedEdge* opp_edge,
                                      const baldr::DirectedEdge* opp_pred_edge,
                                      const bool has_measured_speed = false,
-                                     const InternalTurn internal_turn = InternalTurn::kNoTurn) const;
+                                     const InternalTurn internal_turn = InternalTurn::kNoTurn,
+                                     const uint8_t probability = 0) const;
 
   /**
    * Test if an edge should be restricted due to a complex restriction.
@@ -355,6 +357,7 @@ public:
                   const graph_tile_ptr& tile,
                   const baldr::GraphId& edgeid,
                   const bool forward,
+                  uint8_t& probability,
                   thor::EdgeStatus* edgestatus = nullptr,
                   const uint64_t current_time = 0,
                   const uint32_t tz_index = 0) const {
@@ -418,8 +421,8 @@ public:
       for (const auto& cr : restrictions) {
         if (cr->type() == baldr::RestrictionType::kNoProbable ||
             cr->type() == baldr::RestrictionType::kOnlyProbable) {
-          if (probability_ == 0 || probability_ > cr->probablity()) {
-            continue;
+          if (cr->probablity() == 0) {
+            continue; // toss these for now
           }
         }
 
@@ -474,9 +477,15 @@ public:
           else if (!current_time && cr->has_dt()) {
             return false;
           } else {
+            if (cr->type() == baldr::RestrictionType::kNoProbable ||
+                cr->type() == baldr::RestrictionType::kOnlyProbable) {
+              probability = cr->probablity();
+              return false;
+            }
             // We triggered a complex restriction, so make sure we reset edge-status' for
             // earlier edges in restriction that were already marked as permanent
             reset_edge_status(edge_ids_in_complex_restriction);
+
             return true; // Otherwise this is a non-timed restriction and it exists all the time.
           }
         }
@@ -873,9 +882,6 @@ protected:
   // A mask which determines which flow data the costing should use from the tile
   uint8_t flow_mask_;
 
-  // percentage of allowing probable restriction a 0 probability means do not utilize them
-  uint8_t probability_{0};
-
   // Whether or not to do shortest (by length) routes
   // Note: hierarchy pruning means some costings (auto, truck, etc) won't do absolute shortest
   bool shortest_;
@@ -899,8 +905,6 @@ protected:
     alley_penalty_ = costing_options.alley_penalty();
     destination_only_penalty_ = costing_options.destination_only_penalty();
     maneuver_penalty_ = costing_options.maneuver_penalty();
-
-    probability_ = costing_options.probability();
 
     // Transition costs (both time and cost)
     toll_booth_cost_ = {costing_options.toll_booth_cost() + costing_options.toll_booth_penalty(),
