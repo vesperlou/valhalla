@@ -49,8 +49,6 @@ constexpr float kDefaultUseTolls = 0.5f;     // Default preference of using toll
 constexpr float kDefaultUseTracks = 0.f;     // Default preference of using tracks 0-1
 constexpr float kDefaultUseDistance = 0.f;   // Default preference of using distance vs time 0-1
 constexpr float kDefaultUseLivingStreets = 0.1f; // Default preference of using living streets 0-1
-constexpr uint32_t kDefaultProbability = 0; // Default percentage of allowing probable restrictions
-                                            // 0% means do not include them
 
 // Default turn costs
 constexpr float kTCStraight = 0.5f;
@@ -110,7 +108,6 @@ constexpr ranged_default_t<float> kUseDistanceRange{0, kDefaultUseDistance, 1.0f
 constexpr ranged_default_t<float> kUseLivingStreetsRange{0.f, kDefaultUseLivingStreets, 1.0f};
 constexpr ranged_default_t<float> kServicePenaltyRange{0.0f, kDefaultServicePenalty, kMaxPenalty};
 constexpr ranged_default_t<float> kServiceFactorRange{kMinFactor, kDefaultServiceFactor, kMaxFactor};
-constexpr ranged_default_t<float> kProbabilityRange{0, kDefaultProbability, 100};
 
 // Maximum highway avoidance bias (modulates the highway factors based on road class)
 constexpr float kMaxHighwayBiasFactor = 8.0f;
@@ -260,7 +257,8 @@ public:
    */
   virtual Cost TransitionCost(const baldr::DirectedEdge* edge,
                               const baldr::NodeInfo* node,
-                              const EdgeLabel& pred) const override;
+                              const EdgeLabel& pred,
+                              const uint8_t probability) const override;
 
   /**
    * Returns the cost to make the transition from the predecessor edge
@@ -278,7 +276,8 @@ public:
                                      const baldr::DirectedEdge* pred,
                                      const baldr::DirectedEdge* edge,
                                      const bool has_measured_speed,
-                                     const InternalTurn internal_turn) const override;
+                                     const InternalTurn internal_turn,
+                                     const uint8_t probability) const override;
 
   /**
    * Get the cost factor for A* heuristics. This factor is multiplied
@@ -513,7 +512,8 @@ Cost AutoCost::EdgeCost(const baldr::DirectedEdge* edge,
 // Returns the time (in seconds) to make the transition from the predecessor
 Cost AutoCost::TransitionCost(const baldr::DirectedEdge* edge,
                               const baldr::NodeInfo* node,
-                              const EdgeLabel& pred) const {
+                              const EdgeLabel& pred,
+                              const uint8_t probability) const {
   // Get the transition cost for country crossing, ferry, gate, toll booth,
   // destination only, alley, maneuver penalty
   uint32_t idx = pred.opp_local_idx();
@@ -557,6 +557,16 @@ Cost AutoCost::TransitionCost(const baldr::DirectedEdge* edge,
     AddUturnPenalty(idx, node, edge, has_reverse, has_left, has_right, true, pred.internal_turn(),
                     seconds);
 
+    // 1 to 25; 26 to 50; 51 to 75; 76 to 100
+    if (1 <= probability && probability <= 25)
+      seconds += 100.f;
+    else if (26 <= probability && probability <= 50)
+      seconds += 75.f;
+    else if (51 <= probability && probability <= 75)
+      seconds += 45.f; // right now at 50.f we start avoiding.
+    else if (76 <= probability && probability <= 100)
+      seconds += 25.f;
+
     // Apply density factor and stop impact penalty if there isn't traffic on this edge or you're not
     // using traffic
     if (!pred.has_measured_speed()) {
@@ -582,7 +592,8 @@ Cost AutoCost::TransitionCostReverse(const uint32_t idx,
                                      const baldr::DirectedEdge* pred,
                                      const baldr::DirectedEdge* edge,
                                      const bool has_measured_speed,
-                                     const InternalTurn internal_turn) const {
+                                     const InternalTurn internal_turn,
+                                     const uint8_t probability) const {
   // Get the transition cost for country crossing, ferry, gate, toll booth,
   // destination only, alley, maneuver penalty
   Cost c = base_transition_cost(node, edge, pred, idx);
@@ -623,6 +634,16 @@ Cost AutoCost::TransitionCostReverse(const uint32_t idx,
     }
 
     AddUturnPenalty(idx, node, edge, has_reverse, has_left, has_right, true, internal_turn, seconds);
+
+    // 1 to 25; 26 to 50; 51 to 75; 76 to 100
+    if (1 <= probability && probability <= 25)
+      seconds += 100.f;
+    else if (26 <= probability && probability <= 50)
+      seconds += 75.f;
+    else if (51 <= probability && probability <= 75)
+      seconds += 45.f; // right now at 50.f we start avoiding.
+    else if (76 <= probability && probability <= 100)
+      seconds += 25.f;
 
     // Apply density factor and stop impact penalty if there isn't traffic on this edge or you're not
     // using traffic
@@ -760,10 +781,6 @@ void ParseAutoCostOptions(const rapidjson::Document& doc,
     pbf_costing_options->set_service_factor(
         kServiceFactorRange(rapidjson::get_optional<float>(*json_costing_options, "/service_factor")
                                 .get_value_or(kDefaultServiceFactor)));
-    // probability
-    pbf_costing_options->set_probability(
-        kProbabilityRange(rapidjson::get_optional<uint32_t>(*json_costing_options, "/probability")
-                              .get_value_or(kDefaultProbability)));
 
   } else {
     // Set pbf values to defaults
@@ -792,7 +809,6 @@ void ParseAutoCostOptions(const rapidjson::Document& doc,
     pbf_costing_options->set_service_penalty(kDefaultServicePenalty);
     pbf_costing_options->set_service_factor(kDefaultServiceFactor);
     pbf_costing_options->set_closure_factor(kDefaultClosureFactor);
-    pbf_costing_options->set_probability(kDefaultProbability);
   }
 }
 
