@@ -181,6 +181,7 @@ void Dijkstras::ExpandInner(baldr::GraphReader& graphreader,
     // Check if the edge is allowed or if a restriction occurs
     EdgeStatus* todo = nullptr;
     uint8_t restriction_idx = -1;
+    uint8_t probability = 0;
     if (offset_time.valid) {
       // With date time we check time dependent restrictions and access
       const bool allowed =
@@ -189,7 +190,7 @@ void Dijkstras::ExpandInner(baldr::GraphReader& graphreader,
                   : costing_->AllowedReverse(directededge, pred, opp_edge, t2, oppedgeid,
                                              offset_time.local_time, nodeinfo->timezone(),
                                              restriction_idx);
-      if (!allowed || costing_->Restricted(directededge, pred, bdedgelabels_, tile, edgeid, true,
+      if (!allowed || costing_->Restricted(directededge, pred, bdedgelabels_, tile, edgeid, true, probability,
                                            todo, offset_time.local_time, nodeinfo->timezone())) {
         continue;
       }
@@ -199,7 +200,7 @@ void Dijkstras::ExpandInner(baldr::GraphReader& graphreader,
                   : costing_->AllowedReverse(directededge, pred, opp_edge, t2, oppedgeid, 0, 0,
                                              restriction_idx);
 
-      if (!allowed || costing_->Restricted(directededge, pred, bdedgelabels_, tile, edgeid, true)) {
+      if (!allowed || costing_->Restricted(directededge, pred, bdedgelabels_, tile, edgeid, true, probability)) {
         continue;
       }
     }

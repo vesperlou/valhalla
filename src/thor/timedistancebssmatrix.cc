@@ -103,9 +103,11 @@ void TimeDistanceBSSMatrix::ExpandForward(GraphReader& graphreader,
     // directed edge), if no access is allowed to this edge (based on costing
     // method), or if a complex restriction prevents this path.
     uint8_t restriction_idx = -1;
+    uint8_t probability = 0;
+
     if (es->set() == EdgeSet::kPermanent ||
         !current_costing->Allowed(directededge, pred, tile, edgeid, 0, 0, restriction_idx) ||
-        current_costing->Restricted(directededge, pred, edgelabels_, tile, edgeid, true)) {
+        current_costing->Restricted(directededge, pred, edgelabels_, tile, edgeid, true, probability)) {
       continue;
     }
 

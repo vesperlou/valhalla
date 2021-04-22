@@ -205,17 +205,18 @@ inline bool BidirectionalAStar::ExpandInner(baldr::GraphReader& graphreader,
   // if its not time dependent set to 0 for Allowed and Restricted methods below
   const uint64_t localtime = time_info.valid ? time_info.local_time : 0;
   uint8_t restriction_idx = -1;
+  uint8_t probability = 0;
   if (FORWARD) {
     if (!costing_->Allowed(meta.edge, pred, tile, meta.edge_id, localtime, time_info.timezone_index,
                            restriction_idx) ||
-        costing_->Restricted(meta.edge, pred, edgelabels_forward_, tile, meta.edge_id, true,
+        costing_->Restricted(meta.edge, pred, edgelabels_forward_, tile, meta.edge_id, true, probability,
                              &edgestatus_forward_, localtime, time_info.timezone_index)) {
       return false;
     }
   } else {
     if (!costing_->AllowedReverse(meta.edge, pred, opp_edge, t2, opp_edge_id, localtime,
                                   time_info.timezone_index, restriction_idx) ||
-        costing_->Restricted(meta.edge, pred, edgelabels_reverse_, tile, meta.edge_id, false,
+        costing_->Restricted(meta.edge, pred, edgelabels_reverse_, tile, meta.edge_id, false, probability,
                              &edgestatus_reverse_, localtime, time_info.timezone_index)) {
       return false;
     }
@@ -223,10 +224,10 @@ inline bool BidirectionalAStar::ExpandInner(baldr::GraphReader& graphreader,
 
   // Get cost. Separate out transition cost.
   sif::Cost transition_cost =
-      FORWARD ? costing_->TransitionCost(meta.edge, nodeinfo, pred)
+      FORWARD ? costing_->TransitionCost(meta.edge, nodeinfo, pred, probability)
               : costing_->TransitionCostReverse(meta.edge->localedgeidx(), nodeinfo, opp_edge,
                                                 opp_pred_edge, pred.has_measured_speed(),
-                                                pred.internal_turn());
+                                                pred.internal_turn(), probability);
   uint8_t flow_sources;
   sif::Cost newcost =
       pred.cost() + transition_cost +
