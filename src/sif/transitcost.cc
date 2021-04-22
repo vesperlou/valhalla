@@ -189,7 +189,8 @@ public:
    */
   virtual Cost TransitionCost(const baldr::DirectedEdge* edge,
                               const baldr::NodeInfo* node,
-                              const EdgeLabel& pred) const override;
+                              const EdgeLabel& pred,
+                              const uint8_t /*probability*/) const override;
 
   /**
    * Returns the transfer cost between 2 transit stops.
@@ -587,7 +588,8 @@ Cost TransitCost::EdgeCost(const baldr::DirectedEdge* edge,
 // Returns the time (in seconds) to make the transition from the predecessor
 Cost TransitCost::TransitionCost(const baldr::DirectedEdge* edge,
                                  const baldr::NodeInfo*,
-                                 const EdgeLabel& pred) const {
+                                 const EdgeLabel& pred,
+                                 const uint8_t /*probability*/) const {
   if (pred.mode() == TravelMode::kPedestrian) {
     // Apply any mode-based penalties when boarding transit
     // Do we want any time cost to board?

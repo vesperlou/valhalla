@@ -155,7 +155,8 @@ public:
    */
   virtual Cost TransitionCost(const baldr::DirectedEdge*,
                               const baldr::NodeInfo*,
-                              const EdgeLabel&) const override {
+                              const EdgeLabel&,
+                              const uint8_t) const override {
     return {};
   }
 
@@ -175,7 +176,8 @@ public:
                                      const baldr::DirectedEdge*,
                                      const baldr::DirectedEdge*,
                                      const bool,
-                                     const InternalTurn) const override {
+                                     const InternalTurn,
+                                     const uint8_t) const override {
     return {};
   }
 
