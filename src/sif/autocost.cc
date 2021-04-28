@@ -515,7 +515,7 @@ Cost AutoCost::TransitionCost(const baldr::DirectedEdge* edge,
   // destination only, alley, maneuver penalty
   Cost c;
   c.secs = OSRMCarTurnDuration(edge, node, pred.opp_local_idx());
-  c.cost = c.secs * 6;
+  c.cost = c.secs * 5;
   c.cost *= inv_distance_factor_;
   return c;
 }
