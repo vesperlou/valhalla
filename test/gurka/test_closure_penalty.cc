@@ -143,9 +143,13 @@ TEST_P(ClosurePenalty, AvoidClosure) {
   std::string costing = GetParam();
 
   {
-    auto result =
-        gurka::do_action(valhalla::Options::route, closure_map, {"1", "C"}, costing,
-                         {{"/date_time/type", "3"}, {"/date_time/value", "current"}}, reader);
+    auto result = gurka::do_action(valhalla::Options::route, closure_map, {"1", "C"}, costing,
+                                   {{"/date_time/type", "3"},
+                                    {"/date_time/value", "current"},
+                                    {"/costing_options/" + costing + "/speed_types/0", "freeflow"},
+                                    {"/costing_options/" + costing + "/speed_types/1", "constrained"},
+                                    {"/costing_options/" + costing + "/speed_types/2", "predicted"}},
+                                   reader);
     gurka::assert::raw::expect_path(result, {"QT", "NQ", "KN", "HK", "EH", "BE", "BC"});
   }
 

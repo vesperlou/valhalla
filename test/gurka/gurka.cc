@@ -96,20 +96,6 @@ std::string build_valhalla_request(const std::string& location_type,
   }
 
   rapidjson::Value co(rapidjson::kObjectType);
-  if (!custom_speed_types) {
-    rapidjson::Value dt(rapidjson::kObjectType);
-    rapidjson::Value speed_types(rapidjson::kArrayType);
-    speed_types.PushBack("freeflow", allocator);
-    speed_types.PushBack("constrained", allocator);
-    speed_types.PushBack("predicted", allocator);
-
-    auto found = options.find("/date_time/type");
-    if (found != options.cend() && found->second == "0") {
-      speed_types.PushBack("current", allocator);
-    }
-    co.AddMember("speed_types", speed_types, allocator);
-  }
-
   rapidjson::Value costing_options(rapidjson::kObjectType);
   costing_options.AddMember(rapidjson::Value(costing, allocator), co, allocator);
   doc.AddMember("costing_options", costing_options, allocator);

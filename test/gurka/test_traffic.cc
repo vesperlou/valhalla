@@ -127,6 +127,8 @@ TEST(Traffic, BasicUpdates) {
     gurka::assert::raw::expect_eta(result, 30., 0.01);
   }
 
+  // The next three cases (no timestamp, depart_at, arrive_by) should not use live-traffic and
+  // should produce the same eta.
   std::cout
       << "[          ] Repeat the B->D route, but this time with no timestamp - this should disable "
          "using live traffc and the road should be open again"
@@ -134,6 +136,34 @@ TEST(Traffic, BasicUpdates) {
   {
     auto result =
         gurka::do_action(valhalla::Options::route, map, {"B", "D"}, "auto", {}, clean_reader);
+    gurka::assert::osrm::expect_steps(result, {"BD"});
+    gurka::assert::raw::expect_path(result, {"BD"});
+    gurka::assert::raw::expect_eta(result, 72);
+  }
+
+  // Like the no-timestamp case, depart_at should not use live-traffic.
+  std::cout
+      << "[          ] Repeat the B->D route, but this time with a date-time type of depart_at (1); "
+         "this should not use live traffic.\n";
+  {
+    auto result =
+        gurka::do_action(valhalla::Options::route, map, {"B", "D"}, "auto",
+                         {{"/date_time/type", "1"}, {"/date_time/value", "2020-06-09T14:12"}},
+                         clean_reader);
+    gurka::assert::osrm::expect_steps(result, {"BD"});
+    gurka::assert::raw::expect_path(result, {"BD"});
+    gurka::assert::raw::expect_eta(result, 72);
+  }
+
+  // Like the no-timestamp case, arrive_by should not use live-traffic.
+  std::cout
+      << "[          ] Repeat the B->D route, but this time with a date-time type of arrive_by (2); "
+         "this should not use live traffic.\n";
+  {
+    auto result =
+        gurka::do_action(valhalla::Options::route, map, {"B", "D"}, "auto",
+                         {{"/date_time/type", "2"}, {"/date_time/value", "2020-06-09T14:12"}},
+                         clean_reader);
     gurka::assert::osrm::expect_steps(result, {"BD"});
     gurka::assert::raw::expect_path(result, {"BD"});
     gurka::assert::raw::expect_eta(result, 72);

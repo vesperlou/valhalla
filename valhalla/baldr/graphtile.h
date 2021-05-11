@@ -548,7 +548,7 @@ public:
     *flow_sources = kNoFlowMask;
 
     // TODO(danpat): this needs to consider the time - we should not use live speeds if
-    //               the request is not for "now", or we're some X % along the route
+    //               we're some X % along the route
     // TODO(danpat): for short-ish durations along the route, we should fade live
     //               speeds into any historic/predictive/average value we'd normally use
     uint32_t partial_live_speed = 0;
