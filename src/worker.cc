@@ -946,10 +946,7 @@ void from_json(rapidjson::Document& doc, Options& options) {
     } catch (...) { throw valhalla_exception_t{137}; }
   }
 
-  // If the profile is "driving/traffic", we want to use live-traffic when computing
-  // the edge speed. If the profile is "driving", we do not want to use live-traffic.
-  // Studying the call patterns from api-valhalla and the add_date_to_locations() function,
-  // the driving-traffic profile always has a date_time_type() of 'invariant'.
+  // This is one way the caller can ask to use live-traffic.
   bool is_driving_traffic_profile =
       options.has_date_time_type() && (options.date_time_type() == Options_DateTimeType_invariant);
 
