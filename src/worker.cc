@@ -946,17 +946,17 @@ void from_json(rapidjson::Document& doc, Options& options) {
     } catch (...) { throw valhalla_exception_t{137}; }
   }
 
-  // This is one way the caller can ask to use live-traffic.
-  bool is_driving_traffic_profile =
+  // This is one way the caller can ask to use live-speeds.
+  bool is_invariant_date_time =
       options.has_date_time_type() && (options.date_time_type() == Options_DateTimeType_invariant);
 
-  // This is another way the caller can ask to use live-traffic.
-  bool get_current_traffic = options.has_date_time() && (options.date_time() == "current");
+  // This is another way the caller can ask to use live-speeds.
+  bool is_current_date_time = options.has_date_time() && (options.date_time() == "current");
 
-  bool use_live_traffic = is_driving_traffic_profile || get_current_traffic;
+  bool use_live_speeds = is_invariant_date_time || is_current_date_time;
 
   // if not a time dependent route/mapmatch disable time dependent edge speed/flow data sources
-  if (!use_live_traffic && (options.shape_size() == 0 || options.shape(0).time() == -1)) {
+  if (!use_live_speeds && (options.shape_size() == 0 || options.shape(0).time() == -1)) {
     for (auto& costing : *options.mutable_costing_options()) {
       costing.set_flow_mask(
           static_cast<uint8_t>(costing.flow_mask()) &
