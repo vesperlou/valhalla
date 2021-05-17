@@ -498,6 +498,7 @@ Cost AutoCost::EdgeCost(const baldr::DirectedEdge* edge,
       factor *= service_factor_;
       break;
     case Use::kTurnChannel:
+    case Use::kRamp:
       factor *= 0.7;
     default:
       break;
