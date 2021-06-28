@@ -81,8 +81,10 @@ struct AvoidEdge {
  * in seconds.
  */
 struct Cost {
-  float cost;
-  float secs;
+  uint64_t cost: 24;
+  uint64_t secs: 24;
+  // Some auxilliary tracking
+  uint64_t auxilliary: 16;
   // TODO:
   // float dist;
   // float consumption;
@@ -98,7 +100,7 @@ struct Cost {
    * @param  c  Cost (units defined by the costing model)
    * @param  s  Time in seconds.
    */
-  Cost(const float c, const float s) : cost(c), secs(s) {
+  Cost(const float c, const float s) : cost((uint64_t)c), secs((uint64_t)s) {
   }
 
   /**

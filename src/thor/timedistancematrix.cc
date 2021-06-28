@@ -128,7 +128,7 @@ void TimeDistanceMatrix::ExpandForward(GraphReader& graphreader,
 
     // Add to the adjacency list and edge labels.
     uint32_t idx = edgelabels_.size();
-    edgelabels_.emplace_back(pred_idx, edgeid, directededge, newcost, newcost.cost, 0.0f, mode_,
+    edgelabels_.emplace_back(pred_idx, edgeid, directededge, newcost, (float)newcost.cost, 0.0f, mode_,
                              distance, transition_cost, restriction_idx,
                              (pred.closure_pruning() || !costing_->IsClosed(directededge, tile)),
                              static_cast<bool>(flow_sources & kDefaultFlowMask),
@@ -295,7 +295,7 @@ void TimeDistanceMatrix::ExpandReverse(GraphReader& graphreader,
 
     // Add to the adjacency list and edge labels.
     uint32_t idx = edgelabels_.size();
-    edgelabels_.emplace_back(pred_idx, edgeid, directededge, newcost, newcost.cost, 0.0f, mode_,
+    edgelabels_.emplace_back(pred_idx, edgeid, directededge, newcost, (float)newcost.cost, 0.0f, mode_,
                              distance, transition_cost, restriction_idx,
                              (pred.closure_pruning() || !costing_->IsClosed(directededge, tile)),
                              static_cast<bool>(flow_sources & kDefaultFlowMask),
@@ -726,7 +726,7 @@ bool TimeDistanceMatrix::UpdateDestinations(
 std::vector<TimeDistance> TimeDistanceMatrix::FormTimeDistanceMatrix() {
   std::vector<TimeDistance> td;
   for (auto& dest : destinations_) {
-    td.emplace_back(dest.best_cost.secs, dest.distance);
+    td.emplace_back((float)dest.best_cost.secs, dest.distance);
   }
   return td;
 }

@@ -112,7 +112,7 @@ void TimeDistanceBSSMatrix::ExpandForward(GraphReader& graphreader,
 
     // Get cost and update distance
     auto edge_cost = current_costing->EdgeCost(directededge, tile);
-    Cost normalized_edge_cost = {edge_cost.cost * current_costing->GetModeFactor(), edge_cost.secs};
+    Cost normalized_edge_cost = {edge_cost.cost * current_costing->GetModeFactor(), (float)edge_cost.secs};
     auto transition_cost = current_costing->TransitionCost(directededge, nodeinfo, pred);
 
     // Compute the cost to the end of this edge
@@ -135,7 +135,7 @@ void TimeDistanceBSSMatrix::ExpandForward(GraphReader& graphreader,
 
     // Add to the adjacency list and edge labels.
     uint32_t idx = edgelabels_.size();
-    edgelabels_.emplace_back(pred_idx, edgeid, directededge, newcost, newcost.cost, 0.0f, mode,
+    edgelabels_.emplace_back(pred_idx, edgeid, directededge, newcost, (float)newcost.cost, 0.0f, mode,
                              distance, transition_cost, restriction_idx, true, false,
                              InternalTurn::kNoTurn);
     *es = {EdgeSet::kTemporary, idx};
@@ -307,7 +307,7 @@ void TimeDistanceBSSMatrix::ExpandReverse(GraphReader& graphreader,
                                                                   nodeinfo, opp_edge, opp_pred_edge);
     auto edge_cost = current_costing->EdgeCost(opp_edge, t2);
 
-    Cost normalized_edge_cost = {edge_cost.cost * current_costing->GetModeFactor(), edge_cost.secs};
+    Cost normalized_edge_cost = {edge_cost.cost * current_costing->GetModeFactor(), (float)edge_cost.secs};
 
     // Compute the cost to the end of this edge
     Cost newcost = pred.cost() + normalized_edge_cost + transition_cost;
@@ -329,7 +329,7 @@ void TimeDistanceBSSMatrix::ExpandReverse(GraphReader& graphreader,
 
     // Add to the adjacency list and edge labels.
     uint32_t idx = edgelabels_.size();
-    edgelabels_.emplace_back(pred_idx, edgeid, directededge, newcost, newcost.cost, 0.0f, mode,
+    edgelabels_.emplace_back(pred_idx, edgeid, directededge, newcost, (float)newcost.cost, 0.0f, mode,
                              distance, transition_cost, restriction_idx, true, false,
                              InternalTurn::kNoTurn);
     *es = {EdgeSet::kTemporary, idx};
@@ -784,7 +784,7 @@ bool TimeDistanceBSSMatrix::UpdateDestinations(
 std::vector<TimeDistance> TimeDistanceBSSMatrix::FormTimeDistanceMatrix() {
   std::vector<TimeDistance> td;
   for (auto& dest : destinations_) {
-    td.emplace_back(dest.best_cost.secs, dest.distance);
+    td.emplace_back((float)dest.best_cost.secs, dest.distance);
   }
   return td;
 }

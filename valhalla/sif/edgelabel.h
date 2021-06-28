@@ -60,7 +60,7 @@ public:
             const baldr::GraphId& edgeid,
             const baldr::DirectedEdge* edge,
             const Cost& cost,
-            const float sortcost,
+            const uint32_t sortcost,
             const float dist,
             const TravelMode mode,
             const uint32_t path_distance,
@@ -96,7 +96,7 @@ public:
    */
   void Update(const uint32_t predecessor,
               const Cost& cost,
-              const float sortcost,
+              const uint32_t sortcost,
               const Cost& transition_cost,
               const uint8_t restriction_idx) {
     predecessor_ = predecessor;
@@ -120,7 +120,7 @@ public:
    */
   void Update(const uint32_t predecessor,
               const Cost& cost,
-              const float sortcost,
+              const uint32_t sortcost,
               const uint32_t path_distance,
               const Cost& transition_cost,
               const uint8_t restriction_idx) {
@@ -493,7 +493,7 @@ public:
               const baldr::GraphId& oppedgeid,
               const baldr::DirectedEdge* edge,
               const sif::Cost& cost,
-              const float sortcost,
+              const uint32_t sortcost,
               const float dist,
               const sif::TravelMode mode,
               const sif::Cost& transition_cost,
@@ -594,7 +594,7 @@ public:
               const baldr::GraphId& edgeid,
               const baldr::DirectedEdge* edge,
               const sif::Cost& cost,
-              const float sortcost,
+              const uint32_t sortcost,
               const float dist,
               const sif::TravelMode mode,
               const uint8_t restriction_idx,
@@ -631,7 +631,7 @@ public:
    */
   void Update(const uint32_t predecessor,
               const sif::Cost& cost,
-              const float sortcost,
+              const uint32_t sortcost,
               const sif::Cost& tc,
               const uint8_t restriction_idx) {
     predecessor_ = predecessor;
@@ -653,7 +653,7 @@ public:
    */
   void Update(const uint32_t predecessor,
               const sif::Cost& cost,
-              const float sortcost,
+              const uint32_t sortcost,
               const sif::Cost& tc,
               const uint32_t path_distance,
               const uint8_t restriction_idx) {
@@ -724,7 +724,7 @@ public:
               const baldr::GraphId& edgeid,
               const baldr::DirectedEdge* edge,
               const sif::Cost& cost,
-              const float sortcost,
+              const uint32_t sortcost,
               const float dist,
               const sif::TravelMode mode,
               const uint32_t path_distance,
@@ -770,7 +770,7 @@ public:
    */
   void Update(const uint32_t predecessor,
               const sif::Cost& cost,
-              const float sortcost,
+              const uint32_t sortcost,
               const uint32_t path_distance,
               const uint32_t tripid,
               const uint32_t blockid,

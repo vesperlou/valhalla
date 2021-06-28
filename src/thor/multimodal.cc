@@ -607,7 +607,7 @@ void MultiModalPathAlgorithm::SetOrigin(GraphReader& graphreader,
             cost.secs -= p->second.secs;
             cost.cost -= dest_cost.cost;
             cost.cost += destination_edge.distance();
-            cost.cost = std::max(0.0f, cost.cost);
+            cost.cost = std::max(0.0f, (float)cost.cost);
             dist = 0.0;
           }
         }
@@ -750,7 +750,7 @@ bool MultiModalPathAlgorithm::ExpandFromNode(baldr::GraphReader& graphreader,
 
     // Add edge label, add to the adjacency list and set edge status
     uint32_t idx = edgelabels.size();
-    edgelabels.emplace_back(pred_idx, edgeid, directededge, newcost, newcost.cost, 0.0f, mode_,
+    edgelabels.emplace_back(pred_idx, edgeid, directededge, newcost, (float)newcost.cost, 0.0f, mode_,
                             walking_distance, transition_cost, baldr::kInvalidRestriction, true,
                             false, InternalTurn::kNoTurn);
     *es = {EdgeSet::kTemporary, idx};
@@ -808,7 +808,7 @@ bool MultiModalPathAlgorithm::CanReachDestination(const valhalla::Location& dest
     Cost cost = costing->EdgeCost(diredge, tile) * ratio;
     // we cannot do transition_cost on this label yet because we have no predecessor, but when we find
     // it, we will do an update on it and set the real transition cost based on the path to it
-    edgelabels.emplace_back(kInvalidLabel, oppedge, diredge, cost, cost.cost, 0.0f, mode_, length,
+    edgelabels.emplace_back(kInvalidLabel, oppedge, diredge, cost, (float)cost.cost, 0.0f, mode_, length,
                             Cost{}, baldr::kInvalidRestriction, true, false, InternalTurn::kNoTurn);
     adjlist.add(label_idx);
     edgestatus.Set(oppedge, EdgeSet::kTemporary, label_idx, tile);

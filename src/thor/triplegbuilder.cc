@@ -607,7 +607,9 @@ TripLeg_Edge* AddTripEdge(const AttributesController& controller,
             }
             break;
           }
-          default: { break; }
+          default: {
+            break;
+          }
         }
       }
     }
@@ -659,8 +661,11 @@ TripLeg_Edge* AddTripEdge(const AttributesController& controller,
     // refactor of costing to have a GetSpeed function which EdgeCost calls internally but which we
     // can also call externally
     uint8_t flow_sources;
-    auto speed = directededge->length() /
-                 costing->EdgeCost(directededge, graphtile, second_of_week, flow_sources).secs * 3.6;
+    auto speed = 0.;
+    auto denom = costing->EdgeCost(directededge, graphtile, second_of_week, flow_sources).secs * 3.6;
+    if (denom > 0) {
+      speed = directededge->length() / denom;
+    }
     trip_edge->set_speed(speed);
   }
 

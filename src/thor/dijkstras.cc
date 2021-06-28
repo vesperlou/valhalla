@@ -631,7 +631,7 @@ void Dijkstras::ExpandForwardMultiModal(GraphReader& graphreader,
 
     // Make the label in advance, we may not end up using it but we need it for the expansion decision
     MMEdgeLabel edge_label{pred_idx,      edgeid,           directededge,
-                           newcost,       newcost.cost,     0.0f,
+                           newcost,       (uint32_t)newcost.cost,     0.0f,
                            mode_,         walking_distance, tripid,
                            prior_stop,    blockid,          operator_id,
                            has_transit,   transition_cost,  restriction_idx,

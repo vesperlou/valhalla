@@ -257,7 +257,7 @@ inline bool UnidirectionalAStar<expansion_direction, FORWARD>::ExpandInner(
         newcost.cost += destination_edge.distance();
       }
     }
-    newcost.cost = std::max(0.0f, newcost.cost);
+    newcost.cost = std::max(0.0f, (float)newcost.cost);
 
     // Mark this as the best connection if that applies. This allows
     // a path to be formed even if the convergence test fails (can
@@ -717,7 +717,7 @@ void UnidirectionalAStar<expansion_direction, FORWARD>::SetOrigin(
             // Add back in the edge score/penalty to account for destination edges
             // farther from the input location lat,lon.
             cost.cost += dest_path_edge.distance();
-            cost.cost = std::max(0.0f, cost.cost);
+            cost.cost = std::max(0.0f, (float)cost.cost);
             dist = 0.0;
             // Search complete if this is the forward search
             if (FORWARD)

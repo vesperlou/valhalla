@@ -158,7 +158,7 @@ void AStarBSSAlgorithm::ExpandForward(GraphReader& graphreader,
     }
 
     auto edge_cost = current_costing->EdgeCost(directededge, tile);
-    Cost normalized_edge_cost = {edge_cost.cost * current_costing->GetModeFactor(), edge_cost.secs};
+    Cost normalized_edge_cost = {edge_cost.cost * current_costing->GetModeFactor(), (float)edge_cost.secs};
     auto transition_cost = current_costing->TransitionCost(directededge, nodeinfo, pred);
 
     // Compute the cost to the end of this edge
@@ -179,7 +179,7 @@ void AStarBSSAlgorithm::ExpandForward(GraphReader& graphreader,
           newcost.cost += destination_edge.distance();
         }
       }
-      newcost.cost = std::max(0.0f, newcost.cost);
+      newcost.cost = std::max(0.0f, (float)newcost.cost);
 
       // Mark this as the best connection if that applies. This allows
       // a path to be formed even if the convergence test fails (can
@@ -437,7 +437,7 @@ void AStarBSSAlgorithm::SetOrigin(GraphReader& graphreader,
             cost.secs -= p->second.secs;
             cost.cost -= dest_cost.cost;
             cost.cost += destination_edge.distance();
-            cost.cost = std::max(0.0f, cost.cost);
+            cost.cost = std::max(0.0f, (float)cost.cost);
             dist = 0.0;
           }
         }
