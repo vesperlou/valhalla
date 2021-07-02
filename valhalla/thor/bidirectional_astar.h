@@ -85,6 +85,8 @@ public:
   void Clear() override;
 
 protected:
+  const boost::property_tree::ptree raw_config_;
+
   // Access mode used by the costing method
   uint32_t access_mode_;
 

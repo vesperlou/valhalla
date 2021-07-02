@@ -46,7 +46,7 @@ namespace thor {
 
 // Default constructor
 BidirectionalAStar::BidirectionalAStar(const boost::property_tree::ptree& config)
-    : PathAlgorithm(), max_reserved_labels_count_(config.get<uint32_t>("max_reserved_labels_count",
+    : PathAlgorithm(), raw_config_(config), max_reserved_labels_count_(config.get<uint32_t>("max_reserved_labels_count",
                                                                        kInitialEdgeLabelCountBD)),
       extended_search_(config.get<bool>("extended_search", false)) {
   cost_threshold_ = 0;
@@ -986,9 +986,33 @@ void BidirectionalAStar::SetDestination(GraphReader& graphreader,
   }
 }
 
+std::pair<PointLL, PointLL> get_edge_lls(GraphReader& graphReader, const GraphId& edgeid) {
+  auto * e = graphReader.directededge(edgeid);
+  auto t = graphReader.GetGraphTile(e->endnode());
+  auto end_ll = t->get_node_ll(e->endnode());
+
+  auto * opp_e = graphReader.GetOpposingEdge(edgeid);
+  t = graphReader.GetGraphTile(opp_e->endnode());
+  auto start_ll = t->get_node_ll(opp_e->endnode());
+
+  return {start_ll, end_ll};
+}
+
+std::string ll_to_str(const PointLL& ll) {
+  std::stringstream ss;
+  ss << std::fixed << std::setprecision(6) << ll.first << "," << ll.second;
+  return ss.str();
+}
+
+std::string edge_lls_to_str(const PointLL& b, const PointLL& e) {
+  std::stringstream ss;
+  ss << "[" << ll_to_str(b) << "],[" << ll_to_str(e) << "]";
+  return ss.str();
+}
+
 // Form the path from the adjacency list.
 std::vector<std::vector<PathInfo>> BidirectionalAStar::FormPath(GraphReader& graphreader,
-                                                                const Options& /*options*/,
+                                                                const Options& options,
                                                                 const valhalla::Location& origin,
                                                                 const valhalla::Location& dest,
                                                                 const baldr::TimeInfo& time_info,
@@ -1035,12 +1059,17 @@ std::vector<std::vector<PathInfo>> BidirectionalAStar::FormPath(GraphReader& gra
   }
 #endif
 
+  thread_local BidirectionalAStar path_finding_algo(raw_config_);
+
   // we quit making paths as soon as we've reached the number of paths
   // that were requested or we run out of paths that we can actually make
   std::vector<std::vector<PathInfo>> paths;
+  std::vector<std::vector<PathInfo>> local_detours;
+
   for (auto best_connection = best_connections_.cbegin();
        paths.size() < desired_paths_count_ && best_connection != best_connections_.cend();
        ++best_connection) {
+
     // Get the indexes where the connection occurs.
     uint32_t idx1 = edgestatus_forward_.Get(best_connection->edgeid).index();
     uint32_t idx2 = edgestatus_reverse_.Get(best_connection->opp_edgeid).index();
@@ -1084,6 +1113,8 @@ std::vector<std::vector<PathInfo>> BidirectionalAStar::FormPath(GraphReader& gra
 
     // Reverse the list
     std::reverse(path_edges.begin(), path_edges.end());
+
+    auto connection_edgeid = path_edges.back();
 
     // Append the reverse path from the destination - use opposing edges
     // The first edge on the reverse path is the same as the last on the forward
@@ -1154,11 +1185,26 @@ std::vector<std::vector<PathInfo>> BidirectionalAStar::FormPath(GraphReader& gra
     }
 
     // For the first path just add it for subsequent paths only add if it passes viability tests
-    if (paths.empty() || (validate_alternate_by_sharing(shared_edgeids, paths, path, max_sharing) &&
-                          validate_alternate_by_local_optimality(path))) {
-      paths.emplace_back(std::move(path));
+    if (paths.empty() || validate_alternate_by_sharing(shared_edgeids, paths, path, max_sharing)) {
+      mode_costing_t mode_costing;
+      mode_costing[size_t(costing_->travel_mode())] = costing_;
+
+      std::vector<PathInfo> detour;
+
+      if (paths.empty() || /*(local_detours.size() >= 6) ||*/
+          validate_alternate_by_local_optimality(path, connection_edgeid, paths.front(), origin, dest,
+                                             path_finding_algo, graphreader, options, mode_costing, mode_, detour)) {
+        paths.emplace_back(std::move(path));
+      }
+
+      if (!detour.empty())// && local_detours.empty())
+        local_detours.emplace_back(std::move(detour));
     }
   }
+//  if (local_detours.size() > 0)
+//    LOG_INFO("bidirectional_astar:: local_optimality_checks=" + std::to_string(local_detours.size()));
+//  paths.insert(paths.end(), local_detours.begin(), local_detours.end());
+
   // give back the paths
   return paths;
 }
