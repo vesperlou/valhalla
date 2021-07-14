@@ -1,7 +1,6 @@
 file(GLOB headers ${VALHALLA_SOURCE_DIR}/valhalla/tyr/*.h)
 
-valhalla_module(NAME tyr
-  SOURCES
+set(sources
     serializers.cc
     isochrone_serializer.cc
     matrix_serializer.cc
@@ -13,8 +12,20 @@ valhalla_module(NAME tyr
     transit_available_serializer.cc
     trace_serializer.cc
     actor.cc
-  HEADERS
-    ${headers}
+)
+
+if (UNIX AND ENABLE_SINGLE_FILES_WERROR)
+  # Enables stricter compiler checks on a file-by-file basis
+  # which allows us to migrate piecemeal
+  set_source_files_properties(
+          serializers.cc
+          PROPERTIES COMPILE_FLAGS "-Werror -Wall -Wextra")
+          #PROPERTIES COMPILE_FLAGS "-Werror -Wall -Wextra -Wno-missing-field-initializers -Wno-unused-parameter")
+endif ()
+
+valhalla_module(NAME tyr
+  SOURCES ${sources}
+  HEADERS ${headers}
   INCLUDE_DIRECTORIES
     PUBLIC
       ${VALHALLA_SOURCE_DIR}

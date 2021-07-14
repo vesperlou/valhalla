@@ -232,11 +232,10 @@ json::ArrayPtr waypoints(const valhalla::Trip& trip) {
 json::ArrayPtr via_waypoints(valhalla::Options options, const std::vector<PointLL>& shape) {
   // Create a vector of indexes based on the number of locations.
   auto locs = *options.mutable_locations();
-  uint32_t i = 0;
   auto via_waypoints = json::array({});
 
   // only loop thru the locations that are not origin or destinations
-  for (size_t loc_i = 1; loc_i < locs.size(); loc_i++) {
+  for (int loc_i = 1; loc_i < locs.size(); loc_i++) {
     uint32_t geometry_idx = 0;
     // Only create via_waypoints object if the locations are via or through types
     if (locs.Get(loc_i).type() == valhalla::Location::kVia ||
