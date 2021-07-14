@@ -184,6 +184,8 @@ waypoint(const valhalla::Location& location, bool is_tracepoint, bool is_optimiz
 valhalla::baldr::json::MapPtr serialize_via_waypoint(const valhalla::Location& location,
                                                      const uint64_t geometry_idx,
                                                      double distance_from_leg_start) {
+  printf("  serializing with geometry_idx %lu distance_from_leg_start %f\n", geometry_idx,
+         distance_from_leg_start);
   // Create a via waypoint to add to the array
   auto via_waypoint = json::map({});
   // Add distance in meters from the input location to the silent waypoint
@@ -224,6 +226,7 @@ json::ArrayPtr waypoints(const valhalla::Trip& trip) {
   return waypoints;
 }
 
+#include <cstdlib>
 /*
  * This function takes any waypoints (excluding origin and destination) and walks the shape
  * for a match.  When a match is found, we store the geometry index.
@@ -234,34 +237,102 @@ json::ArrayPtr via_waypoints(valhalla::Options options, const std::vector<PointL
   auto locs = *options.mutable_locations();
   auto via_waypoints = json::array({});
 
-  // only loop thru the locations that are not origin or destinations
-  for (int loc_i = 1; loc_i < locs.size(); loc_i++) {
-    uint32_t geometry_idx = 0;
-    // Only create via_waypoints object if the locations are via or through types
-    if (locs.Get(loc_i).type() == valhalla::Location::kVia ||
-        locs.Get(loc_i).type() == valhalla::Location::kThrough) {
-      locs.Mutable(loc_i)->set_waypoint_index(loc_i);
+  if (getenv("USE_KRISTENS")) {
+    // only loop thru the locations that are not origin or destinations
+    for (int loc_i = 1; loc_i < locs.size(); loc_i++) {
+      uint32_t geometry_idx = 0;
+      // Only create via_waypoints object if the locations are via or through types
+      if (locs.Get(loc_i).type() == valhalla::Location::kVia ||
+          locs.Get(loc_i).type() == valhalla::Location::kThrough) {
+        locs.Mutable(loc_i)->set_waypoint_index(loc_i);
 
-      double distance_from_leg_start = 0;
-      for (const auto& ll : shape) {
-        if (geometry_idx < shape.size()) {
-          geometry_idx++;
-          PointLL next_ll = shape[geometry_idx];
-          // comparing lat/lng equality with an epsilon for approximation
-          bool lng_equality =
-              valhalla::midgard::equal<double>(static_cast<double>(
-                                                   locs.Get(loc_i).path_edges(0).ll().lng()),
-                                               static_cast<double>(ll.first), .001);
-          bool lat_equality =
-              valhalla::midgard::equal<double>(static_cast<double>(
-                                                   locs.Get(loc_i).path_edges(0).ll().lat()),
-                                               static_cast<double>(ll.second), .001);
-          // accumalates the distances between current ll and next ll
-          distance_from_leg_start += ll.Distance(next_ll);
-          if (lng_equality && lat_equality) {
-            via_waypoints->emplace_back(osrm::serialize_via_waypoint(locs.Get(loc_i),
-                                                                     geometry_idx - 1,
-                                                                     distance_from_leg_start));
+        double distance_from_leg_start = 0;
+        for (const auto& ll : shape) {
+          if (geometry_idx < shape.size() - 1) {
+            geometry_idx++;
+            PointLL next_ll = shape[geometry_idx];
+            // comparing lat/lng equality with an epsilon for approximation
+            bool lng_equality =
+                valhalla::midgard::equal<double>(static_cast<double>(
+                                                     locs.Get(loc_i).path_edges(0).ll().lng()),
+                                                 static_cast<double>(ll.first), .001);
+            bool lat_equality =
+                valhalla::midgard::equal<double>(static_cast<double>(
+                                                     locs.Get(loc_i).path_edges(0).ll().lat()),
+                                                 static_cast<double>(ll.second), .001);
+
+            const auto& location_ll = locs.Get(loc_i).path_edges(0).ll();
+            auto distance_between_shape_point_and_location =
+                ll.Distance(PointLL(location_ll.lng(), location_ll.lat()));
+
+            // accumulates the distances between current ll and next ll
+            distance_from_leg_start += ll.Distance(next_ll);
+            printf(
+                " loc_i %i geometry_idx %i distance_from_leg_start %f distance_between_shape_point_and_location %f",
+                loc_i, geometry_idx, distance_from_leg_start,
+                distance_between_shape_point_and_location);
+            printf("    prev ll (%f,%f) new ll (%f,%f) new distance %f\n", ll.lat(), ll.lng(),
+                   next_ll.lat(), next_ll.lng(), ll.Distance(next_ll));
+            if (lng_equality && lat_equality) {
+              via_waypoints->emplace_back(osrm::serialize_via_waypoint(locs.Get(loc_i),
+                                                                       geometry_idx - 1,
+                                                                       distance_from_leg_start));
+              break;
+            }
+          }
+        }
+      }
+    }
+  } else {
+    double distance_from_leg_start = 0;
+    uint32_t geometry_idx = 0;
+
+    for (size_t i = 0; i < shape.size(); ++i) {
+      auto ll = shape[i];
+      printf("%lu ll (%f,%f)\n", i, ll.lat(), ll.lng());
+    }
+
+    for (int loc_i = 0; loc_i < locs.size(); loc_i++) {
+      // Only create via_waypoints object if the locations are via or through types
+      if (locs.Get(loc_i).type() == valhalla::Location::kVia ||
+          locs.Get(loc_i).type() == valhalla::Location::kThrough) {
+        locs.Mutable(loc_i)->set_waypoint_index(loc_i);
+        bool done_with_this_via = false;
+        for (;;) {
+          // accumulates the distances between current ll and next ll
+          const auto& prev_ll = shape[geometry_idx];
+          geometry_idx += 1;
+          // printf("    Next geometry_idx %i ", geometry_idx);
+          if (geometry_idx >= shape.size()) {
+            printf("    geometry_idx OUT_OF_BOUNDS");
+            break;
+          }
+          PointLL curr_ll = shape[geometry_idx];
+          distance_from_leg_start += prev_ll.Distance(curr_ll);
+          // printf("    prev ll (%f,%f) new ll (%f,%f) new distance %f\n", ll.lat(), ll.lng(),
+          //       curr_ll.lat(), curr_ll.lng(), ll.Distance(curr_ll));
+          // Lets figure out if this part of the shape matches the via waypoint
+          // by comparing lat/lons
+          const float precision = 5;
+
+          const auto& location_ll = locs.Get(loc_i).path_edges(0).ll();
+          auto distance_between_shape_point_and_location =
+              prev_ll.Distance(PointLL(location_ll.lng(), location_ll.lat()));
+
+          printf(
+              " loc_i %i geometry_idx %i distance_from_leg_start %f  distance_between_shape_point_and_location %f",
+              loc_i, geometry_idx, distance_from_leg_start,
+              distance_between_shape_point_and_location);
+          printf("    prev ll (%f,%f) new ll (%f,%f) new distance %f\n", prev_ll.lat(), prev_ll.lng(),
+                 curr_ll.lat(), curr_ll.lng(), prev_ll.Distance(curr_ll));
+
+          if (distance_between_shape_point_and_location < precision) {
+            via_waypoints->emplace_back(
+                osrm::serialize_via_waypoint(locs.Get(loc_i), geometry_idx, distance_from_leg_start));
+            done_with_this_via = true;
+          }
+          // printf("\n");
+          if (done_with_this_via) {
             break;
           }
         }
