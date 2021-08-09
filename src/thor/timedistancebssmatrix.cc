@@ -41,8 +41,8 @@ TimeDistanceBSSMatrix::TimeDistanceBSSMatrix() : settled_count_(0), current_cost
 
 float TimeDistanceBSSMatrix::GetCostThreshold(const float max_matrix_distance) const {
   // The threshold should be the time consumed by the pedestrian, because in the worst case,
-  // the route may be pure pedestrian.
-  return max_matrix_distance / kTimeDistCostThresholdPedestrianDivisor;
+  // the route may be pure pedestrian. Use a conservative walking speed of 2 MPH.
+  return max_matrix_distance / (2.0f * kMPHtoMetersPerSec);
 }
 
 // Clear the temporary information generated during time + distance matrix
@@ -104,9 +104,9 @@ void TimeDistanceBSSMatrix::ExpandForward(GraphReader& graphreader,
     // method), or if a complex restriction prevents this path.
     uint8_t restriction_idx = -1;
     uint8_t probability = 0;
-
+    const bool is_dest = dest_edges_.find(edgeid.value) != dest_edges_.cend();
     if (es->set() == EdgeSet::kPermanent ||
-        !current_costing->Allowed(directededge, pred, tile, edgeid, 0, 0, restriction_idx) ||
+        !current_costing->Allowed(directededge, is_dest, pred, tile, edgeid, 0, 0, restriction_idx) ||
         current_costing->Restricted(directededge, pred, edgelabels_, tile, edgeid, true, probability)) {
       continue;
     }
