@@ -161,6 +161,22 @@ struct OSMAdmin {
     return allow_intersection_names_;
   }
 
+  /**
+   * Sets the index for default_language
+   * @param  idx  Index for the default_language.
+   */
+  void set_default_language_index(const uint32_t idx) {
+    default_language_index_ = idx;
+  }
+
+  /**
+   * Get the default language index.
+   * @return  Returns the index for the default language.
+   */
+  uint32_t default_language_index() const {
+    return default_language_index_;
+  }
+
   // OSM admin/relation id
   uint64_t osmrelationid_;
 
@@ -185,6 +201,10 @@ struct OSMAdmin {
 
   // do we call out intersection names at intersections?
   bool allow_intersection_names_;
+
+  // Default language
+  uint32_t default_language_index_;
+
 };
 
 } // namespace mjolnir
