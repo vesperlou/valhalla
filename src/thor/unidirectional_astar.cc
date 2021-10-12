@@ -222,15 +222,15 @@ inline bool UnidirectionalAStar<expansion_direction, FORWARD>::ExpandInner(
   if (FORWARD) {
     if (!costing_->Allowed(meta.edge, is_dest, pred, tile, meta.edge_id, time_info.local_time,
                            nodeinfo->timezone(), restriction_idx) ||
-        costing_->Restricted(meta.edge, pred, edgelabels_, tile, meta.edge_id, true, probability, &edgestatus_,
-                             time_info.local_time, nodeinfo->timezone())) {
+        costing_->Restricted(meta.edge, pred, edgelabels_, tile, meta.edge_id, true, probability,
+                             &edgestatus_, time_info.local_time, nodeinfo->timezone())) {
       return false;
     }
   } else {
     if (!costing_->AllowedReverse(meta.edge, pred, opp_edge, t2, opp_edge_id, time_info.local_time,
                                   nodeinfo->timezone(), restriction_idx) ||
-        costing_->Restricted(meta.edge, pred, edgelabels_, tile, meta.edge_id, false, probability, &edgestatus_,
-                             time_info.local_time, nodeinfo->timezone())) {
+        costing_->Restricted(meta.edge, pred, edgelabels_, tile, meta.edge_id, false, probability,
+                             &edgestatus_, time_info.local_time, nodeinfo->timezone())) {
       return false;
     }
   }

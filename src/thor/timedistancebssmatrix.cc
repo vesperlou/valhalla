@@ -107,7 +107,8 @@ void TimeDistanceBSSMatrix::ExpandForward(GraphReader& graphreader,
     const bool is_dest = dest_edges_.find(edgeid.value) != dest_edges_.cend();
     if (es->set() == EdgeSet::kPermanent ||
         !current_costing->Allowed(directededge, is_dest, pred, tile, edgeid, 0, 0, restriction_idx) ||
-        current_costing->Restricted(directededge, pred, edgelabels_, tile, edgeid, true, probability)) {
+        current_costing->Restricted(directededge, pred, edgelabels_, tile, edgeid, true,
+                                    probability)) {
       continue;
     }
 

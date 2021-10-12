@@ -260,15 +260,17 @@ inline bool BidirectionalAStar::ExpandInner(baldr::GraphReader& graphreader,
     // function in second time.
     if (!costing_->Allowed(meta.edge, false, pred, tile, meta.edge_id, localtime,
                            time_info.timezone_index, restriction_idx) ||
-        costing_->Restricted(meta.edge, pred, edgelabels_forward_, tile, meta.edge_id, true, probability,
-                             &edgestatus_forward_, localtime, time_info.timezone_index)) {
+        costing_->Restricted(meta.edge, pred, edgelabels_forward_, tile, meta.edge_id, true,
+                             probability, &edgestatus_forward_, localtime,
+                             time_info.timezone_index)) {
       return false;
     }
   } else {
     if (!costing_->AllowedReverse(meta.edge, pred, opp_edge, t2, opp_edge_id, localtime,
                                   time_info.timezone_index, restriction_idx) ||
-        costing_->Restricted(meta.edge, pred, edgelabels_reverse_, tile, meta.edge_id, false, probability,
-                             &edgestatus_reverse_, localtime, time_info.timezone_index)) {
+        costing_->Restricted(meta.edge, pred, edgelabels_reverse_, tile, meta.edge_id, false,
+                             probability, &edgestatus_reverse_, localtime,
+                             time_info.timezone_index)) {
       return false;
     }
   }

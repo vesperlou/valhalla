@@ -154,7 +154,8 @@ void AStarBSSAlgorithm::ExpandForward(GraphReader& graphreader,
     if (current_es->set() == EdgeSet::kPermanent ||
         !current_costing->Allowed(directededge, is_dest, pred, tile, edgeid, 0, 0,
                                   has_time_restrictions) ||
-        current_costing->Restricted(directededge, pred, edgelabels_, tile, edgeid, true, probability)) {
+        current_costing->Restricted(directededge, pred, edgelabels_, tile, edgeid, true,
+                                    probability)) {
       continue;
     }
 

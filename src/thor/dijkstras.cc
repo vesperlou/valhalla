@@ -193,8 +193,9 @@ void Dijkstras::ExpandInner(baldr::GraphReader& graphreader,
                   : costing_->AllowedReverse(directededge, pred, opp_edge, t2, oppedgeid,
                                              offset_time.local_time, nodeinfo->timezone(),
                                              restriction_idx);
-      if (!allowed || costing_->Restricted(directededge, pred, bdedgelabels_, tile, edgeid, true, probability,
-                                           todo, offset_time.local_time, nodeinfo->timezone())) {
+      if (!allowed ||
+          costing_->Restricted(directededge, pred, bdedgelabels_, tile, edgeid, true, probability,
+                               todo, offset_time.local_time, nodeinfo->timezone())) {
         continue;
       }
     } else {
@@ -203,7 +204,8 @@ void Dijkstras::ExpandInner(baldr::GraphReader& graphreader,
                                    : costing_->AllowedReverse(directededge, pred, opp_edge, t2,
                                                               oppedgeid, 0, 0, restriction_idx);
 
-      if (!allowed || costing_->Restricted(directededge, pred, bdedgelabels_, tile, edgeid, true, probability)) {
+      if (!allowed ||
+          costing_->Restricted(directededge, pred, bdedgelabels_, tile, edgeid, true, probability)) {
         continue;
       }
     }
