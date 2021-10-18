@@ -288,7 +288,8 @@ void BuildAdminFromPBF(const boost::property_tree::ptree& pt,
   sql += "name TEXT NOT NULL,";
   sql += "name_en TEXT,";
   sql += "drive_on_right INTEGER NOT NULL,";
-  sql += "allow_intersection_names INTEGER NOT NULL)";
+  sql += "allow_intersection_names INTEGER NOT NULL,";
+  sql += "default_language TEXT)";
 
   ret = sqlite3_exec(db_handle, sql.c_str(), NULL, NULL, &err_msg);
   if (ret != SQLITE_OK) {
@@ -365,7 +366,7 @@ void BuildAdminFromPBF(const boost::property_tree::ptree& pt,
    * this time too we'll use a Prepared Statement
    */
   sql = "INSERT INTO admins (admin_level, iso_code, parent_admin, name, name_en, ";
-  sql += "drive_on_right, allow_intersection_names, geom) VALUES (?, ?, ?, ?, ?, ? ,?, ";
+  sql += "drive_on_right, allow_intersection_names, default_language, geom) VALUES (?,?,?,?,?,?,?,?,";
   sql += "CastToMulti(GeomFromText(?, 4326)))";
 
   ret = sqlite3_prepare_v2(db_handle, sql.c_str(), strlen(sql.c_str()), &stmt, NULL);
@@ -436,9 +437,7 @@ void BuildAdminFromPBF(const boost::property_tree::ptree& pt,
 
         std::unique_ptr<Geometry> mline(gf->createMultiLineString(lines.release()));
         std::vector<std::string> wkts = GetWkts(mline);
-        std::string name;
-        std::string name_en;
-        std::string iso;
+        std::string name, name_en, iso, default_language;
 
         for (const auto& wkt : wkts) {
 
@@ -468,7 +467,15 @@ void BuildAdminFromPBF(const boost::property_tree::ptree& pt,
 
           sqlite3_bind_int(stmt, 6, admin.drive_on_right());
           sqlite3_bind_int(stmt, 7, admin.allow_intersection_names());
-          sqlite3_bind_text(stmt, 8, wkt.c_str(), wkt.length(), SQLITE_STATIC);
+
+          if (admin.default_language_index()) {
+            default_language = osm_admin_data.name_offset_map.name(admin.default_language_index());
+            sqlite3_bind_text(stmt, 8, default_language.c_str(), default_language.length(), SQLITE_STATIC);
+          } else {
+            sqlite3_bind_null(stmt, 8);
+          }
+
+          sqlite3_bind_text(stmt, 9, wkt.c_str(), wkt.length(), SQLITE_STATIC);
           /* performing INSERT INTO */
           ret = sqlite3_step(stmt);
           if (ret == SQLITE_DONE || ret == SQLITE_ROW) {
@@ -483,6 +490,8 @@ void BuildAdminFromPBF(const boost::property_tree::ptree& pt,
           LOG_ERROR("sqlite3_step() Drive on Right: " + std::to_string(admin.drive_on_right()));
           LOG_ERROR("sqlite3_step() Allow Intersection Names: " +
                     std::to_string(admin.allow_intersection_names()));
+          LOG_ERROR("sqlite3_step() Default Language: " +
+                    osm_admin_data.name_offset_map.name(admin.default_language_index()));
         }
       } // has data
     }   // admins
