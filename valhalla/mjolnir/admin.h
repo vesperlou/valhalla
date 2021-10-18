@@ -60,35 +60,49 @@ std::multimap<uint32_t, multi_polygon_type> GetTimeZones(sqlite3* db_handle,
                                                          const AABB2<PointLL>& aabb);
 /**
  * Get the admin data from the spatialite db given an SQL statement
- * @param  db_handle        sqlite3 db handle
- * @param  stmt             prepared statement object
- * @param  sql              sql commend to run.
- * @param  tilebuilder      Graph tile builder
- * @param  polys            unordered multimap of admin polys
- * @param  drive_on_right   unordered map that indicates if a country drives on right side of the
+ * @param  db_handle         sqlite3 db handle
+ * @param  stmt              prepared statement object
+ * @param  sql               sql commend to run.
+ * @param  tilebuilder       Graph tile builder
+ * @param  polys             multimap of admin polys
+ * @param  drive_on_right    unordered map that indicates if a country drives on right side of the
  * road
+ * @param  default_languages ordered map that is used for lower admins that have an
+ * default language set
+ * @param  language_ploys    ordered map that is used for lower admins that have an
+ * default language set
+ * @param  languages_only    should we only process the languages with this query
  */
 void GetData(sqlite3* db_handle,
              sqlite3_stmt* stmt,
              const std::string& sql,
              GraphTileBuilder& tilebuilder,
              std::multimap<uint32_t, multi_polygon_type>& polys,
-             std::unordered_map<uint32_t, bool>& drive_on_right);
+             std::unordered_map<uint32_t, bool>& drive_on_right,
+             std::multimap<uint32_t, std::string>& default_languages,
+             std::multimap<uint32_t, multi_polygon_type>& language_ploys,
+             bool languages_only);
 
 /**
  * Get the admin polys that intersect with the tile bounding box.
- * @param  db_handle        sqlite3 db handle
- * @param  drive_on_right   unordered map that indicates if a country drives on right side of the
+ * @param  db_handle         sqlite3 db handle
+ * @param  drive_on_right    unordered map that indicates if a country drives on right side of the
  * road
  * @param  allow_intersection_names   unordered map that indicates if we call out intersections
  * names for this country
- * @param  aabb             bb of the tile
- * @param  tilebuilder      Graph tile builder
+ * @param  default_languages ordered map that is used for lower admins that have an
+ * default language set
+ * @param  language_ploys    ordered map that is used for lower admins that have an
+ * default language set
+ * @param  aabb              bb of the tile
+ * @param  tilebuilder       Graph tile builder
  */
 std::multimap<uint32_t, multi_polygon_type>
 GetAdminInfo(sqlite3* db_handle,
              std::unordered_map<uint32_t, bool>& drive_on_right,
              std::unordered_map<uint32_t, bool>& allow_intersection_names,
+             std::multimap<uint32_t, std::string>& default_languages,
+             std::multimap<uint32_t, multi_polygon_type>& language_ploys,
              const AABB2<PointLL>& aabb,
              GraphTileBuilder& tilebuilder);
 
