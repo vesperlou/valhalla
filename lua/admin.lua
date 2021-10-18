@@ -123,6 +123,25 @@ end
 
   --we save admins as 2(country) or 4(state/prov).  
 function rels_proc (kv, nokeys)
+
+  if (kv["type"] == "boundary" and kv["default_language"] and
+     ((kv["boundary"] == "administrative" or kv["boundary"] == "territorial") and (kv["admin_level"] and (kv["admin_level"] == "5" or tonumber(kv["admin_level"]) > 6))) or
+     (kv["boundary"] == "political" or kv["political_division"] == "linguistic_community")) then
+
+     kv["iso_code"] = nil
+     kv["admin_level"] = kv["admin_level"] or "15" --assign a high admin level for linguistic_community
+     kv["drive_on_right"] = "false"
+     kv["allow_intersection_names"] = "false"
+
+     delete_tags = { 'FIXME', 'note', 'source' }
+
+     for i,k in ipairs(delete_tags) do
+        kv[k] = nil
+     end
+
+     return 0, kv
+  end
+
   if (kv["type"] == "boundary" and (kv["boundary"] == "administrative" or kv["boundary"] == "territorial") and
      (kv["admin_level"] == "2" or kv["admin_level"] == "3" or kv["admin_level"] == "4" or kv["admin_level"] == "6")) then
 
