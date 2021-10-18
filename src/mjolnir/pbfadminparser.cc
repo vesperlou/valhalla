@@ -95,7 +95,8 @@ public:
         admin.set_allow_intersection_names(tag.second == "true" ? true : false);
       } else if (tag.first == "iso_code" && !tag.second.empty()) {
         admin.set_iso_code_index(osm_admin_data_.name_offset_map.index(tag.second));
-      }
+      } else if (tag.first == "default_language" && !tag.second.empty()) {
+        admin.set_default_language_index(osm_admin_data_.name_offset_map.index(tag.second));
     }
 
     std::list<uint64_t> member_ids;
