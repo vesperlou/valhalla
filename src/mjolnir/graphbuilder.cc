@@ -473,10 +473,12 @@ void BuildTileSet(const std::string& ways_file,
       std::unordered_multimap<uint32_t, multi_polygon_type> admin_polys;
       std::unordered_map<uint32_t, bool> drive_on_right;
       std::unordered_map<uint32_t, bool> allow_intersection_names;
+      std::multimap<uint32_t, std::string> default_languages;
+      std::multimap<uint32_t, multi_polygon_type> language_ploys;
 
       if (admin_db_handle) {
         admin_polys = GetAdminInfo(admin_db_handle, drive_on_right, allow_intersection_names,
-                                   tiling.TileBounds(id), graphtile);
+                                   default_languages, language_ploys, tiling.TileBounds(id), graphtile);
         if (admin_polys.size() == 1) {
           // TODO - check if tile bounding box is entirely inside the polygon...
           tile_within_one_admin = true;
