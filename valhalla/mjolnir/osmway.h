@@ -171,19 +171,19 @@ struct OSMWay {
   }
 
   /**
-   * Sets the index for name:en
-   * @param  idx  Index for the English name.
+   * Sets the index for name:<lang>
+   * @param  idx  Index for the languages.
    */
-  void set_name_en_index(const uint32_t idx) {
-    name_en_index_ = idx;
+  void set_name_lang_index(const uint32_t idx) {
+    name_lang_index_ = idx;
   }
 
   /**
-   * Get the name:en index.
-   * @return  Returns the index for the English name.
+   * Get the name:<lang> index.
+   * @return  Returns the index for the languages.
    */
-  uint32_t name_en_index() const {
-    return name_en_index_;
+  uint32_t name_lang_index() const {
+    return name_lang_index_;
   }
 
   /**
@@ -1662,7 +1662,7 @@ struct OSMWay {
 
   // Names
   uint32_t name_index_;
-  uint32_t name_en_index_;
+  uint32_t name_lang_index_;
   uint32_t alt_name_index_;
   uint32_t official_name_index_;
   uint32_t tunnel_name_index_;
