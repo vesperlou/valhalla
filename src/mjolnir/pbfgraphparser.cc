@@ -1739,7 +1739,7 @@ public:
     has_default_speed_ = false, has_max_speed_ = false;
     has_average_speed_ = false, has_advisory_speed_ = false;
     has_surface_ = true;
-    name_ = {}, service_ = {}, amenity_ = {};
+    name_ = {}, language_ = {}, name_w_lang_ = {}, service_ = {}, amenity_ = {};
 
     // Process tags
     way_ = OSMWay{osmid_};
@@ -1779,18 +1779,15 @@ public:
         std::vector<std::string> tokens = GetTagTokens(tag_.first, ':');
         if (tokens.size() == 2) {
 
-          std::string tmp = tokens.at(1);
-          if (tmp.length() == 2 && !tag_.second.empty()) //name:en, name:ar, name:fr, etc
+          std::string lang = tokens.at(1);
+          if (lang.length() == 2 && !tag_.second.empty()) //name:en, name:ar, name:fr, etc
           {
             if (way_.name_index() == 0) {
-              way_.set_name_index(osmdata_.name_offset_map.index(tag_.second));
-              way_.set_name_lang_index(osmdata_.name_offset_map.index(tmp));
+              name_w_lang_ = tag_.second;
+              language_ = lang;
             } else {
-              std::string tmp_name = osmdata_.name_offset_map.name(way_.name_index());
-              way_.set_name_index(osmdata_.name_offset_map.index(tmp_name + ";" + tag_.second));
-
-              std::string tmp_lang = osmdata_.name_offset_map.name(way_.name_lang_index());
-              way_.set_name_lang_index(osmdata_.name_offset_map.index(tmp_lang + ";" + tmp));
+              name_w_lang_ += ";" + tag_.second;
+              language_ += ";" + lang;
             }
           }
         }
@@ -2148,10 +2145,21 @@ public:
         bFound = false;
       }
       if (!tmp.empty()) {
-        way_.set_name_index(osmdata_.name_offset_map.index(tmp));
+        name_ = tmp;
       }
-    } else {
-      way_.set_name_index(osmdata_.name_offset_map.index(name_));
+    }
+
+    if (!name_.empty()) {
+      if (name_w_lang_.empty())
+        way_.set_name_index(osmdata_.name_offset_map.index(name_));
+      else {
+        uint32_t count = std::count(name_.begin(),name_.end(),';');
+        for (uint32_t i = 0; i < count; i++) {
+          language_ = ";" + language_;
+        }
+        way_.set_name_index(osmdata_.name_offset_map.index(name_ + ";" + name_w_lang_));
+        way_.set_name_lang_index(osmdata_.name_offset_map.index(language_));
+      }
     }
 
     // Infer cul-de-sac if a road edge is a loop and is low classification.
@@ -2914,7 +2922,7 @@ public:
       direction_pronunciation_nt_sampa_, int_direction_pronunciation_nt_sampa_,
       direction_pronunciation_katakana_, int_direction_pronunciation_katakana_,
       direction_pronunciation_jeita_, int_direction_pronunciation_jeita_;
-  std::string name_, service_, amenity_;
+  std::string name_, language_, name_w_lang_, service_, amenity_;
 
   // Configuration option to include driveways
   bool include_driveways_;
