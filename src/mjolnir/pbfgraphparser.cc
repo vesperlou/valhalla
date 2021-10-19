@@ -469,10 +469,6 @@ public:
       if (!tag_.second.empty())
         name_ = tag_.second;
     };
-    tag_handlers_["name:en"] = [this]() {
-      if (!tag_.second.empty())
-        way_.set_name_en_index(osmdata_.name_offset_map.index(tag_.second));
-    };
     tag_handlers_["alt_name"] = [this]() {
       if (!tag_.second.empty() && allow_alt_name_)
         way_.set_alt_name_index(osmdata_.name_offset_map.index(tag_.second));
@@ -1778,6 +1774,26 @@ public:
           LOG_WARN(ss.str());
         }
 
+      }
+      else if (tag_.first.substr(0, 5) == "name:") {
+        std::vector<std::string> tokens = GetTagTokens(tag_.first, ':');
+        if (tokens.size() == 2) {
+
+          std::string tmp = tokens.at(1);
+          if (tmp.length() == 2 && !tag_.second.empty()) //name:en, name:ar, name:fr, etc
+          {
+            if (way_.name_index() == 0) {
+              way_.set_name_index(osmdata_.name_offset_map.index(tag_.second));
+              way_.set_name_lang_index(osmdata_.name_offset_map.index(tmp));
+            } else {
+              std::string tmp_name = osmdata_.name_offset_map.name(way_.name_index());
+              way_.set_name_index(osmdata_.name_offset_map.index(tmp_name + ";" + tag_.second));
+
+              std::string tmp_lang = osmdata_.name_offset_map.name(way_.name_lang_index());
+              way_.set_name_lang_index(osmdata_.name_offset_map.index(tmp_lang + ";" + tmp));
+            }
+          }
+        }
       }
       // motor_vehicle:conditional=no @ (16:30-07:00)
       else if (tag_.first.substr(0, 20) == "motorcar:conditional" ||
