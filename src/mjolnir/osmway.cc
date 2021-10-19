@@ -282,7 +282,7 @@ void OSMWay::GetNames(const std::string& ref,
   }
   // Process name_en_
   // TODO: process country specific names
-  if (name_en_index_ != 0 && name_en_index_ != name_index_ && name_en_index_ != alt_name_index_ &&
+  /*if (name_en_index_ != 0 && name_en_index_ != name_index_ && name_en_index_ != alt_name_index_ &&
       name_en_index_ != official_name_index_) {
 
     std::vector<std::string> tokens;
@@ -297,7 +297,7 @@ void OSMWay::GetNames(const std::string& ref,
                       pronunciation.name_en_pronunciation_nt_sampa_index(),
                       pronunciation.name_en_pronunciation_katakana_index(),
                       pronunciation.name_en_pronunciation_jeita_index(), tokens.size(), key);
-  }
+  }*/
 }
 
 // Get the tagged names for an edge
