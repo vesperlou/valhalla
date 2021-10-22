@@ -1782,7 +1782,7 @@ public:
           std::string lang = tokens.at(1);
           if (lang.length() == 2 && !tag_.second.empty()) //name:en, name:ar, name:fr, etc
           {
-            if (way_.name_index() == 0) {
+            if (name_w_lang_.empty()) {
               name_w_lang_ = tag_.second;
               language_ = lang;
             } else {
@@ -2154,7 +2154,7 @@ public:
         way_.set_name_index(osmdata_.name_offset_map.index(name_));
       else {
         uint32_t count = std::count(name_.begin(),name_.end(),';');
-        for (uint32_t i = 0; i < count; i++) {
+        for (uint32_t i = 0; i <= count; i++) {
           language_ = ";" + language_;
         }
         way_.set_name_index(osmdata_.name_offset_map.index(name_ + ";" + name_w_lang_));

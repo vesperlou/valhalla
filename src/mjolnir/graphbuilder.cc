@@ -473,12 +473,11 @@ void BuildTileSet(const std::string& ways_file,
       std::multimap<uint32_t, multi_polygon_type> admin_polys;
       std::unordered_map<uint32_t, bool> drive_on_right;
       std::unordered_map<uint32_t, bool> allow_intersection_names;
-      std::multimap<uint32_t, std::string> default_languages;
-      std::multimap<uint32_t, multi_polygon_type> language_ploys;
+      std::vector<std::pair<std::string, multi_polygon_type>> language_ploys;
 
       if (admin_db_handle) {
         admin_polys = GetAdminInfo(admin_db_handle, drive_on_right, allow_intersection_names,
-                                   default_languages, language_ploys, tiling.TileBounds(id), graphtile);
+                                   language_ploys, tiling.TileBounds(id), graphtile);
         if (admin_polys.size() == 1) {
           // TODO - check if tile bounding box is entirely inside the polygon...
           tile_within_one_admin = true;
@@ -532,6 +531,8 @@ void BuildTileSet(const std::string& ways_file,
           admin_index = graphtile.AddAdmin("", "", osmdata.node_names.name(node.country_iso_index()),
                                            osmdata.node_names.name(node.state_iso_index()));
         }
+        std::vector<std::string> languages = GetMultiPolyIndexes(language_ploys, node_ll);
+
 
         // Look for potential duplicates
         // CheckForDuplicates(nodeid, node, edgelengths, nodes, edges, osmdata.ways, stats);
@@ -1144,7 +1145,7 @@ void BuildLocalTiles(const unsigned int thread_count,
            std::to_string(thread_count) + " threads...");
 
   // A place to hold worker threads and their results, be they exceptions or otherwise
-  std::vector<std::shared_ptr<std::thread>> threads(thread_count);
+  std::vector<std::shared_ptr<std::thread>> threads(1);
 
   // Hold the results (DataQuality/stats) for the threads
   std::vector<std::promise<DataQuality>> results(threads.size());
