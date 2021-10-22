@@ -169,6 +169,7 @@ void OSMWay::AddPronunciations(std::vector<std::string>& pronunciations,
 void OSMWay::GetNames(const std::string& ref,
                       const UniqueNames& name_offset_map,
                       const OSMPronunciation& pronunciation,
+                      const std::vector<std::string>& languages,
                       uint16_t& types,
                       std::vector<std::string>& names,
                       std::vector<std::string>& pronunciations) const {
@@ -208,8 +209,44 @@ void OSMWay::GetNames(const std::string& ref,
   // Process name
   if (name_index_ != 0) {
 
-    std::vector<std::string> tokens;
+    std::vector<std::string> tokens, langs;
+
     tokens = GetTagTokens(name_offset_map.name(name_index_));
+    langs = GetTagTokens(name_offset_map.name(name_lang_index_));
+
+    if (languages.size()) {
+      if (osmwayid_ == 1880377) {
+
+        if (tokens.size() == langs.size()) {
+          for (size_t i = 0; i < langs.size(); ++i) {
+            if (langs[i].empty()) {
+              std::vector<std::string> default_names = GetTagTokens(tokens[i],'-');
+
+              if (default_names.size() == 2) {
+                std::string first = default_names[0];
+                std::string second = default_names[1];
+
+                boost::algorithm::erase_all(first, " ");
+                boost::algorithm::erase_all(second, " ");
+              }
+
+              if
+            }
+              continue;
+          }
+
+
+        }
+
+        poly fr
+        poly nl
+        poly fr - nl
+
+
+        std::cout << name_offset_map.name(name_index_) << std::endl;
+      }
+    }
+
     location += tokens.size();
 
     names.insert(names.end(), tokens.begin(), tokens.end());

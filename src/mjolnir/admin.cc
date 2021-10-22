@@ -67,6 +67,22 @@ uint32_t GetMultiPolyId(const std::unordered_multimap<uint32_t, multi_polygon_ty
   return index;
 }
 
+std::vector<std::string> GetMultiPolyIndexes(const std::vector<std::pair<std::string, multi_polygon_type>>& polys,
+                        const PointLL& ll) {
+  std::vector<std::string> languages;
+  std::vector<std::string>::iterator it;
+
+  point_type p(ll.lng(), ll.lat());
+  for (const auto& poly : polys) {
+    if (boost::geometry::covered_by(p, poly.second)) {
+       it = std::find(languages.begin(), languages.end(), poly.first);
+       if (it == languages.end())
+           languages.emplace_back(poly.first);
+    }
+  }
+  return languages;
+}
+
 // Get the timezone polys from the db
 std::unordered_multimap<uint32_t, multi_polygon_type> GetTimeZones(sqlite3* db_handle,
                                                                    const AABB2<PointLL>& aabb) {
@@ -130,8 +146,7 @@ void GetData(sqlite3* db_handle,
              std::unordered_multimap<uint32_t, multi_polygon_type>& polys,
              std::unordered_map<uint32_t, bool>& drive_on_right,
              std::unordered_map<uint32_t, bool>& allow_intersection_names,
-             std::multimap<uint32_t, std::string>& default_languages,
-             std::multimap<uint32_t, multi_polygon_type>& language_ploys,
+             std::vector<std::pair<std::string, multi_polygon_type>>& language_ploys,
              bool languages_only = false) {
   uint32_t result = 0;
   bool dor = true;
@@ -186,7 +201,7 @@ void GetData(sqlite3* db_handle,
       }
 
       if (sqlite3_column_type(stmt, 7) == SQLITE_TEXT) {
-        default_language = sqlite3_column_int(stmt, 7);
+        default_language = (char*)sqlite3_column_text(stmt, 7);
       }
 
       std::string geom;
@@ -200,9 +215,8 @@ void GetData(sqlite3* db_handle,
       polys.emplace(index, multi_poly);
       drive_on_right.emplace(index, dor);
       allow_intersection_names.emplace(index, intersection_name);
-
-      language_ploys.emplace(admin_level, multi_poly);
-      default_languages.emplace(admin_level, default_language);
+      if (!default_language.empty())
+        language_ploys.push_back({default_language, multi_poly});
 
     } else {
 
@@ -222,8 +236,8 @@ void GetData(sqlite3* db_handle,
 
       multi_polygon_type multi_poly;
       boost::geometry::read_wkt(geom, multi_poly);
-      language_ploys.emplace(admin_level, multi_poly);
-      default_languages.emplace(admin_level, default_language);
+      if (!default_language.empty())
+        language_ploys.push_back({default_language, multi_poly});
 
     }
 
@@ -241,8 +255,7 @@ std::unordered_multimap<uint32_t, multi_polygon_type>
 GetAdminInfo(sqlite3* db_handle,
              std::unordered_map<uint32_t, bool>& drive_on_right,
              std::unordered_map<uint32_t, bool>& allow_intersection_names,
-             std::multimap<uint32_t, std::string>& default_languages,
-             std::multimap<uint32_t, multi_polygon_type>& language_ploys,
+             std::vector<std::pair<std::string, multi_polygon_type>>& language_ploys,
              const AABB2<PointLL>& aabb,
              GraphTileBuilder& tilebuilder) {
   std::unordered_multimap<uint32_t, multi_polygon_type> polys;
@@ -262,7 +275,9 @@ GetAdminInfo(sqlite3* db_handle,
   sql += "'admins' AND search_frame = BuildMBR(" + std::to_string(aabb.minx()) + ",";
   sql += std::to_string(aabb.miny()) + ", " + std::to_string(aabb.maxx()) + ",";
   sql += std::to_string(aabb.maxy()) + ")) order by admin_level desc, name;";
-  GetData(db_handle, stmt, sql, tilebuilder, polys, drive_on_right, allow_intersection_names, default_languages, language_ploys, true);
+  GetData(db_handle, stmt, sql, tilebuilder, polys, drive_on_right, allow_intersection_names, language_ploys, true);
+
+  std::cout << "1 " << sql << std::endl;
 
   // state query
   sql = "SELECT country.name, state.name, country.iso_code, ";
@@ -277,7 +292,9 @@ GetAdminInfo(sqlite3* db_handle,
   sql += "'admins' AND search_frame = BuildMBR(" + std::to_string(aabb.minx()) + ",";
   sql += std::to_string(aabb.miny()) + ", " + std::to_string(aabb.maxx()) + ",";
   sql += std::to_string(aabb.maxy()) + ")) order by state.name, country.name;";
-  GetData(db_handle, stmt, sql, tilebuilder, polys, drive_on_right, allow_intersection_names, default_languages, language_ploys);
+  GetData(db_handle, stmt, sql, tilebuilder, polys, drive_on_right, allow_intersection_names, language_ploys);
+
+  std::cout << "2 " << sql << std::endl;
 
   // country query
   sql =
@@ -289,7 +306,10 @@ GetAdminInfo(sqlite3* db_handle,
   sql += "'admins' AND search_frame = BuildMBR(" + std::to_string(aabb.minx()) + ",";
   sql += std::to_string(aabb.miny()) + ", " + std::to_string(aabb.maxx()) + ",";
   sql += std::to_string(aabb.maxy()) + ")) order by name;";
-  GetData(db_handle, stmt, sql, tilebuilder, polys, drive_on_right, allow_intersection_names, default_languages, language_ploys);
+  GetData(db_handle, stmt, sql, tilebuilder, polys, drive_on_right, allow_intersection_names, language_ploys);
+
+  std::cout << "3 " << sql << std::endl;
+
 
   if (stmt) { // just in case something bad happened.
     sqlite3_finalize(stmt);

@@ -1643,6 +1643,7 @@ struct OSMWay {
   void GetNames(const std::string& ref,
                 const UniqueNames& name_offset_map,
                 const OSMPronunciation& pronunciation,
+                const std::vector<std::string>& languages,
                 uint16_t& types,
                 std::vector<std::string>& names,
                 std::vector<std::string>& pronunciations) const;
