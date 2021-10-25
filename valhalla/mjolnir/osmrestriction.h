@@ -17,9 +17,6 @@ namespace mjolnir {
  * the Id of the "from" way of the restriction.
  */
 struct OSMRestriction {
-  OSMRestriction() {
-    memset(this, 0, sizeof(OSMRestriction));
-  }
   /**
    * Set the restriction type
    */
