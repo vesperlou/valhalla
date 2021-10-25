@@ -2149,7 +2149,10 @@ public:
     }
 
     OSMRestriction restriction{};
+    memset(&restriction, 0, sizeof(OSMRestriction));
+
     OSMRestriction to_restriction{};
+    memset(&to_restriction, 0, sizeof(OSMRestriction));
 
     uint64_t from_way_id = 0;
     bool isRestriction = false, isTypeRestriction = false, hasRestriction = false;
