@@ -477,7 +477,7 @@ void BuildTileSet(const std::string& ways_file,
 
       if (admin_db_handle) {
         admin_polys = GetAdminInfo(admin_db_handle, drive_on_right, allow_intersection_names,
-                                   language_ploys, tiling.TileBounds(id), graphtile);
+                                   language_ploys, tiling.TileBounds(id), graphtile, false);
         if (admin_polys.size() == 1) {
           // TODO - check if tile bounding box is entirely inside the polygon...
           tile_within_one_admin = true;
@@ -532,6 +532,17 @@ void BuildTileSet(const std::string& ways_file,
                                            osmdata.node_names.name(node.state_iso_index()));
         }
         std::vector<std::string> languages = GetMultiPolyIndexes(language_ploys, node_ll);
+        std::vector<std::string> country_lang_order;
+
+        if (languages.size()) {
+          for (const auto& l : languages) {
+            std::vector<std::string> langs = GetTagTokens(l, " - ");
+            if (langs.size() == 2) {
+              country_lang_order.insert(country_lang_order.end(), langs.begin(), langs.end());
+              break;
+            }
+          }
+        }
 
 
         // Look for potential duplicates
@@ -723,10 +734,15 @@ void BuildTileSet(const std::string& ways_file,
 
             uint16_t types = 0;
             std::vector<std::string> names, tagged_values, pronunciations;
-            w.GetNames(ref, osmdata.name_offset_map, p, types, names, pronunciations);
+            w.GetNames(ref, osmdata.name_offset_map, p, languages, country_lang_order, types, names, pronunciations);
             w.GetTaggedValues(osmdata.name_offset_map, p, names.size(), tagged_values,
                               pronunciations);
 
+            /*if (w.way_id() == 414438750) {
+
+            GetAdminInfo(admin_db_handle, drive_on_right, allow_intersection_names,
+                                       language_ploys, tiling.TileBounds(id), graphtile, true);
+            }*/
             // Update bike_network type
 
             if (bike_network) {
@@ -1145,7 +1161,7 @@ void BuildLocalTiles(const unsigned int thread_count,
            std::to_string(thread_count) + " threads...");
 
   // A place to hold worker threads and their results, be they exceptions or otherwise
-  std::vector<std::shared_ptr<std::thread>> threads(1);
+  std::vector<std::shared_ptr<std::thread>> threads(thread_count);
 
   // Hold the results (DataQuality/stats) for the threads
   std::vector<std::promise<DataQuality>> results(threads.size());
