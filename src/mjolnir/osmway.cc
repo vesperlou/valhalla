@@ -4,6 +4,9 @@
 
 #include "midgard/logging.h"
 #include <boost/algorithm/string.hpp>
+#include <boost/algorithm/string/regex.hpp>
+#include <boost/regex.hpp>
+
 #include <iostream>
 
 using namespace valhalla::baldr;
@@ -170,6 +173,7 @@ void OSMWay::GetNames(const std::string& ref,
                       const UniqueNames& name_offset_map,
                       const OSMPronunciation& pronunciation,
                       const std::vector<std::string>& languages,
+                      const std::vector<std::string>& country_lang_order,
                       uint16_t& types,
                       std::vector<std::string>& names,
                       std::vector<std::string>& pronunciations) const {
@@ -215,36 +219,58 @@ void OSMWay::GetNames(const std::string& ref,
     langs = GetTagTokens(name_offset_map.name(name_lang_index_));
 
     if (languages.size()) {
-      if (osmwayid_ == 1880377) {
+      //if (osmwayid_ == 1880377) {
+
+      if (osmwayid_ == 414438750) {
+        std::cout << "asdf" << std::endl;
+      }
 
         if (tokens.size() == langs.size()) {
+          std::string first, second;
+          bool b_first_found = false, b_second_found = false;
           for (size_t i = 0; i < langs.size(); ++i) {
             if (langs[i].empty()) {
-              std::vector<std::string> default_names = GetTagTokens(tokens[i],'-');
-
+              // multilingual name
+              // name = Place Saint-Pierre - Sint-Pietersplein
+              std::vector<std::string> default_names = GetTagTokens(tokens[i], " - ");
               if (default_names.size() == 2) {
-                std::string first = default_names[0];
-                std::string second = default_names[1];
-
-                boost::algorithm::erase_all(first, " ");
-                boost::algorithm::erase_all(second, " ");
+                first = default_names[0];
+                second = default_names[1];
+                continue;
               }
-
-              if
+            } else {
+              // does the lang for this name exist in the country languages
+              // and we are dealing with a multilingual name tag
+              if (std::find(languages.begin(), languages.end(), langs[i]) != languages.end()){
+                if (tokens[i] == first)
+                  b_first_found = true;
+                else if (tokens[i] == second)
+                  b_second_found = true;
+                // does the lang for this name exist in the country languages
+                // and we are dealing with a multilingual default_language tag
+                // België / Belgique / Belgien|Région de Bruxelles-Capitale - Brussels Hoofdstedelijk Gewest|BE|BRU|0|0|4|fr - nl
+              } else if (country_lang_order.size()){
+                  if (country_lang_order[0] == langs[i]) {
+                    b_first_found = true;
+                    first = tokens[i];
+                    std::cout << osmwayid_ << std::endl;
+                  } else if (country_lang_order[1] == langs[i]) {
+                    b_second_found = true;
+                    second = tokens[i];
+                  }
+              }
             }
-              continue;
+            if (b_first_found && b_second_found)
+              break;
           }
 
-
+          if (b_first_found && b_second_found){
+            tokens.clear();
+            tokens.emplace_back(first);
+            tokens.emplace_back(second);
+          }
         }
-
-        poly fr
-        poly nl
-        poly fr - nl
-
-
-        std::cout << name_offset_map.name(name_index_) << std::endl;
-      }
+     // }
     }
 
     location += tokens.size();
