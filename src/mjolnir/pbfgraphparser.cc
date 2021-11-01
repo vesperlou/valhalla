@@ -1774,13 +1774,12 @@ public:
           LOG_WARN(ss.str());
         }
 
-      }
-      else if (tag_.first.substr(0, 5) == "name:") {
+      } else if (tag_.first.substr(0, 5) == "name:") {
         std::vector<std::string> tokens = GetTagTokens(tag_.first, ':');
         if (tokens.size() == 2) {
 
           std::string lang = tokens.at(1);
-          if (lang.length() == 2 && !tag_.second.empty()) //name:en, name:ar, name:fr, etc
+          if (lang.length() == 2 && !tag_.second.empty()) // name:en, name:ar, name:fr, etc
           {
             if (name_w_lang_.empty()) {
               name_w_lang_ = tag_.second;
@@ -2153,7 +2152,7 @@ public:
       if (name_w_lang_.empty())
         way_.set_name_index(osmdata_.name_offset_map.index(name_));
       else {
-        uint32_t count = std::count(name_.begin(),name_.end(),';');
+        uint32_t count = std::count(name_.begin(), name_.end(), ';');
         for (uint32_t i = 0; i <= count; i++) {
           language_ = ";" + language_;
         }
