@@ -470,7 +470,8 @@ void BuildAdminFromPBF(const boost::property_tree::ptree& pt,
 
           if (admin.default_language_index()) {
             default_language = osm_admin_data.name_offset_map.name(admin.default_language_index());
-            sqlite3_bind_text(stmt, 8, default_language.c_str(), default_language.length(), SQLITE_STATIC);
+            sqlite3_bind_text(stmt, 8, default_language.c_str(), default_language.length(),
+                              SQLITE_STATIC);
           } else {
             sqlite3_bind_null(stmt, 8);
           }
