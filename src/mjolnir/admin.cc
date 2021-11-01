@@ -66,17 +66,30 @@ uint32_t GetMultiPolyId(const std::multimap<uint32_t, multi_polygon_type>& polys
   return index;
 }
 
-std::vector<std::string> GetMultiPolyIndexes(const std::vector<std::pair<std::string, multi_polygon_type>>& polys,
-                        const PointLL& ll) {
+std::vector<std::string>
+GetMultiPolyIndexes(const std::vector<std::pair<std::string, multi_polygon_type>>& polys,
+                    const PointLL& ll) {
   std::vector<std::string> languages;
   std::vector<std::string>::iterator it;
+
+  // first entry is blank for the default name
+  languages.emplace_back("");
 
   point_type p(ll.lng(), ll.lat());
   for (const auto& poly : polys) {
     if (boost::geometry::covered_by(p, poly.second)) {
-       it = std::find(languages.begin(), languages.end(), poly.first);
-       if (it == languages.end())
-           languages.emplace_back(poly.first);
+      it = std::find(languages.begin(), languages.end(), poly.first);
+      if (it == languages.end()) {
+        std::vector<std::string> langs = GetTagTokens(poly.first, " - ");
+        if (langs.size() >= 2) {
+          for (const auto& l : langs) {
+            it = std::find(languages.begin(), languages.end(), l);
+            if (it == languages.end())
+              languages.emplace_back(l);
+          }
+        } else
+          languages.emplace_back(poly.first);
+      }
     }
   }
   return languages;
@@ -237,7 +250,6 @@ void GetData(sqlite3* db_handle,
       boost::geometry::read_wkt(geom, multi_poly);
       if (!default_language.empty())
         language_ploys.push_back({default_language, multi_poly});
-
     }
 
     result = sqlite3_step(stmt);
@@ -265,23 +277,21 @@ GetAdminInfo(sqlite3* db_handle,
   sqlite3_stmt* stmt = 0;
 
   // default language query
-  std::string sql =
-      "SELECT admin_level, default_language, st_astext(geom) from ";
-  sql += " admins where default_language is NOT NULL and ST_Intersects(geom, BuildMBR(" + std::to_string(aabb.minx()) + ",";
+  std::string sql = "SELECT admin_level, default_language, st_astext(geom) from ";
+  sql += " admins where default_language is NOT NULL and ST_Intersects(geom, BuildMBR(" +
+         std::to_string(aabb.minx()) + ",";
   sql += std::to_string(aabb.miny()) + ", " + std::to_string(aabb.maxx()) + ",";
   sql += std::to_string(aabb.maxy()) + ")) and admin_level>4 ";
   sql += "and rowid IN (SELECT rowid FROM SpatialIndex WHERE f_table_name = ";
   sql += "'admins' AND search_frame = BuildMBR(" + std::to_string(aabb.minx()) + ",";
   sql += std::to_string(aabb.miny()) + ", " + std::to_string(aabb.maxx()) + ",";
   sql += std::to_string(aabb.maxy()) + ")) order by admin_level desc, name;";
-  GetData(db_handle, stmt, sql, tilebuilder, polys, drive_on_right, allow_intersection_names, language_ploys, true);
-
-  std::cout << "1 " << sql << std::endl;
+  GetData(db_handle, stmt, sql, tilebuilder, polys, drive_on_right, allow_intersection_names,
+          language_ploys, true);
 
   // state query
   sql = "SELECT country.name, state.name, country.iso_code, ";
-  sql +=
-      "state.iso_code, state.drive_on_right, state.allow_intersection_names, state.admin_level, ";
+  sql += "state.iso_code, state.drive_on_right, state.allow_intersection_names, state.admin_level, ";
   sql += "state.default_language, st_astext(state.geom) from admins state, admins country where ";
   sql += "ST_Intersects(state.geom, BuildMBR(" + std::to_string(aabb.minx()) + ",";
   sql += std::to_string(aabb.miny()) + ", " + std::to_string(aabb.maxx()) + ",";
@@ -291,24 +301,21 @@ GetAdminInfo(sqlite3* db_handle,
   sql += "'admins' AND search_frame = BuildMBR(" + std::to_string(aabb.minx()) + ",";
   sql += std::to_string(aabb.miny()) + ", " + std::to_string(aabb.maxx()) + ",";
   sql += std::to_string(aabb.maxy()) + ")) order by state.name, country.name;";
-  GetData(db_handle, stmt, sql, tilebuilder, polys, drive_on_right, allow_intersection_names, language_ploys);
-
-  std::cout << "2 " << sql << std::endl;
+  GetData(db_handle, stmt, sql, tilebuilder, polys, drive_on_right, allow_intersection_names,
+          language_ploys);
 
   // country query
-  sql =
-      "SELECT name, \"\", iso_code, \"\", drive_on_right, allow_intersection_names, admin_level, ";
-  sql += " default_language, st_astext(geom) from  admins where ST_Intersects(geom, BuildMBR(" + std::to_string(aabb.minx()) + ",";
+  sql = "SELECT name, \"\", iso_code, \"\", drive_on_right, allow_intersection_names, admin_level, ";
+  sql += " default_language, st_astext(geom) from  admins where ST_Intersects(geom, BuildMBR(" +
+         std::to_string(aabb.minx()) + ",";
   sql += std::to_string(aabb.miny()) + ", " + std::to_string(aabb.maxx()) + ",";
   sql += std::to_string(aabb.maxy()) + ")) and admin_level=2 ";
   sql += "and rowid IN (SELECT rowid FROM SpatialIndex WHERE f_table_name = ";
   sql += "'admins' AND search_frame = BuildMBR(" + std::to_string(aabb.minx()) + ",";
   sql += std::to_string(aabb.miny()) + ", " + std::to_string(aabb.maxx()) + ",";
   sql += std::to_string(aabb.maxy()) + ")) order by name;";
-  GetData(db_handle, stmt, sql, tilebuilder, polys, drive_on_right, allow_intersection_names, language_ploys);
-
-  std::cout << "3 " << sql << std::endl;
-
+  GetData(db_handle, stmt, sql, tilebuilder, polys, drive_on_right, allow_intersection_names,
+          language_ploys);
 
   if (stmt) { // just in case something bad happened.
     sqlite3_finalize(stmt);

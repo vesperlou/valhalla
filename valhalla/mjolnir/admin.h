@@ -51,8 +51,9 @@ uint32_t GetMultiPolyId(const std::multimap<uint32_t, multi_polygon_type>& polys
  */
 uint32_t GetMultiPolyId(const std::multimap<uint32_t, multi_polygon_type>& polys, const PointLL& ll);
 
-std::vector<std::string> GetMultiPolyIndexes(const std::vector<std::pair<std::string, multi_polygon_type>>& polys,
-                        const PointLL& ll);
+std::vector<std::string>
+GetMultiPolyIndexes(const std::vector<std::pair<std::string, multi_polygon_type>>& polys,
+                    const PointLL& ll);
 
 /**
  * Get the timezone polys from the db
