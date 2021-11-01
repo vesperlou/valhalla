@@ -204,7 +204,6 @@ struct OSMAdmin {
 
   // Default language
   uint32_t default_language_index_;
-
 };
 
 } // namespace mjolnir
