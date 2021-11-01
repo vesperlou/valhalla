@@ -1644,7 +1644,6 @@ struct OSMWay {
                 const UniqueNames& name_offset_map,
                 const OSMPronunciation& pronunciation,
                 const std::vector<std::string>& languages,
-                const std::vector<std::string>& country_lang_order,
                 uint16_t& types,
                 std::vector<std::string>& names,
                 std::vector<std::string>& pronunciations) const;
