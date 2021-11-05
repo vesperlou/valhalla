@@ -88,6 +88,7 @@
 -j '{"locations":[{"lat":50.658847,"lon":5.986007,"street":""},{"lat":50.654773,"lon":5.994033,"street":"Rabotrather Straße"}],"costing":"auto","units":"miles"}'
 -j '{"locations":[{"lat":50.856544,"lon":4.324338,"street":"Rue Dubois-Thorn"},{"lat":50.856910,"lon":4.332553,"street":"Rue de la Carpe"}],"costing":"auto","units":"miles"}'
 -j '{"locations":[{"lat":50.856910,"lon":4.332553,"street":"Rue de la Carpe"},{"lat":50.856544,"lon":4.324338,"street":"Rue Dubois-Thorn"}],"costing":"auto","units":"miles"}'
+<<<<<<< HEAD
 -j '{"locations":[{"lat":50.774146,"lon":2.946367,"street":"Neerwaastenstraat"},{"lat":50.771737,"lon":2.936797,"street":"Veldstraat"}],"costing":"auto","units":"miles"}'
 -j '{"locations":[{"lat":50.771737,"lon":2.936797,"street":"Veldstraat"},{"lat":50.774146,"lon":2.946367,"street":"Neerwaastenstraat"}],"costing":"auto","units":"miles"}'
 -j '{"locations":[{"lat":40.258651,"lon":-76.699708},{"lat":40.259101,"lon":-76.699938}],"costing":"auto","units":"miles"}'
@@ -116,3 +117,20 @@ j '{"locations":[{"lat":45.407263,"lon":-75.718896,"street":"Trillium Pathway"},
 j '{"locations":[{"lat":45.408921,"lon":-75.721278,"street":"Trillium Pathway"},{"lat":45.407263,"lon":-75.718896,"street":"Trillium Pathway"}],"costing":"bicycle","units":"miles"}'
 -j '{"locations":[{"lat":45.465804,"lon":-73.664829,"street":"Guelph Road"},{"lat":45.463991,"lon":-73.666180,"street":"Guelph Road"}],"costing":"auto","units":"miles"}'
 -j '{"locations":[{"lat":45.463991,"lon":-73.666180,"street":"Guelph Road"},{"lat":45.465804,"lon":-73.664829,"street":"Guelph Road"}],"costing":"auto","units":"miles"}'
+||||||| parent of 61111d530... rm blank line
+-j '{"locations":[{"lat":50.774146,"lon":2.946367,"street":"Neerwaastenstraat"},{"lat":50.771737,"lon":2.936797,"street":"Veldstraat"}],"costing":"auto","units":"miles"}'
+-j '{"locations":[{"lat":50.771737,"lon":2.936797,"street":"Veldstraat"},{"lat":50.774146,"lon":2.946367,"street":"Neerwaastenstraat"}],"costing":"auto","units":"miles"}'
+-j '{"locations":[{"lat":40.258651,"lon":-76.699708},{"lat":40.259101,"lon":-76.699938}],"costing":"auto","units":"miles"}'
+-j '{"locations":[{"lat":40.259101,"lon":-76.699938},{"lat":40.258651,"lon":-76.699708}],"costing":"auto","units":"miles"}'
+-j '{"locations":[{"lat":39.562518,"lon":-104.986877},{"lat":39.562569,"lon":-104.986635}],"costing":"auto","units":"miles"}'
+-j '{"locations":[{"lat":39.562569,"lon":-104.986635},{"lat":39.562518,"lon":-104.986877}],"costing":"auto","units":"miles"}'
+-j '{"locations":[{"lat":45.722669,"lon":-121.820260},{"lat":45.722658,"lon":-121.819831}],"costing":"auto","units":"miles"}'
+-j '{"locations":[{"lat":45.722658,"lon":-121.819831},{"lat":45.722669,"lon":-121.820260}],"costing":"auto","units":"miles"}'
+-j '{"locations":[{"lat":50.543074,"lon":2.799268,"street":"Rue d'Estaires"},{"lat":50.545723,"lon":2.797213,"street":"Rue d'Estaires"}],"costing":"auto","units":"miles"}'
+-j '{"locations":[{"lat":50.545723,"lon":2.797213,"street":"Rue d'Estaires"},{"lat":50.543074,"lon":2.799268,"street":"Rue d'Estaires"}],"costing":"auto","units":"miles"}'
+-j '{"locations":[{"lat":41.426044,"lon":-84.801664,"street":"Defiance Williams County Line Road"},{"lat":41.426237,"lon":-84.785721,"street":"Williams Defiance County Line Road"}],"costing":"auto","units":"miles"}'
+-j '{"locations":[{"lat":41.426237,"lon":-84.785721,"street":"Williams Defiance County Line Road"},{"lat":41.426044,"lon":-84.801664,"street":"Defiance Williams County Line Road"}],"costing":"auto","units":"miles"}'
+-j '{"locations":[{"lat":50.841984,"lon":4.406626,"street":"Boulevard Brand Whitlock"},{"lat":50.842623,"lon":4.406258,"street":"Boulevard Brand Whitlock"}],"costing":"auto","units":"miles"}'
+-j '{"locations":[{"lat":50.842585,"lon":4.406105,"street":"Boulevard Brand Whitlock"},{"lat":50.841952,"lon":4.406470,"street":"Boulevard Brand Whitlock"}],"costing":"auto","units":"miles"}'
+=======
+>>>>>>> 61111d530... rm blank line
