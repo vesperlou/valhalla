@@ -714,15 +714,25 @@ void BuildTileSet(const std::string& ways_file,
           // Get the shape for the edge and compute its length
           uint32_t edge_info_offset;
           auto found = geo_attribute_cache.cend();
-          if (dual_refs || !graphtile.HasEdgeInfo(edge_pair.second, (*nodes[source]).graph_id,
-                                                  (*nodes[target]).graph_id, edge_info_offset)) {
+          if ((w.name_left_index() && w.name_right_index()) || dual_refs ||
+              !graphtile.HasEdgeInfo(edge_pair.second, (*nodes[source]).graph_id,
+                                     (*nodes[target]).graph_id, edge_info_offset)) {
 
             // add the info
             auto shape = EdgeShape(edge.llindex_, edge.attributes.llcount);
+            uint32_t name_index = w.name_index(), name_lang_index = w.name_lang_index();
+            if (w.name_right_index() && forward) {
+              name_index = w.name_right_index();
+              name_lang_index = w.name_right_lang_index();
+            } else if (w.name_left_index() && !forward) {
+              name_index = w.name_left_index();
+              name_lang_index = w.name_left_lang_index();
+            }
 
             uint16_t types = 0;
             std::vector<std::string> names, tagged_values, pronunciations;
-            w.GetNames(ref, osmdata.name_offset_map, p, languages, types, names, pronunciations);
+            w.GetNames(ref, osmdata.name_offset_map, p, languages, name_index, name_lang_index, types,
+                       names, pronunciations);
             w.GetTaggedValues(osmdata.name_offset_map, p, names.size(), tagged_values,
                               pronunciations);
             // Update bike_network type
