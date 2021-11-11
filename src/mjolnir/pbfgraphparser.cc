@@ -469,6 +469,14 @@ public:
       if (!tag_.second.empty())
         name_ = tag_.second;
     };
+    tag_handlers_["name:left"] = [this]() {
+      if (!tag_.second.empty())
+        name_left_ = tag_.second;
+    };
+    tag_handlers_["name:right"] = [this]() {
+      if (!tag_.second.empty())
+        name_right_ = tag_.second;
+    };
     tag_handlers_["alt_name"] = [this]() {
       if (!tag_.second.empty() && allow_alt_name_)
         way_.set_alt_name_index(osmdata_.name_offset_map.index(tag_.second));
@@ -1740,6 +1748,8 @@ public:
     has_average_speed_ = false, has_advisory_speed_ = false;
     has_surface_ = true;
     name_ = {}, language_ = {}, name_w_lang_ = {}, service_ = {}, amenity_ = {};
+    name_left_ = {}, name_right_ = {}, lang_left_ = {}, lang_right_ = {};
+    name_left_w_lang_ = {}, name_right_w_lang_ = {};
 
     // Process tags
     way_ = OSMWay{osmid_};
@@ -1773,8 +1783,39 @@ public:
              << std::string{ex.what()};
           LOG_WARN(ss.str());
         }
+      } else if (tag_.first.size() == 12 && tag_.first.substr(0, 10) == "name:left:") {
+        std::vector<std::string> tokens = GetTagTokens(tag_.first, ':');
+        if (tokens.size() == 3) {
 
-      } else if (tag_.first.substr(0, 5) == "name:") {
+          std::string lang = tokens.at(2);
+          if (lang.length() == 2 && !tag_.second.empty()) // name:left:en
+          {
+            if (name_left_w_lang_.empty()) {
+              name_left_w_lang_ = tag_.second;
+              lang_left_ = lang;
+            } else {
+              name_left_w_lang_ += ";" + tag_.second;
+              lang_left_ += ";" + lang;
+            }
+          }
+        }
+      } else if (tag_.first.size() == 13 && tag_.first.substr(0, 11) == "name:right:") {
+        std::vector<std::string> tokens = GetTagTokens(tag_.first, ':');
+        if (tokens.size() == 3) {
+
+          std::string lang = tokens.at(2);
+          if (lang.length() == 2 && !tag_.second.empty()) // name:left:en
+          {
+            if (name_right_w_lang_.empty()) {
+              name_right_w_lang_ = tag_.second;
+              lang_right_ = lang;
+            } else {
+              name_right_w_lang_ += ";" + tag_.second;
+              lang_right_ += ";" + lang;
+            }
+          }
+        }
+      } else if (tag_.first.size() == 7 && tag_.first.substr(0, 5) == "name:") {
         std::vector<std::string> tokens = GetTagTokens(tag_.first, ':');
         if (tokens.size() == 2) {
 
@@ -2153,11 +2194,74 @@ public:
         way_.set_name_index(osmdata_.name_offset_map.index(name_));
       else {
         uint32_t count = std::count(name_.begin(), name_.end(), ';');
+        std::string l = language_;
         for (uint32_t i = 0; i <= count; i++) {
-          language_ = ";" + language_;
+          l = ";" + l;
         }
         way_.set_name_index(osmdata_.name_offset_map.index(name_ + ";" + name_w_lang_));
-        way_.set_name_lang_index(osmdata_.name_offset_map.index(language_));
+        way_.set_name_lang_index(osmdata_.name_offset_map.index(l));
+      }
+    }
+
+    if (!name_left_.empty()) {
+
+      /*std::vector<std::string> temp_names = GetTagTokens(name_, " - ");
+      if (temp_names.size() >= 2)
+        name_left_ = name_;
+      else {
+        temp_names = GetTagTokens(name_, " / ");
+        if (temp_names.size() >= 2)
+          name_left_ = name_;
+      }*/
+
+      if (name_left_w_lang_.empty())
+        way_.set_name_left_index(osmdata_.name_offset_map.index(name_left_));
+      else {
+        uint32_t count = std::count(name_left_.begin(), name_left_.end(), ';');
+        for (uint32_t i = 0; i <= count; i++) {
+          lang_left_ = ";" + lang_left_;
+        }
+
+        if (!name_w_lang_.empty()) { // other side of street name may not change
+          way_.set_name_left_index(osmdata_.name_offset_map.index(
+              name_left_ + ";" + name_left_w_lang_ + ";" + name_w_lang_));
+          way_.set_name_left_lang_index(osmdata_.name_offset_map.index(lang_left_ + ";" + language_));
+        } else {
+          way_.set_name_left_index(
+              osmdata_.name_offset_map.index(name_left_ + ";" + name_left_w_lang_));
+          way_.set_name_left_lang_index(osmdata_.name_offset_map.index(lang_left_));
+        }
+      }
+    }
+
+    if (!name_right_.empty()) {
+
+      /*std::vector<std::string> temp_names = GetTagTokens(name_, " - ");
+      if (temp_names.size() >= 2)
+        name_right_ = name_;
+      else {
+        temp_names = GetTagTokens(name_, " / ");
+        if (temp_names.size() >= 2)
+          name_right_ = name_;
+      }*/
+
+      if (name_right_w_lang_.empty())
+        way_.set_name_right_index(osmdata_.name_offset_map.index(name_right_));
+      else {
+        uint32_t count = std::count(name_right_.begin(), name_right_.end(), ';');
+        for (uint32_t i = 0; i <= count; i++) {
+          lang_right_ = ";" + lang_right_;
+        }
+        if (!name_w_lang_.empty()) { // other side of street name may not change
+          way_.set_name_right_index(osmdata_.name_offset_map.index(
+              name_right_ + ";" + name_right_w_lang_ + ";" + name_w_lang_));
+          way_.set_name_right_lang_index(
+              osmdata_.name_offset_map.index(lang_right_ + ";" + language_));
+        } else {
+          way_.set_name_right_index(
+              osmdata_.name_offset_map.index(name_right_ + ";" + name_right_w_lang_));
+          way_.set_name_right_lang_index(osmdata_.name_offset_map.index(lang_right_));
+        }
       }
     }
 
@@ -2922,6 +3026,8 @@ public:
       direction_pronunciation_katakana_, int_direction_pronunciation_katakana_,
       direction_pronunciation_jeita_, int_direction_pronunciation_jeita_;
   std::string name_, language_, name_w_lang_, service_, amenity_;
+  std::string name_left_, name_right_, lang_left_, lang_right_;
+  std::string name_left_w_lang_, name_right_w_lang_;
 
   // Configuration option to include driveways
   bool include_driveways_;
