@@ -187,6 +187,70 @@ struct OSMWay {
   }
 
   /**
+   * Sets the index for left name
+   * @param  idx  Index for the left name.
+   */
+  void set_name_left_index(const uint32_t idx) {
+    name_left_index_ = idx;
+  }
+
+  /**
+   * Get the left name index.
+   * @return  Returns the index for the left name.
+   */
+  uint32_t name_left_index() const {
+    return name_left_index_;
+  }
+
+  /**
+   * Sets the index for name:left:<lang>
+   * @param  idx  Index for the left languages.
+   */
+  void set_name_left_lang_index(const uint32_t idx) {
+    name_left_lang_index_ = idx;
+  }
+
+  /**
+   * Get the name:left:<lang> index.
+   * @return  Returns the index for the left languages.
+   */
+  uint32_t name_left_lang_index() const {
+    return name_left_lang_index_;
+  }
+
+  /**
+   * Sets the index for right name
+   * @param  idx  Index for the right name.
+   */
+  void set_name_right_index(const uint32_t idx) {
+    name_right_index_ = idx;
+  }
+
+  /**
+   * Get the right name index.
+   * @return  Returns the index for the right name.
+   */
+  uint32_t name_right_index() const {
+    return name_right_index_;
+  }
+
+  /**
+   * Sets the index for name:right:<lang>
+   * @param  idx  Index for the right languages.
+   */
+  void set_name_right_lang_index(const uint32_t idx) {
+    name_right_lang_index_ = idx;
+  }
+
+  /**
+   * Get the name:right:<lang> index.
+   * @return  Returns the index for the right languages.
+   */
+  uint32_t name_right_lang_index() const {
+    return name_right_lang_index_;
+  }
+
+  /**
    * Sets the index for alt name
    * @param  idx  Index for the alt name.
    */
@@ -1644,6 +1708,8 @@ struct OSMWay {
                 const UniqueNames& name_offset_map,
                 const OSMPronunciation& pronunciation,
                 const std::vector<std::string>& languages,
+                const uint32_t name_index,
+                const uint32_t name_lang_index,
                 uint16_t& types,
                 std::vector<std::string>& names,
                 std::vector<std::string>& pronunciations) const;
@@ -1664,6 +1730,11 @@ struct OSMWay {
   // Names
   uint32_t name_index_;
   uint32_t name_lang_index_;
+  uint32_t name_left_index_;
+  uint32_t name_left_lang_index_;
+  uint32_t name_right_index_;
+  uint32_t name_right_lang_index_;
+
   uint32_t alt_name_index_;
   uint32_t official_name_index_;
   uint32_t tunnel_name_index_;
