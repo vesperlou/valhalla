@@ -173,6 +173,8 @@ void OSMWay::GetNames(const std::string& ref,
                       const UniqueNames& name_offset_map,
                       const OSMPronunciation& pronunciation,
                       const std::vector<std::string>& languages,
+                      const uint32_t name_index,
+                      const uint32_t name_lang_index,
                       uint16_t& types,
                       std::vector<std::string>& names,
                       std::vector<std::string>& pronunciations) const {
@@ -210,12 +212,12 @@ void OSMWay::GetNames(const std::string& ref,
   // TODO int_ref
 
   // Process name
-  if (name_index_ != 0) {
+  if (name_index != 0) {
 
     std::vector<std::string> tokens, token_languages;
     std::vector<std::pair<std::string, std::string>> updated_token_languages;
-    tokens = GetTagTokens(name_offset_map.name(name_index_));
-    token_languages = GetTagTokens(name_offset_map.name(name_lang_index_));
+    tokens = GetTagTokens(name_offset_map.name(name_index));
+    token_languages = GetTagTokens(name_offset_map.name(name_lang_index));
 
     // remove any entries that are not in our country language list
     // then sort our names based on the list.
