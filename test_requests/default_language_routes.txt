@@ -88,4 +88,5 @@
 -j '{"locations":[{"lat":50.658847,"lon":5.986007,"street":""},{"lat":50.654773,"lon":5.994033,"street":"Rabotrather Straße"}],"costing":"auto","units":"miles"}'
 -j '{"locations":[{"lat":50.856544,"lon":4.324338,"street":"Rue Dubois-Thorn"},{"lat":50.856910,"lon":4.332553,"street":"Rue de la Carpe"}],"costing":"auto","units":"miles"}'
 -j '{"locations":[{"lat":50.856910,"lon":4.332553,"street":"Rue de la Carpe"},{"lat":50.856544,"lon":4.324338,"street":"Rue Dubois-Thorn"}],"costing":"auto","units":"miles"}'
-
+-j '{"locations":[{"lat":50.774146,"lon":2.946367,"street":"Neerwaastenstraat"},{"lat":50.771737,"lon":2.936797,"street":"Veldstraat"}],"costing":"auto","units":"miles"}'
+-j '{"locations":[{"lat":50.771737,"lon":2.936797,"street":"Veldstraat"},{"lat":50.774146,"lon":2.946367,"street":"Neerwaastenstraat"}],"costing":"auto","units":"miles"}'
