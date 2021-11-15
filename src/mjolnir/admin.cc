@@ -69,6 +69,15 @@ uint32_t GetMultiPolyId(const std::multimap<uint32_t, multi_polygon_type>& polys
 std::vector<std::string>
 GetMultiPolyIndexes(const std::vector<std::pair<std::string, multi_polygon_type>>& polys,
                     const PointLL& ll) {
+
+  auto process_languages = [](const std::vector<std::string>& langs, std::vector<std::string>& languages) {
+    for (const auto& l : langs) {
+      auto it = std::find(languages.begin(), languages.end(), l);
+      if (it == languages.end() && stringLanguage(l) != Language::kNone)
+        languages.emplace_back(l);
+    }
+  };
+
   std::vector<std::string> languages;
   std::vector<std::string>::iterator it;
 
@@ -82,13 +91,14 @@ GetMultiPolyIndexes(const std::vector<std::pair<std::string, multi_polygon_type>
       if (it == languages.end()) {
         std::vector<std::string> langs = GetTagTokens(poly.first, " - ");
         if (langs.size() >= 2) {
-          for (const auto& l : langs) {
-            it = std::find(languages.begin(), languages.end(), l);
-            if (it == languages.end())
-              languages.emplace_back(l);
-          }
-        } else
-          languages.emplace_back(poly.first);
+          process_languages(langs,languages);
+        } else {
+          langs = GetTagTokens(poly.first);
+          if (langs.size() >= 2) {
+            process_languages(langs,languages);
+          } else
+            languages.emplace_back(poly.first);
+        }
       }
     }
   }
