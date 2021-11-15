@@ -485,7 +485,6 @@ inline Language stringLanguage(const std::string& s) {
     return Language::kNone;
   }
   return i->second;
-
 }
 inline std::string to_string(Language l) {
   static const std::unordered_map<uint8_t, std::string> LanguageStrings =
