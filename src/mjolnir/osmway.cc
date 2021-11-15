@@ -169,13 +169,14 @@ void OSMWay::AddPronunciations(std::vector<std::string>& pronunciations,
 }
 
 void OSMWay::AddLanguages(std::vector<std::string>& languages,
-                               const std::vector<baldr::Language>& token_languages,
-                               const size_t key) const {
+                          const std::vector<baldr::Language>& token_languages,
+                          const size_t key) const {
   if (token_languages.size() != 0) {
     std::string language;
 
     linguistic_text_header_t header{static_cast<uint8_t>(baldr::Language::kNone), 0,
-                                    static_cast<uint8_t>(baldr::PronunciationAlphabet::kNone), static_cast<uint8_t>(key)};
+                                    static_cast<uint8_t>(baldr::PronunciationAlphabet::kNone),
+                                    static_cast<uint8_t>(key)};
     for (const auto& t : token_languages) {
       header.language_ = static_cast<uint8_t>(t);
       header.length_ = 0;
@@ -241,9 +242,11 @@ void OSMWay::GetNames(const std::string& ref,
 
     // remove any entries that are not in our country language list
     // then sort our names based on the list.
-    if (default_languages.size() && tokens.size() == token_languages.size()) { // should always be equal
+    if (default_languages.size() &&
+        tokens.size() == token_languages.size()) { // should always be equal
       for (size_t i = 0; i < token_languages.size(); i++) {
-        if (std::find(default_languages.begin(), default_languages.end(), token_languages[i]) != default_languages.end()) {
+        if (std::find(default_languages.begin(), default_languages.end(), token_languages[i]) !=
+            default_languages.end()) {
           updated_token_languages.emplace_back(tokens[i], token_languages[i]);
         }
       }
@@ -285,8 +288,8 @@ void OSMWay::GetNames(const std::string& ref,
         } else if (std::find(names_w_no_lang.begin(), names_w_no_lang.end(),
                              updated_token_languages[i].first) != names_w_no_lang.end()) {
           names_w_no_lang_count++;
-        } else if (std::find(default_languages.begin(), default_languages.end(), updated_token_languages[i].second) !=
-            default_languages.end()) {
+        } else if (std::find(default_languages.begin(), default_languages.end(),
+                             updated_token_languages[i].second) != default_languages.end()) {
           supported_names.emplace_back(updated_token_languages[i].first);
           supported_langs.emplace_back(stringLanguage(updated_token_languages[i].second));
         }
@@ -302,19 +305,17 @@ void OSMWay::GetNames(const std::string& ref,
           tokens.insert(tokens.end(), multilingual_names_found.begin(),
                         multilingual_names_found.end());
           token_langs.insert(token_langs.end(), multilingual_langs_found.begin(),
-                                 multilingual_langs_found.end());
+                             multilingual_langs_found.end());
         }
         if (default_names) {
           tokens.insert(tokens.end(), names_w_no_lang.begin(), names_w_no_lang.end());
 
           for (size_t i = 0; i < names_w_no_lang.size(); i++)
             token_langs.emplace_back(Language::kNone);
-
         }
         if (allowed_names) {
           tokens.insert(tokens.end(), supported_names.begin(), supported_names.end());
-          token_langs.insert(token_langs.end(), supported_langs.begin(),
-                                 supported_langs.end());
+          token_langs.insert(token_langs.end(), supported_langs.begin(), supported_langs.end());
         }
       } else { // bail
         tokens.clear();
@@ -338,7 +339,6 @@ void OSMWay::GetNames(const std::string& ref,
                       pronunciation.name_pronunciation_jeita_index(), tokens.size(), key);
 
     AddLanguages(languages, token_langs, key);
-
   }
 
   // Process non limited access refs

@@ -818,8 +818,7 @@ TripLeg_Edge* AddTripEdge(const AttributesController& controller,
     trip_edge->mutable_name()->Reserve(names_and_types.size());
     std::unordered_map<uint8_t, std::pair<uint8_t, std::string>> pronunciations =
         edgeinfo.GetPronunciationsMap();
-    std::unordered_map<uint8_t, uint8_t> languages =
-        edgeinfo.GetLanguageMap();
+    std::unordered_map<uint8_t, uint8_t> languages = edgeinfo.GetLanguageMap();
 
     uint8_t name_index = 0;
     for (const auto& name_and_type : names_and_types) {
@@ -844,12 +843,13 @@ TripLeg_Edge* AddTripEdge(const AttributesController& controller,
         pronunciation->set_value((iter->second).second);
       }
 
-      std::unordered_map<uint8_t, uint8_t>::const_iterator lang_iter =
-          languages.find(name_index);
+      std::unordered_map<uint8_t, uint8_t>::const_iterator lang_iter = languages.find(name_index);
 
       // Assign language if one exists
       if (lang_iter != languages.end()) {
-        std::cout << name_and_type.first << " language: " << to_string(static_cast<Language>(lang_iter->second)) << std::endl;
+        std::cout << name_and_type.first
+                  << " language: " << to_string(static_cast<Language>(lang_iter->second))
+                  << std::endl;
       }
 
       name_index++;

@@ -111,7 +111,7 @@ std::vector<std::string> EdgeInfo::GetTaggedValues() const {
       try {
         TaggedValue tv = static_cast<baldr::TaggedValue>(name[0]);
         if (tv == baldr::TaggedValue::kPronunciation || tv == baldr::TaggedValue::kLanguage) {
-            continue;
+          continue;
         } else {
           names.push_back(name);
         }
@@ -142,7 +142,7 @@ std::vector<std::string> EdgeInfo::GetLinguisticTaggedValues(bool only_pronuncia
         if ((tv == baldr::TaggedValue::kPronunciation && only_pronunciations) ||
             (tv == baldr::TaggedValue::kLanguage && !only_pronunciations)) {
           name += 1;
-          while (*name != '\0' ) {
+          while (*name != '\0') {
             const auto& header = *reinterpret_cast<const linguistic_text_header_t*>(name);
             names.emplace_back(std::string(name, header.length_ + 3));
             name += header.length_ + 3;
@@ -239,7 +239,7 @@ std::unordered_map<uint8_t, std::pair<uint8_t, std::string>> EdgeInfo::GetPronun
         TaggedValue tv = static_cast<baldr::TaggedValue>(name[0]);
         if (tv == baldr::TaggedValue::kPronunciation) {
           name += 1;
-          while (*name != '\0' ) {
+          while (*name != '\0') {
             const auto& header = *reinterpret_cast<const linguistic_text_header_t*>(name);
             std::unordered_map<uint8_t, std::pair<uint8_t, std::string>>::iterator iter =
                 index_pronunciation_map.find(header.name_index_);
@@ -270,7 +270,7 @@ std::unordered_map<uint8_t, std::pair<uint8_t, std::string>> EdgeInfo::GetPronun
 }
 
 std::unordered_map<uint8_t, uint8_t> EdgeInfo::GetLanguageMap() const {
-  std::unordered_map<uint8_t, uint8_t>  index_language_map;
+  std::unordered_map<uint8_t, uint8_t> index_language_map;
   index_language_map.reserve(name_count());
   const NameInfo* ni = name_info_list_;
   for (uint32_t i = 0; i < name_count(); i++, ni++) {
@@ -283,11 +283,9 @@ std::unordered_map<uint8_t, uint8_t> EdgeInfo::GetLanguageMap() const {
         TaggedValue tv = static_cast<baldr::TaggedValue>(name[0]);
         if (tv == baldr::TaggedValue::kLanguage) {
           name += 1;
-          while (*name != '\0' ) {
+          while (*name != '\0') {
             const auto& header = *reinterpret_cast<const linguistic_text_header_t*>(name);
-            index_language_map.emplace(
-                std::make_pair(header.name_index_,
-                                 header.language_));
+            index_language_map.emplace(std::make_pair(header.name_index_, header.language_));
             name += header.length_ + 3;
           }
         }

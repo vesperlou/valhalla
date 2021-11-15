@@ -493,8 +493,8 @@ uint32_t AddShortcutEdges(GraphReader& reader,
       uint32_t idx = ((length & 0xfffff) | ((shape.size() & 0xfff) << 20));
       uint32_t edge_info_offset =
           tilebuilder.AddEdgeInfo(idx, start_node, end_node, 0, 0, edgeinfo.bike_network(),
-                                  edgeinfo.speed_limit(), shape, names, tagged_values, pronunciations, languages,
-                                  types, forward, diff_names);
+                                  edgeinfo.speed_limit(), shape, names, tagged_values, pronunciations,
+                                  languages, types, forward, diff_names);
 
       newedge.set_edgeinfo_offset(edge_info_offset);
 
@@ -686,9 +686,9 @@ uint32_t FormShortcuts(GraphReader& reader, const TileLevel& level) {
                                     edgeinfo.wayid(), edgeinfo.mean_elevation(),
                                     edgeinfo.bike_network(), edgeinfo.speed_limit(),
                                     edgeinfo.encoded_shape(), edgeinfo.GetNames(),
-                                    edgeinfo.GetTaggedValues(), edgeinfo.GetLinguisticTaggedValues(true),
-                                    edgeinfo.GetLinguisticTaggedValues(),
-                                    edgeinfo.GetTypes(), added);
+                                    edgeinfo.GetTaggedValues(),
+                                    edgeinfo.GetLinguisticTaggedValues(true),
+                                    edgeinfo.GetLinguisticTaggedValues(), edgeinfo.GetTypes(), added);
         newedge.set_edgeinfo_offset(edge_info_offset);
 
         // Set the superseded mask - this is the shortcut mask that supersedes this edge
