@@ -205,6 +205,7 @@ public:
    * @param  lls            The shape of the target edge.
    * @param  names          The names of the target edge.
    * @param  pronunciations The pronunciations of the target edge.
+   * @param  languages      The languages for the names
    * @param  types          Bits indicating if the name is a ref vs a name.
    * @param  added          Set to true if the target edge was newly added to the list,
    *                        set to false if the target edge was already in the list.
@@ -224,6 +225,7 @@ public:
                        const std::vector<std::string>& names,
                        const std::vector<std::string>& tagged_values,
                        const std::vector<std::string>& pronunciations,
+                       const std::vector<std::string>& languages,
                        const uint16_t types,
                        bool& added,
                        bool diff_names = false);
@@ -245,8 +247,9 @@ public:
    * @param  spd            Speed limit.
    * @param  llstr          The shape of the target edge as an encoded string.
    * @param  names          The names of the target edge.
-   * @param  tagged_values   The tagged names of the target edge.
+   * @param  tagged_values  The tagged names of the target edge.
    * @param  pronunciations The pronunciations of the target edge.
+   * @param  languages      The languages for the names
    * @param  types          Bits indicating if the name is a ref vs a name.
    * @param  added          Set to true if the target edge was newly added to the list,
    *                        set to false if the target edge was already in the list.
@@ -265,6 +268,7 @@ public:
                        const std::vector<std::string>& names,
                        const std::vector<std::string>& tagged_values,
                        const std::vector<std::string>& pronunciations,
+                       const std::vector<std::string>& languages,
                        const uint16_t types,
                        bool& added,
                        bool diff_names = false);
