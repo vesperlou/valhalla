@@ -168,16 +168,35 @@ void OSMWay::AddPronunciations(std::vector<std::string>& pronunciations,
   }
 }
 
+void OSMWay::AddLanguages(std::vector<std::string>& languages,
+                               const std::vector<baldr::Language>& token_languages,
+                               const size_t key) const {
+  if (token_languages.size() != 0) {
+    std::string language;
+
+    linguistic_text_header_t header{static_cast<uint8_t>(baldr::Language::kNone), 0,
+                                    static_cast<uint8_t>(baldr::PronunciationAlphabet::kNone), static_cast<uint8_t>(key)};
+    for (const auto& t : token_languages) {
+      header.language_ = static_cast<uint8_t>(t);
+      header.length_ = 0;
+      language.append(std::string(reinterpret_cast<const char*>(&header), 3));
+      ++header.name_index_;
+    }
+    languages.emplace_back(language);
+  }
+}
+
 // Get the names for the edge info based on the road class.
 void OSMWay::GetNames(const std::string& ref,
                       const UniqueNames& name_offset_map,
                       const OSMPronunciation& pronunciation,
-                      const std::vector<std::string>& languages,
+                      const std::vector<std::string>& default_languages,
                       const uint32_t name_index,
                       const uint32_t name_lang_index,
                       uint16_t& types,
                       std::vector<std::string>& names,
-                      std::vector<std::string>& pronunciations) const {
+                      std::vector<std::string>& pronunciations,
+                      std::vector<std::string>& languages) const {
 
   uint16_t location = 0;
   types = 0;
@@ -215,22 +234,23 @@ void OSMWay::GetNames(const std::string& ref,
   if (name_index != 0) {
 
     std::vector<std::string> tokens, token_languages;
+    std::vector<baldr::Language> token_langs;
     std::vector<std::pair<std::string, std::string>> updated_token_languages;
     tokens = GetTagTokens(name_offset_map.name(name_index));
     token_languages = GetTagTokens(name_offset_map.name(name_lang_index));
 
     // remove any entries that are not in our country language list
     // then sort our names based on the list.
-    if (languages.size() && tokens.size() == token_languages.size()) { // should always be equal
+    if (default_languages.size() && tokens.size() == token_languages.size()) { // should always be equal
       for (size_t i = 0; i < token_languages.size(); i++) {
-        if (std::find(languages.begin(), languages.end(), token_languages[i]) != languages.end()) {
+        if (std::find(default_languages.begin(), default_languages.end(), token_languages[i]) != default_languages.end()) {
           updated_token_languages.emplace_back(tokens[i], token_languages[i]);
         }
       }
 
       std::unordered_map<std::string, uint32_t> lang_sort_order;
-      for (size_t i = 0; i < languages.size(); i++)
-        lang_sort_order[languages[i]] = i;
+      for (size_t i = 0; i < default_languages.size(); i++)
+        lang_sort_order[default_languages[i]] = i;
 
       auto cmp = [&lang_sort_order](const std::pair<std::string, std::string>& p1,
                                     const std::pair<std::string, std::string>& p2) {
@@ -240,6 +260,7 @@ void OSMWay::GetNames(const std::string& ref,
       std::sort(updated_token_languages.begin(), updated_token_languages.end(), cmp);
       std::vector<std::string> multilingual_names, multilingual_names_found, names_w_no_lang,
           supported_names;
+      std::vector<baldr::Language> multilingual_langs_found, supported_langs;
       uint32_t names_w_no_lang_count = 0;
 
       for (size_t i = 0; i < updated_token_languages.size(); ++i) {
@@ -260,12 +281,14 @@ void OSMWay::GetNames(const std::string& ref,
         } else if (std::find(multilingual_names.begin(), multilingual_names.end(),
                              updated_token_languages[i].first) != multilingual_names.end()) {
           multilingual_names_found.emplace_back(updated_token_languages[i].first);
+          multilingual_langs_found.emplace_back(stringLanguage(updated_token_languages[i].second));
         } else if (std::find(names_w_no_lang.begin(), names_w_no_lang.end(),
                              updated_token_languages[i].first) != names_w_no_lang.end()) {
           names_w_no_lang_count++;
-        } else if (std::find(languages.begin(), languages.end(), updated_token_languages[i].second) !=
-                   languages.end()) {
+        } else if (std::find(default_languages.begin(), default_languages.end(), updated_token_languages[i].second) !=
+            default_languages.end()) {
           supported_names.emplace_back(updated_token_languages[i].first);
+          supported_langs.emplace_back(stringLanguage(updated_token_languages[i].second));
         }
       }
       bool multi_names = (multilingual_names_found.size());
@@ -278,12 +301,20 @@ void OSMWay::GetNames(const std::string& ref,
         if (multi_names) {
           tokens.insert(tokens.end(), multilingual_names_found.begin(),
                         multilingual_names_found.end());
+          token_langs.insert(token_langs.end(), multilingual_langs_found.begin(),
+                                 multilingual_langs_found.end());
         }
         if (default_names) {
           tokens.insert(tokens.end(), names_w_no_lang.begin(), names_w_no_lang.end());
+
+          for (size_t i = 0; i < names_w_no_lang.size(); i++)
+            token_langs.emplace_back(Language::kNone);
+
         }
         if (allowed_names) {
           tokens.insert(tokens.end(), supported_names.begin(), supported_names.end());
+          token_langs.insert(token_langs.end(), supported_langs.begin(),
+                                 supported_langs.end());
         }
       } else { // bail
         tokens.clear();
@@ -305,6 +336,9 @@ void OSMWay::GetNames(const std::string& ref,
                       pronunciation.name_pronunciation_nt_sampa_index(),
                       pronunciation.name_pronunciation_katakana_index(),
                       pronunciation.name_pronunciation_jeita_index(), tokens.size(), key);
+
+    AddLanguages(languages, token_langs, key);
+
   }
 
   // Process non limited access refs

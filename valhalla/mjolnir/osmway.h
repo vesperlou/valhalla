@@ -1684,6 +1684,10 @@ struct OSMWay {
                          const size_t name_tokens_size,
                          const size_t key) const;
 
+  void AddLanguages(std::vector<std::string>& languages,
+                                 const std::vector<baldr::Language>& token_languages,
+                                 const size_t key) const;
+
   /**
    * Sets layer index(Z-level) of the way.
    * @param layer
@@ -1707,12 +1711,13 @@ struct OSMWay {
   void GetNames(const std::string& ref,
                 const UniqueNames& name_offset_map,
                 const OSMPronunciation& pronunciation,
-                const std::vector<std::string>& languages,
+                const std::vector<std::string>& default_languages,
                 const uint32_t name_index,
                 const uint32_t name_lang_index,
                 uint16_t& types,
                 std::vector<std::string>& names,
-                std::vector<std::string>& pronunciations) const;
+                std::vector<std::string>& pronunciations,
+                std::vector<std::string>& languages) const;
 
   void GetTaggedValues(const UniqueNames& name_offset_map,
                        const OSMPronunciation& pronunciation,
