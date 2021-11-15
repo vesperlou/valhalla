@@ -39,6 +39,8 @@ struct OSMConnectionEdge {
   std::vector<std::string> names;
   std::vector<std::string> tagged_values;
   std::vector<std::string> pronunciations;
+  std::vector<std::string> languages;
+
   std::list<PointLL> shape;
 
   OSMConnectionEdge(const GraphId& f,
@@ -199,7 +201,7 @@ void ConnectToGraph(GraphTileBuilder& tilebuilder_local,
       bool added = false;
       uint32_t edge_info_offset =
           tilebuilder_local.AddEdgeInfo(0, conn.osm_node, endnode, conn.wayid, 0, 0, 0, conn.shape,
-                                        conn.names, conn.tagged_values, conn.pronunciations, 0,
+                                        conn.names, conn.tagged_values, conn.pronunciations, conn.languages, 0,
                                         added);
       directededge.set_edgeinfo_offset(edge_info_offset);
       directededge.set_forward(true);
@@ -315,7 +317,7 @@ void ConnectToGraph(GraphTileBuilder& tilebuilder_local,
         uint32_t edge_info_offset =
             tilebuilder_transit.AddEdgeInfo(0, origin_node, conn.osm_node, conn.wayid, 0, 0, 0,
                                             r_shape, conn.names, conn.tagged_values,
-                                            conn.pronunciations, 0, added);
+                                            conn.pronunciations, conn.languages, 0, added);
         LOG_DEBUG("Add conn from stop to OSM: ei offset = " + std::to_string(edge_info_offset));
         directededge.set_edgeinfo_offset(edge_info_offset);
         directededge.set_forward(true);
