@@ -285,13 +285,13 @@ void OSMWay::GetNames(const std::string& ref,
                              updated_token_languages[i].first) != multilingual_names.end()) {
           multilingual_names_found.emplace_back(updated_token_languages[i].first);
           multilingual_langs_found.emplace_back(stringLanguage(updated_token_languages[i].second));
-        } else if (std::find(names_w_no_lang.begin(), names_w_no_lang.end(),
-                             updated_token_languages[i].first) != names_w_no_lang.end()) {
-          names_w_no_lang_count++;
         } else if (std::find(default_languages.begin(), default_languages.end(),
                              updated_token_languages[i].second) != default_languages.end()) {
           supported_names.emplace_back(updated_token_languages[i].first);
           supported_langs.emplace_back(stringLanguage(updated_token_languages[i].second));
+        } else if (std::find(names_w_no_lang.begin(), names_w_no_lang.end(),
+                             updated_token_languages[i].first) != names_w_no_lang.end()) {
+          names_w_no_lang_count++;
         }
       }
       bool multi_names = (multilingual_names_found.size());
