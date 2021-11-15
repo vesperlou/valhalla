@@ -1783,12 +1783,12 @@ public:
              << std::string{ex.what()};
           LOG_WARN(ss.str());
         }
-      } else if (tag_.first.size() == 12 && tag_.first.substr(0, 10) == "name:left:") {
+      } else if (tag_.first.substr(0, 10) == "name:left:") {
         std::vector<std::string> tokens = GetTagTokens(tag_.first, ':');
         if (tokens.size() == 3) {
 
           std::string lang = tokens.at(2);
-          if (lang.length() == 2 && !tag_.second.empty()) // name:left:en
+          if (stringLanguage(lang) != Language::kNone && !tag_.second.empty()) // name:left:en
           {
             if (name_left_w_lang_.empty()) {
               name_left_w_lang_ = tag_.second;
@@ -1799,12 +1799,12 @@ public:
             }
           }
         }
-      } else if (tag_.first.size() == 13 && tag_.first.substr(0, 11) == "name:right:") {
+      } else if (tag_.first.substr(0, 11) == "name:right:") {
         std::vector<std::string> tokens = GetTagTokens(tag_.first, ':');
         if (tokens.size() == 3) {
 
           std::string lang = tokens.at(2);
-          if (lang.length() == 2 && !tag_.second.empty()) // name:left:en
+          if (stringLanguage(lang) != Language::kNone && !tag_.second.empty()) // name:left:en
           {
             if (name_right_w_lang_.empty()) {
               name_right_w_lang_ = tag_.second;
@@ -1815,12 +1815,12 @@ public:
             }
           }
         }
-      } else if (tag_.first.size() == 7 && tag_.first.substr(0, 5) == "name:") {
+      } else if (tag_.first.substr(0, 5) == "name:") {
         std::vector<std::string> tokens = GetTagTokens(tag_.first, ':');
         if (tokens.size() == 2) {
 
           std::string lang = tokens.at(1);
-          if (lang.length() == 2 && !tag_.second.empty()) // name:en, name:ar, name:fr, etc
+          if (stringLanguage(lang) != Language::kNone && !tag_.second.empty()) // name:en, name:ar, name:fr, etc
           {
             if (name_w_lang_.empty()) {
               name_w_lang_ = tag_.second;
