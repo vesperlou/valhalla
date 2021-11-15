@@ -152,12 +152,19 @@ public:
   std::vector<std::string> GetNames() const;
 
   /**
+   * Convenience method to get the non linguistic, tagged names for an edge
+   *
+   * @return   Returns a list (vector) of tagged names.
+   */
+  std::vector<std::string> GetTaggedValues() const;
+
+  /**
    * Convenience method to get the names for an edge
    * @param  only_pronunciations  Bool indicating whether or not to return only the pronunciations
    *
    * @return   Returns a list (vector) of tagged names.
    */
-  std::vector<std::string> GetTaggedValues(bool only_pronunciations = false) const;
+  std::vector<std::string> GetLinguisticTaggedValues(bool only_pronunciations = false) const;
 
   /**
    * Convenience method to get the names and route number flags for an edge.
@@ -181,6 +188,13 @@ public:
    * index from GetNamesAndTypes
    */
   std::unordered_map<uint8_t, std::pair<uint8_t, std::string>> GetPronunciationsMap() const;
+
+  /**
+   * Convenience method to get a language map for an edge.
+   * @return   Returns a unordered_map of languages with a key that references the name
+   * index from GetNamesAndTypes
+   */
+  std::unordered_map<uint8_t, uint8_t> GetLanguageMap() const;
 
   /**
    * Convenience method to get the types for the names.
