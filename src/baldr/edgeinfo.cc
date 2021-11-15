@@ -8,7 +8,7 @@ using namespace valhalla::baldr;
 namespace {
 
 // should return true for any tags which we should consider "named"
-// do not return TaggedValue::kPronunciation
+// do not return TaggedValue::kPronunciation or TaggedValue::kLanguage
 bool IsNameTag(char ch) {
   static const std::unordered_set<TaggedValue> kNameTags = {TaggedValue::kBridge,
                                                             TaggedValue::kTunnel};
@@ -96,8 +96,8 @@ std::vector<std::string> EdgeInfo::GetNames() const {
   return names;
 }
 
-// Get a list of tagged names
-std::vector<std::string> EdgeInfo::GetTaggedValues(bool only_pronunciations) const {
+// Get the non linguistic, tagged names for an edge
+std::vector<std::string> EdgeInfo::GetTaggedValues() const {
   // Get each name
   std::vector<std::string> names;
   names.reserve(name_count());
@@ -110,22 +110,43 @@ std::vector<std::string> EdgeInfo::GetTaggedValues(bool only_pronunciations) con
       const auto* name = names_list_ + ni->name_offset_;
       try {
         TaggedValue tv = static_cast<baldr::TaggedValue>(name[0]);
-        if (tv == baldr::TaggedValue::kPronunciation) {
-          if (!only_pronunciations)
+        if (tv == baldr::TaggedValue::kPronunciation || tv == baldr::TaggedValue::kLanguage) {
             continue;
-
-          size_t pos = 1;
-          while (pos < strlen(name)) {
-            const auto& header = *reinterpret_cast<const linguistic_text_header_t*>(name + pos);
-            pos += 3;
-            names.emplace_back((std::string(reinterpret_cast<const char*>(&header), 3) +
-                                std::string((name + pos), header.length_)));
-
-            pos += header.length_;
-          }
-
-        } else if (!only_pronunciations) {
+        } else {
           names.push_back(name);
+        }
+      } catch (const std::invalid_argument& arg) {
+        LOG_DEBUG("invalid_argument thrown for name: " + std::string(name));
+      }
+    } else {
+      throw std::runtime_error("GetTaggedNames: offset exceeds size of text list");
+    }
+  }
+  return names;
+}
+
+// Get the linguistic, tagged names for an edge
+std::vector<std::string> EdgeInfo::GetLinguisticTaggedValues(bool only_pronunciations) const {
+  // Get each name
+  std::vector<std::string> names;
+  names.reserve(name_count());
+  const NameInfo* ni = name_info_list_;
+  for (uint32_t i = 0; i < name_count(); i++, ni++) {
+    if (!ni->tagged_)
+      continue;
+
+    if (ni->name_offset_ < names_list_length_) {
+      const auto* name = names_list_ + ni->name_offset_;
+      try {
+        TaggedValue tv = static_cast<baldr::TaggedValue>(name[0]);
+        if ((tv == baldr::TaggedValue::kPronunciation && only_pronunciations) ||
+            (tv == baldr::TaggedValue::kLanguage && !only_pronunciations)) {
+          name += 1;
+          while (*name != '\0' ) {
+            const auto& header = *reinterpret_cast<const linguistic_text_header_t*>(name);
+            names.emplace_back(std::string(name, header.length_ + 3));
+            name += header.length_ + 3;
+          }
         }
       } catch (const std::invalid_argument& arg) {
         LOG_DEBUG("invalid_argument thrown for name: " + std::string(name));
@@ -188,7 +209,7 @@ const std::multimap<TaggedValue, std::string>& EdgeInfo::GetTags() const {
           std::string name = names_list_ + ni->name_offset_;
           try {
             TaggedValue tv = static_cast<baldr::TaggedValue>(name[0]);
-            if (tv != baldr::TaggedValue::kPronunciation)
+            if (tv != baldr::TaggedValue::kPronunciation && tv != baldr::TaggedValue::kLanguage)
               tag_cache_.emplace(tv, name.substr(1));
           } catch (const std::logic_error& arg) { LOG_DEBUG("logic_error thrown for name: " + name); }
         } else {
@@ -217,10 +238,9 @@ std::unordered_map<uint8_t, std::pair<uint8_t, std::string>> EdgeInfo::GetPronun
       try {
         TaggedValue tv = static_cast<baldr::TaggedValue>(name[0]);
         if (tv == baldr::TaggedValue::kPronunciation) {
-          size_t pos = 1;
-          while (pos < strlen(name)) {
-            const auto& header = *reinterpret_cast<const linguistic_text_header_t*>(name + pos);
-            pos += 3;
+          name += 1;
+          while (*name != '\0' ) {
+            const auto& header = *reinterpret_cast<const linguistic_text_header_t*>(name);
             std::unordered_map<uint8_t, std::pair<uint8_t, std::string>>::iterator iter =
                 index_pronunciation_map.find(header.name_index_);
 
@@ -228,15 +248,14 @@ std::unordered_map<uint8_t, std::pair<uint8_t, std::string>> EdgeInfo::GetPronun
               index_pronunciation_map.emplace(
                   std::make_pair(header.name_index_,
                                  std::make_pair(header.phonetic_alphabet_,
-                                                std::string((name + pos), header.length_))));
+                                                std::string((name + 3), header.length_))));
             else {
               if (header.phonetic_alphabet_ > (iter->second).first) {
                 iter->second = std::make_pair(header.phonetic_alphabet_,
-                                              std::string((name + pos), header.length_));
+                                              std::string((name + 3), header.length_));
               }
             }
-
-            pos += header.length_;
+            name += header.length_ + 3;
           }
         }
       } catch (const std::invalid_argument& arg) {
@@ -248,6 +267,39 @@ std::unordered_map<uint8_t, std::pair<uint8_t, std::string>> EdgeInfo::GetPronun
   }
 
   return index_pronunciation_map;
+}
+
+std::unordered_map<uint8_t, uint8_t> EdgeInfo::GetLanguageMap() const {
+  std::unordered_map<uint8_t, uint8_t>  index_language_map;
+  index_language_map.reserve(name_count());
+  const NameInfo* ni = name_info_list_;
+  for (uint32_t i = 0; i < name_count(); i++, ni++) {
+    if (!ni->tagged_)
+      continue;
+
+    if (ni->name_offset_ < names_list_length_) {
+      const auto* name = names_list_ + ni->name_offset_;
+      try {
+        TaggedValue tv = static_cast<baldr::TaggedValue>(name[0]);
+        if (tv == baldr::TaggedValue::kLanguage) {
+          name += 1;
+          while (*name != '\0' ) {
+            const auto& header = *reinterpret_cast<const linguistic_text_header_t*>(name);
+            index_language_map.emplace(
+                std::make_pair(header.name_index_,
+                                 header.language_));
+            name += header.length_ + 3;
+          }
+        }
+      } catch (const std::invalid_argument& arg) {
+        LOG_DEBUG("invalid_argument thrown for name: " + std::string(name));
+      }
+    } else {
+      throw std::runtime_error("GetLanguageMap: offset exceeds size of text list");
+    }
+  }
+
+  return index_language_map;
 }
 
 // Get the types.  Are these names route numbers or not?
