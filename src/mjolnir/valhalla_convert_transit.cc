@@ -655,7 +655,8 @@ void AddToGraph(GraphTileBuilder& tilebuilder_transit,
 
         uint32_t edge_info_offset =
             tilebuilder_transit.AddEdgeInfo(0, egress_graphid, station_graphid, 0, 0, 0, 0, shape,
-                                            names, tagged_values, pronunciations, languages, 0, added);
+                                            names, tagged_values, pronunciations, languages, 0,
+                                            added);
         directededge.set_edgeinfo_offset(edge_info_offset);
         directededge.set_forward(true);
 
