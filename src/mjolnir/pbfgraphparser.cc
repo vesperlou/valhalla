@@ -1820,7 +1820,8 @@ public:
         if (tokens.size() == 2) {
 
           std::string lang = tokens.at(1);
-          if (stringLanguage(lang) != Language::kNone && !tag_.second.empty()) // name:en, name:ar, name:fr, etc
+          if (stringLanguage(lang) != Language::kNone &&
+              !tag_.second.empty()) // name:en, name:ar, name:fr, etc
           {
             if (name_w_lang_.empty()) {
               name_w_lang_ = tag_.second;
