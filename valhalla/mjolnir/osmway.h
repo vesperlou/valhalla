@@ -1685,8 +1685,8 @@ struct OSMWay {
                          const size_t key) const;
 
   void AddLanguages(std::vector<std::string>& languages,
-                                 const std::vector<baldr::Language>& token_languages,
-                                 const size_t key) const;
+                    const std::vector<baldr::Language>& token_languages,
+                    const size_t key) const;
 
   /**
    * Sets layer index(Z-level) of the way.
