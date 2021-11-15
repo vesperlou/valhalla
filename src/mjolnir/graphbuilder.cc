@@ -531,7 +531,7 @@ void BuildTileSet(const std::string& ways_file,
           admin_index = graphtile.AddAdmin("", "", osmdata.node_names.name(node.country_iso_index()),
                                            osmdata.node_names.name(node.state_iso_index()));
         }
-        std::vector<std::string> languages = GetMultiPolyIndexes(language_ploys, node_ll);
+        std::vector<std::string> default_languages = GetMultiPolyIndexes(language_ploys, node_ll);
 
         // Look for potential duplicates
         // CheckForDuplicates(nodeid, node, edgelengths, nodes, edges, osmdata.ways, stats);
@@ -730,9 +730,9 @@ void BuildTileSet(const std::string& ways_file,
             }
 
             uint16_t types = 0;
-            std::vector<std::string> names, tagged_values, pronunciations;
-            w.GetNames(ref, osmdata.name_offset_map, p, languages, name_index, name_lang_index, types,
-                       names, pronunciations);
+            std::vector<std::string> names, tagged_values, pronunciations, languages;
+            w.GetNames(ref, osmdata.name_offset_map, p, default_languages, name_index, name_lang_index, types,
+                       names, pronunciations, languages);
             w.GetTaggedValues(osmdata.name_offset_map, p, names.size(), tagged_values,
                               pronunciations);
             // Update bike_network type
@@ -747,7 +747,7 @@ void BuildTileSet(const std::string& ways_file,
             edge_info_offset =
                 graphtile.AddEdgeInfo(edge_pair.second, (*nodes[source]).graph_id,
                                       (*nodes[target]).graph_id, w.way_id(), 1234, bike_network,
-                                      speed_limit, shape, names, tagged_values, pronunciations, types,
+                                      speed_limit, shape, names, tagged_values, pronunciations, languages, types,
                                       added, dual_refs);
             if (added) {
               stats.edgeinfocount++;
