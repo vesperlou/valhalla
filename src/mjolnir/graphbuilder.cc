@@ -678,16 +678,16 @@ void BuildTileSet(const std::string& ways_file,
           // Check if refs occur in both directions for this way. If so, a separate EdgeInfo needs to
           // be stored. This usually indicates a single carriageway with different directional
           // indicators.
-          bool dual_refs = false;
+          bool diff_names = false;
           std::string ref;
           if (w.ref_index() != 0) {
             auto iter = osmdata.way_ref.find(w.way_id());
             auto iter_rev = osmdata.way_ref_rev.find(w.way_id());
-            dual_refs = iter != osmdata.way_ref.end() && iter_rev != osmdata.way_ref_rev.end();
+            diff_names = iter != osmdata.way_ref.end() && iter_rev != osmdata.way_ref_rev.end();
 
             // Check for updated ref from relations. If dual refs and reverse direction use the
             // reverse ref, otherwise use the forward ref.
-            if (dual_refs && !forward) {
+            if (diff_names && !forward) {
               if (iter_rev != osmdata.way_ref_rev.end()) {
                 // Replace the ref with the reverse ref
                 ref = GraphBuilder::GetRef(osmdata.name_offset_map.name(w.ref_index()),
@@ -714,19 +714,22 @@ void BuildTileSet(const std::string& ways_file,
           // Get the shape for the edge and compute its length
           uint32_t edge_info_offset;
           auto found = geo_attribute_cache.cend();
-          if ((w.name_left_index() && w.name_right_index()) || dual_refs ||
+          if ((w.name_left_index() && w.name_right_index()) || diff_names ||
               !graphtile.HasEdgeInfo(edge_pair.second, (*nodes[source]).graph_id,
                                      (*nodes[target]).graph_id, edge_info_offset)) {
 
             // add the info
             auto shape = EdgeShape(edge.llindex_, edge.attributes.llcount);
+
             uint32_t name_index = w.name_index(), name_lang_index = w.name_lang_index();
             if (w.name_right_index() && forward) {
               name_index = w.name_right_index();
               name_lang_index = w.name_right_lang_index();
+              diff_names = true;
             } else if (w.name_left_index() && !forward) {
               name_index = w.name_left_index();
               name_lang_index = w.name_left_lang_index();
+              diff_names = true;
             }
 
             uint16_t types = 0;
@@ -748,7 +751,7 @@ void BuildTileSet(const std::string& ways_file,
                 graphtile.AddEdgeInfo(edge_pair.second, (*nodes[source]).graph_id,
                                       (*nodes[target]).graph_id, w.way_id(), 1234, bike_network,
                                       speed_limit, shape, names, tagged_values, pronunciations,
-                                      languages, types, added, dual_refs);
+                                      languages, types, added, diff_names);
             if (added) {
               stats.edgeinfocount++;
             }
