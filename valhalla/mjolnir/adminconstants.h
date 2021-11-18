@@ -134,6 +134,13 @@ const std::unordered_map<std::string, std::vector<int>>
                      (kPedestrianAccess | kWheelchairAccess | kBicycleAccess),
                      (kPedestrianAccess | kWheelchairAccess | kBicycleAccess),
                      (kPedestrianAccess | kWheelchairAccess | kBicycleAccess | kMopedAccess), -1}}};
+
+const std::unordered_map<std::string, std::pair<uint8_t, std::string>>
+    kSupportedLanguages{{"Wales", {4, "cy"}},     {"United Kingdom", {2, "en"}},
+                        {"Ireland", {4, "ga"}},   {"Northern Ireland", {4, "ga"}},
+                        {"Japan", {2, "ja;en"}},  {"Canada", {2, "en;fr"}},
+                        {"Belarus", {2, "ru;be"}}};
+
 } // namespace mjolnir
 } // namespace valhalla
 #endif // VALHALLA_MJOLNIR_ADMINCONSTANTS_H_
