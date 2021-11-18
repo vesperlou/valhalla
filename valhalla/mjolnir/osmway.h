@@ -1717,7 +1717,8 @@ struct OSMWay {
                 uint16_t& types,
                 std::vector<std::string>& names,
                 std::vector<std::string>& pronunciations,
-                std::vector<std::string>& languages) const;
+                std::vector<std::string>& languages,
+                bool diff_names) const;
 
   void GetTaggedValues(const UniqueNames& name_offset_map,
                        const OSMPronunciation& pronunciation,
