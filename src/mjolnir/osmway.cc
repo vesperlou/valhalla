@@ -198,7 +198,7 @@ void OSMWay::GetNames(const std::string& ref,
                       std::vector<std::string>& names,
                       std::vector<std::string>& pronunciations,
                       std::vector<std::string>& languages,
-                      bool diff_names = false) const {
+                      bool diff_names) const {
 
   uint16_t location = 0;
   types = 0;
