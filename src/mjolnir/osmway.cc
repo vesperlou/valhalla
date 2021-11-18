@@ -197,7 +197,8 @@ void OSMWay::GetNames(const std::string& ref,
                       uint16_t& types,
                       std::vector<std::string>& names,
                       std::vector<std::string>& pronunciations,
-                      std::vector<std::string>& languages) const {
+                      std::vector<std::string>& languages,
+                      bool diff_names = false) const {
 
   uint16_t location = 0;
   types = 0;
@@ -228,8 +229,6 @@ void OSMWay::GetNames(const std::string& ref,
                       pronunciation.ref_pronunciation_katakana_index(),
                       pronunciation.ref_pronunciation_jeita_index(), tokens.size(), key);
   }
-
-  // TODO int_ref
 
   // Process name
   if (name_index != 0) {
@@ -287,6 +286,11 @@ void OSMWay::GetNames(const std::string& ref,
           multilingual_langs_found.emplace_back(stringLanguage(updated_token_languages[i].second));
         } else if (std::find(default_languages.begin(), default_languages.end(),
                              updated_token_languages[i].second) != default_languages.end()) {
+
+          if (diff_names && std::find(names_w_no_lang.begin(), names_w_no_lang.end(),
+                                      updated_token_languages[i].first) == names_w_no_lang.end())
+            continue; // is right or left name.
+
           supported_names.emplace_back(updated_token_languages[i].first);
           supported_langs.emplace_back(stringLanguage(updated_token_languages[i].second));
         } else if (std::find(names_w_no_lang.begin(), names_w_no_lang.end(),
