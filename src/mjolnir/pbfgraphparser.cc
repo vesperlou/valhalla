@@ -2216,7 +2216,12 @@ public:
       }*/
 
       if (name_left_w_lang_.empty())
-        way_.set_name_left_index(osmdata_.name_offset_map.index(name_left_));
+
+        if (!name_w_lang_.empty()) { // other side of street name may not change
+          way_.set_name_left_index(osmdata_.name_offset_map.index(name_left_ + ";" + name_w_lang_));
+          way_.set_name_left_lang_index(osmdata_.name_offset_map.index(lang_left_ + ";" + language_));
+        } else
+          way_.set_name_left_index(osmdata_.name_offset_map.index(name_left_));
       else {
         uint32_t count = std::count(name_left_.begin(), name_left_.end(), ';');
         for (uint32_t i = 0; i <= count; i++) {
@@ -2247,7 +2252,13 @@ public:
       }*/
 
       if (name_right_w_lang_.empty())
-        way_.set_name_right_index(osmdata_.name_offset_map.index(name_right_));
+
+        if (!name_w_lang_.empty()) { // other side of street name may not change
+          way_.set_name_right_index(osmdata_.name_offset_map.index(name_right_ + ";" + name_w_lang_));
+          way_.set_name_right_lang_index(
+              osmdata_.name_offset_map.index(lang_right_ + ";" + language_));
+        } else
+          way_.set_name_right_index(osmdata_.name_offset_map.index(name_right_));
       else {
         uint32_t count = std::count(name_right_.begin(), name_right_.end(), ';');
         for (uint32_t i = 0; i <= count; i++) {
