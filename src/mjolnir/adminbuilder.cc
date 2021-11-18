@@ -289,7 +289,8 @@ void BuildAdminFromPBF(const boost::property_tree::ptree& pt,
   sql += "name_en TEXT,";
   sql += "drive_on_right INTEGER NOT NULL,";
   sql += "allow_intersection_names INTEGER NOT NULL,";
-  sql += "default_language TEXT)";
+  sql += "default_language TEXT,";
+  sql += "supported_languages TEXT)";
 
   ret = sqlite3_exec(db_handle, sql.c_str(), NULL, NULL, &err_msg);
   if (ret != SQLITE_OK) {
@@ -366,7 +367,8 @@ void BuildAdminFromPBF(const boost::property_tree::ptree& pt,
    * this time too we'll use a Prepared Statement
    */
   sql = "INSERT INTO admins (admin_level, iso_code, parent_admin, name, name_en, ";
-  sql += "drive_on_right, allow_intersection_names, default_language, geom) VALUES (?,?,?,?,?,?,?,?,";
+  sql +=
+      "drive_on_right, allow_intersection_names, default_language, supported_languages, geom) VALUES (?,?,?,?,?,?,?,?,?,";
   sql += "CastToMulti(GeomFromText(?, 4326)))";
 
   ret = sqlite3_prepare_v2(db_handle, sql.c_str(), strlen(sql.c_str()), &stmt, NULL);
@@ -476,7 +478,8 @@ void BuildAdminFromPBF(const boost::property_tree::ptree& pt,
             sqlite3_bind_null(stmt, 8);
           }
 
-          sqlite3_bind_text(stmt, 9, wkt.c_str(), wkt.length(), SQLITE_STATIC);
+          sqlite3_bind_null(stmt, 9);
+          sqlite3_bind_text(stmt, 10, wkt.c_str(), wkt.length(), SQLITE_STATIC);
           /* performing INSERT INTO */
           ret = sqlite3_step(stmt);
           if (ret == SQLITE_DONE || ret == SQLITE_ROW) {
@@ -538,7 +541,7 @@ void BuildAdminFromPBF(const boost::property_tree::ptree& pt,
     sqlite3_close(db_handle);
     return;
   }
-  LOG_INFO("Created Drive On Right index");
+  LOG_INFO("Created drive on right index");
 
   sql = "CREATE INDEX IdxAllowIntersectionNames ON admins (allow_intersection_names)";
   ret = sqlite3_exec(db_handle, sql.c_str(), NULL, NULL, &err_msg);
@@ -590,7 +593,54 @@ void BuildAdminFromPBF(const boost::property_tree::ptree& pt,
     sqlite3_close(db_handle);
     return;
   }
-  LOG_INFO("Done updating Parent admin");
+  LOG_INFO("Done updating parent admin");
+
+  sql = "update admins set supported_languages = ? ";
+  sql += "where (name = ? or name_en = ?) and admin_level = ? ";
+
+  ret = sqlite3_prepare_v2(db_handle, sql.c_str(), strlen(sql.c_str()), &stmt, NULL);
+  if (ret != SQLITE_OK) {
+    LOG_ERROR("SQL error: " + sql);
+    LOG_ERROR(std::string(sqlite3_errmsg(db_handle)));
+  }
+  ret = sqlite3_exec(db_handle, "BEGIN", NULL, NULL, &err_msg);
+  if (ret != SQLITE_OK) {
+    LOG_ERROR("Error: " + std::string(err_msg));
+    sqlite3_free(err_msg);
+    sqlite3_close(db_handle);
+    return;
+  }
+
+  for (const auto& languages : kSupportedLanguages) {
+
+    sqlite3_reset(stmt);
+    sqlite3_clear_bindings(stmt);
+    sqlite3_bind_text(stmt, 1, languages.second.second.c_str(), languages.second.second.length(),
+                      SQLITE_STATIC);
+    sqlite3_bind_text(stmt, 2, languages.first.c_str(), languages.first.length(), SQLITE_STATIC);
+    sqlite3_bind_text(stmt, 3, languages.first.c_str(), languages.first.length(), SQLITE_STATIC);
+    sqlite3_bind_int(stmt, 4, (int)languages.second.first);
+
+    /* performing update */
+    ret = sqlite3_step(stmt);
+    if (ret == SQLITE_DONE || ret == SQLITE_ROW) {
+      continue;
+    }
+    LOG_ERROR("Supported Languages: sqlite3_step() error: " + std::string(sqlite3_errmsg(db_handle)) +
+              ".  Ignore if not using a planet extract or check if there was a name change for " +
+              languages.first.c_str());
+  }
+
+  sqlite3_finalize(stmt);
+  ret = sqlite3_exec(db_handle, "COMMIT", NULL, NULL, &err_msg);
+  if (ret != SQLITE_OK) {
+    LOG_ERROR("Error: " + std::string(err_msg));
+    sqlite3_free(err_msg);
+    sqlite3_close(db_handle);
+    return;
+  }
+
+  LOG_INFO("Done updating supported languages");
 
   sql = "INSERT into admin_access (admin_id, iso_code, trunk, trunk_link, track, footway, ";
   sql += "pedestrian, bridleway, cycleway, path, motorroad) VALUES (";
