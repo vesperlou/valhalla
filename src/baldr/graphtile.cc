@@ -733,12 +733,11 @@ std::vector<SignInfo> GraphTile::GetSigns(const uint32_t idx, bool signs_on_node
       // we only return a node phoneme when is_route_num_type and signs_on_node are both true and
       // we only return an edge phoneme when is_route_num_type and signs_on_node are both false
       if (((signs_[found].type() == Sign::Type::kJunctionName ||
-            (signs_[found].type() == Sign::Type::kPronunciation &&
-             signs_[found].is_route_num_type())) &&
+            (signs_[found].type() == Sign::Type::kLinguistic && signs_[found].is_route_num_type())) &&
            signs_on_node) ||
           (((signs_[found].type() != Sign::Type::kJunctionName &&
-             signs_[found].type() != Sign::Type::kPronunciation) ||
-            (signs_[found].type() == Sign::Type::kPronunciation &&
+             signs_[found].type() != Sign::Type::kLinguistic) ||
+            (signs_[found].type() == Sign::Type::kLinguistic &&
              !signs_[found].is_route_num_type())) &&
            !signs_on_node))
         signs.emplace_back(signs_[found].type(), signs_[found].is_route_num_type(),
@@ -793,7 +792,7 @@ std::vector<SignInfo> GraphTile::GetSigns(
     if (signs_[found].text_offset() < textlist_size_) {
 
       const auto* text = (textlist_ + signs_[found].text_offset());
-      if (signs_[found].tagged() && signs_[found].type() == Sign::Type::kPronunciation) {
+      if (signs_[found].tagged() && signs_[found].type() == Sign::Type::kLinguistic) {
 
         // is_route_num_type indicates if this phonome is for a node or not
         if ((signs_[found].is_route_num_type() && signs_on_node) ||
