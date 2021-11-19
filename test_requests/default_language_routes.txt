@@ -90,3 +90,10 @@
 -j '{"locations":[{"lat":50.856910,"lon":4.332553,"street":"Rue de la Carpe"},{"lat":50.856544,"lon":4.324338,"street":"Rue Dubois-Thorn"}],"costing":"auto","units":"miles"}'
 -j '{"locations":[{"lat":50.774146,"lon":2.946367,"street":"Neerwaastenstraat"},{"lat":50.771737,"lon":2.936797,"street":"Veldstraat"}],"costing":"auto","units":"miles"}'
 -j '{"locations":[{"lat":50.771737,"lon":2.936797,"street":"Veldstraat"},{"lat":50.774146,"lon":2.946367,"street":"Neerwaastenstraat"}],"costing":"auto","units":"miles"}'
+-j '{"locations":[{"lat":40.258651,"lon":-76.699708},{"lat":40.259101,"lon":-76.699938}],"costing":"auto","units":"miles"}'
+-j '{"locations":[{"lat":40.259101,"lon":-76.699938},{"lat":40.258651,"lon":-76.699708}],"costing":"auto","units":"miles"}'
+-j '{"locations":[{"lat":39.562518,"lon":-104.986877},{"lat":39.562569,"lon":-104.986635}],"costing":"auto","units":"miles"}'
+-j '{"locations":[{"lat":39.562569,"lon":-104.986635},{"lat":39.562518,"lon":-104.986877}],"costing":"auto","units":"miles"}'
+-j '{"locations":[{"lat":45.722669,"lon":-121.820260},{"lat":45.722658,"lon":-121.819831}],"costing":"auto","units":"miles"}'
+-j '{"locations":[{"lat":45.722658,"lon":-121.819831},{"lat":45.722669,"lon":-121.820260}],"costing":"auto","units":"miles"}'
+
