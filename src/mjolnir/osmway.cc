@@ -103,7 +103,7 @@ void OSMWay::set_layer(int8_t layer) {
   layer_ = layer;
 }
 
-void OSMWay::AddPronunciations(std::vector<std::string>& pronunciations,
+void OSMWay::AddPronunciations(std::vector<std::string>& linguistics,
                                const UniqueNames& name_offset_map,
                                const uint32_t ipa_index,
                                const uint32_t nt_sampa_index,
@@ -142,33 +142,33 @@ void OSMWay::AddPronunciations(std::vector<std::string>& pronunciations,
   if (ipa_index != 0) {
     pronunciation_tokens = GetTagTokens(name_offset_map.name(ipa_index));
     if (pronunciation_tokens.size() && name_tokens_size == pronunciation_tokens.size())
-      pronunciations.emplace_back(
+      linguistics.emplace_back(
           get_pronunciations(pronunciation_tokens, key, baldr::PronunciationAlphabet::kIpa));
   }
 
   if (nt_sampa_index != 0) {
     pronunciation_tokens = GetTagTokens(name_offset_map.name(nt_sampa_index));
     if (pronunciation_tokens.size() && name_tokens_size == pronunciation_tokens.size())
-      pronunciations.emplace_back(
+      linguistics.emplace_back(
           get_pronunciations(pronunciation_tokens, key, baldr::PronunciationAlphabet::kNtSampa));
   }
 
   if (katakana_index != 0) {
     pronunciation_tokens = GetTagTokens(name_offset_map.name(katakana_index));
     if (pronunciation_tokens.size() && name_tokens_size == pronunciation_tokens.size())
-      pronunciations.emplace_back(
+      linguistics.emplace_back(
           get_pronunciations(pronunciation_tokens, key, baldr::PronunciationAlphabet::kXKatakana));
   }
 
   if (jeita_index != 0) {
     pronunciation_tokens = GetTagTokens(name_offset_map.name(jeita_index));
     if (pronunciation_tokens.size() && name_tokens_size == pronunciation_tokens.size())
-      pronunciations.emplace_back(
+      linguistics.emplace_back(
           get_pronunciations(pronunciation_tokens, key, baldr::PronunciationAlphabet::kXJeita));
   }
 }
 
-void OSMWay::AddLanguages(std::vector<std::string>& languages,
+void OSMWay::AddLanguages(std::vector<std::string>& linguistics,
                           const std::vector<baldr::Language>& token_languages,
                           const size_t key) const {
   if (token_languages.size() != 0) {
@@ -183,7 +183,7 @@ void OSMWay::AddLanguages(std::vector<std::string>& languages,
       language.append(std::string(reinterpret_cast<const char*>(&header), 3));
       ++header.name_index_;
     }
-    languages.emplace_back(language);
+    linguistics.emplace_back(language);
   }
 }
 
@@ -196,8 +196,7 @@ void OSMWay::GetNames(const std::string& ref,
                       const uint32_t name_lang_index,
                       uint16_t& types,
                       std::vector<std::string>& names,
-                      std::vector<std::string>& pronunciations,
-                      std::vector<std::string>& languages,
+                      std::vector<std::string>& linguistics,
                       bool diff_names) const {
 
   uint16_t location = 0;
@@ -224,7 +223,7 @@ void OSMWay::GetNames(const std::string& ref,
     names.insert(names.end(), tokens.begin(), tokens.end());
 
     size_t key = names.size() - tokens.size();
-    AddPronunciations(pronunciations, name_offset_map, pronunciation.ref_pronunciation_ipa_index(),
+    AddPronunciations(linguistics, name_offset_map, pronunciation.ref_pronunciation_ipa_index(),
                       pronunciation.ref_pronunciation_nt_sampa_index(),
                       pronunciation.ref_pronunciation_katakana_index(),
                       pronunciation.ref_pronunciation_jeita_index(), tokens.size(), key);
@@ -337,12 +336,12 @@ void OSMWay::GetNames(const std::string& ref,
 
     size_t key = names.size() - tokens.size();
 
-    AddPronunciations(pronunciations, name_offset_map, pronunciation.name_pronunciation_ipa_index(),
+    AddPronunciations(linguistics, name_offset_map, pronunciation.name_pronunciation_ipa_index(),
                       pronunciation.name_pronunciation_nt_sampa_index(),
                       pronunciation.name_pronunciation_katakana_index(),
                       pronunciation.name_pronunciation_jeita_index(), tokens.size(), key);
 
-    AddLanguages(languages, token_langs, key);
+    AddLanguages(linguistics, token_langs, key);
   }
 
   // Process non limited access refs
@@ -364,7 +363,7 @@ void OSMWay::GetNames(const std::string& ref,
     names.insert(names.end(), tokens.begin(), tokens.end());
 
     size_t key = names.size() - tokens.size();
-    AddPronunciations(pronunciations, name_offset_map, pronunciation.ref_pronunciation_ipa_index(),
+    AddPronunciations(linguistics, name_offset_map, pronunciation.ref_pronunciation_ipa_index(),
                       pronunciation.ref_pronunciation_nt_sampa_index(),
                       pronunciation.ref_pronunciation_katakana_index(),
                       pronunciation.ref_pronunciation_jeita_index(), tokens.size(), key);
@@ -380,8 +379,7 @@ void OSMWay::GetNames(const std::string& ref,
     names.insert(names.end(), tokens.begin(), tokens.end());
 
     size_t key = names.size() - tokens.size();
-    AddPronunciations(pronunciations, name_offset_map,
-                      pronunciation.alt_name_pronunciation_ipa_index(),
+    AddPronunciations(linguistics, name_offset_map, pronunciation.alt_name_pronunciation_ipa_index(),
                       pronunciation.alt_name_pronunciation_nt_sampa_index(),
                       pronunciation.alt_name_pronunciation_katakana_index(),
                       pronunciation.alt_name_pronunciation_jeita_index(), tokens.size(), key);
@@ -397,7 +395,7 @@ void OSMWay::GetNames(const std::string& ref,
     names.insert(names.end(), tokens.begin(), tokens.end());
 
     size_t key = names.size() - tokens.size();
-    AddPronunciations(pronunciations, name_offset_map,
+    AddPronunciations(linguistics, name_offset_map,
                       pronunciation.official_name_pronunciation_ipa_index(),
                       pronunciation.official_name_pronunciation_nt_sampa_index(),
                       pronunciation.official_name_pronunciation_katakana_index(),
@@ -410,7 +408,7 @@ void OSMWay::GetTaggedValues(const UniqueNames& name_offset_map,
                              const OSMPronunciation& pronunciation,
                              const size_t& names_size,
                              std::vector<std::string>& names,
-                             std::vector<std::string>& pronunciations) const {
+                             std::vector<std::string>& linguistics) const {
 
   std::vector<std::string> tokens;
 
@@ -425,7 +423,7 @@ void OSMWay::GetTaggedValues(const UniqueNames& name_offset_map,
     }
 
     size_t key = (names_size + names.size()) - tokens.size();
-    AddPronunciations(pronunciations, name_offset_map,
+    AddPronunciations(linguistics, name_offset_map,
                       pronunciation.tunnel_name_pronunciation_ipa_index(),
                       pronunciation.tunnel_name_pronunciation_nt_sampa_index(),
                       pronunciation.tunnel_name_pronunciation_katakana_index(),
