@@ -520,7 +520,7 @@ void GraphTileBuilder::AddSigns(const uint32_t idx,
           }
 
           uint32_t offset = AddName(updated_pronunciation);
-          signs_builder_.emplace_back(idx, Sign::Type::kPronunciation, phoneme_on_node, true, offset);
+          signs_builder_.emplace_back(idx, Sign::Type::kLinguistic, phoneme_on_node, true, offset);
         }
       }
     }
@@ -581,8 +581,7 @@ uint32_t GraphTileBuilder::AddEdgeInfo(const uint32_t edgeindex,
                                        const shape_container_t& lls,
                                        const std::vector<std::string>& names,
                                        const std::vector<std::string>& tagged_values,
-                                       const std::vector<std::string>& pronunciations,
-                                       const std::vector<std::string>& languages,
+                                       const std::vector<std::string>& linguistics,
                                        const uint16_t types,
                                        bool& added,
                                        bool diff_names) {
@@ -643,41 +642,19 @@ uint32_t GraphTileBuilder::AddEdgeInfo(const uint32_t edgeindex,
       }
     }
 
-    if (pronunciations.size()) {
+    if (linguistics.size()) {
       if (name_count != kMaxNamesPerEdge) {
         std::stringstream ss;
-        for (const auto& pronunciation : pronunciations) {
-          ss << pronunciation;
+        for (const auto& linguistic : linguistics) {
+          ss << linguistic;
         }
 
         auto encode_tag = [](valhalla::baldr::TaggedValue tag) {
           return std::string(1, static_cast<std::string::value_type>(tag));
         };
 
-        // Add pronunciations and add its offset to edge info's list.
-        NameInfo ni{AddName(encode_tag(valhalla::baldr::TaggedValue::kPronunciation) + ss.str())};
-
-        ni.is_route_num_ = 0;
-        ni.tagged_ = 1;
-        name_info_list.emplace_back(ni);
-        ++name_count;
-      } else
-        LOG_WARN("Too many names for edgeindex: " + std::to_string(edgeindex));
-    }
-
-    if (languages.size()) {
-      if (name_count != kMaxNamesPerEdge) {
-        std::stringstream ss;
-        for (const auto& language : languages) {
-          ss << language;
-        }
-
-        auto encode_tag = [](valhalla::baldr::TaggedValue tag) {
-          return std::string(1, static_cast<std::string::value_type>(tag));
-        };
-
-        // Add pronunciations and add its offset to edge info's list.
-        NameInfo ni{AddName(encode_tag(valhalla::baldr::TaggedValue::kLanguage) + ss.str())};
+        // Add linguistics and add its offset to edge info's list.
+        NameInfo ni{AddName(encode_tag(valhalla::baldr::TaggedValue::kLinguistic) + ss.str())};
 
         ni.is_route_num_ = 0;
         ni.tagged_ = 1;
@@ -718,7 +695,6 @@ template uint32_t GraphTileBuilder::AddEdgeInfo<std::vector<PointLL>>(const uint
                                                                       const std::vector<std::string>&,
                                                                       const std::vector<std::string>&,
                                                                       const std::vector<std::string>&,
-                                                                      const std::vector<std::string>&,
                                                                       const uint16_t,
                                                                       bool&,
                                                                       bool);
@@ -730,7 +706,6 @@ template uint32_t GraphTileBuilder::AddEdgeInfo<std::list<PointLL>>(const uint32
                                                                     const uint32_t,
                                                                     const uint32_t,
                                                                     const std::list<PointLL>&,
-                                                                    const std::vector<std::string>&,
                                                                     const std::vector<std::string>&,
                                                                     const std::vector<std::string>&,
                                                                     const std::vector<std::string>&,
@@ -749,8 +724,7 @@ uint32_t GraphTileBuilder::AddEdgeInfo(const uint32_t edgeindex,
                                        const std::string& llstr,
                                        const std::vector<std::string>& names,
                                        const std::vector<std::string>& tagged_values,
-                                       const std::vector<std::string>& pronunciations,
-                                       const std::vector<std::string>& languages,
+                                       const std::vector<std::string>& linguistics,
                                        const uint16_t types,
                                        bool& added,
                                        bool diff_names) {
@@ -811,41 +785,19 @@ uint32_t GraphTileBuilder::AddEdgeInfo(const uint32_t edgeindex,
       }
     }
 
-    if (pronunciations.size()) {
+    if (linguistics.size()) {
       if (name_count != kMaxNamesPerEdge) {
         std::stringstream ss;
-        for (const auto& pronunciation : pronunciations) {
-          ss << pronunciation;
+        for (const auto& linguistic : linguistics) {
+          ss << linguistic;
         }
 
         auto encode_tag = [](valhalla::baldr::TaggedValue tag) {
           return std::string(1, static_cast<std::string::value_type>(tag));
         };
 
-        // Add pronunciations and add its offset to edge info's list.
-        NameInfo ni{AddName(encode_tag(valhalla::baldr::TaggedValue::kPronunciation) + ss.str())};
-
-        ni.is_route_num_ = 0;
-        ni.tagged_ = 1;
-        name_info_list.emplace_back(ni);
-        ++name_count;
-      } else
-        LOG_WARN("Too many names for edgeindex: " + std::to_string(edgeindex));
-    }
-
-    if (languages.size()) {
-      if (name_count != kMaxNamesPerEdge) {
-        std::stringstream ss;
-        for (const auto& language : languages) {
-          ss << language;
-        }
-
-        auto encode_tag = [](valhalla::baldr::TaggedValue tag) {
-          return std::string(1, static_cast<std::string::value_type>(tag));
-        };
-
-        // Add pronunciations and add its offset to edge info's list.
-        NameInfo ni{AddName(encode_tag(valhalla::baldr::TaggedValue::kLanguage) + ss.str())};
+        // Add linguistics and add its offset to edge info's list.
+        NameInfo ni{AddName(encode_tag(valhalla::baldr::TaggedValue::kLinguistic) + ss.str())};
 
         ni.is_route_num_ = 0;
         ni.tagged_ = 1;
