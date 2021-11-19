@@ -37,7 +37,7 @@ TEST(Names, NamesTest) {
   OSMWay w3{1234};
 
   OSMPronunciation pronunciation{};
-  std::vector<std::string> pronunciations, languages;
+  std::vector<std::string> pronunciations;
   UniqueNames name_offset_map;
   std::string ref = "I 79 North";
 
@@ -64,7 +64,7 @@ TEST(Names, NamesTest) {
   uint16_t types;
   std::vector<std::string> w1_names, default_languages;
   w1.GetNames(ref, name_offset_map, pronunciation, default_languages, w1.name_index(), 0, types,
-              w1_names, pronunciations, languages);
+              w1_names, pronunciations);
 
   // if road class = kTrunk or kMotorway, then ref comes first.  ref from relation overrides
   // ref from name_offset_map
@@ -85,7 +85,7 @@ TEST(Names, NamesTest) {
   std::vector<std::string> w2_names;
   pronunciations.clear();
   w2.GetNames("", name_offset_map, pronunciation, default_languages, w2.name_index(), 0, types,
-              w2_names, pronunciations, languages);
+              w2_names, pronunciations);
 
   // if road class = kTrunk or kMotorway, then ref comes first.  use ref from name_offset_map
   EXPECT_EQ(w2_names.at(0), "PA 43");
@@ -105,7 +105,7 @@ TEST(Names, NamesTest) {
   std::vector<std::string> w3_names;
   pronunciations.clear();
   w3.GetNames("", name_offset_map, pronunciation, default_languages, w3.name_index(), 0, types,
-              w3_names, pronunciations, languages);
+              w3_names, pronunciations);
 
   // if Road class < kTrunk, then name first then ref using ref from name_offset_map
   EXPECT_EQ(w3_names.at(0), "Lancaster Pike") << "Road class < kTrunk test failed.";
@@ -125,7 +125,7 @@ TEST(Names, NamesTest) {
   w3_names.clear();
   pronunciations.clear();
   w3.GetNames("PA 555", name_offset_map, pronunciation, default_languages, w3.name_index(), 0, types,
-              w3_names, pronunciations, languages);
+              w3_names, pronunciations);
 
   // if Road class < kTrunk, then name first then ref using ref from relations
   EXPECT_EQ(w3_names.at(0), "Lancaster Pike") << "ref from relations";
@@ -172,7 +172,7 @@ TEST(Names, NamesTest) {
   w3_names.clear();
   pronunciations.clear();
   w3.GetNames("", name_offset_map, pronunciation, default_languages, w3.name_index(), 0, types,
-              w3_names, pronunciations, languages);
+              w3_names, pronunciations);
 
   EXPECT_EQ(types, 2) << "all other names test failed.  ref not in correct position.";
 

@@ -159,12 +159,11 @@ public:
   std::vector<std::string> GetTaggedValues() const;
 
   /**
-   * Convenience method to get the names for an edge
-   * @param  only_pronunciations  Bool indicating whether or not to return only the pronunciations
+   * Convenience method to get the linguistic names for an edge
    *
-   * @return   Returns a list (vector) of tagged names.
+   * @return   Returns a list (vector) of linguistic names.
    */
-  std::vector<std::string> GetLinguisticTaggedValues(bool only_pronunciations = false) const;
+  std::vector<std::string> GetLinguisticTaggedValues() const;
 
   /**
    * Convenience method to get the names and route number flags for an edge.
