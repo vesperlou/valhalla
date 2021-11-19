@@ -1675,7 +1675,7 @@ struct OSMWay {
     return turn_channel_;
   }
 
-  void AddPronunciations(std::vector<std::string>& pronunciations,
+  void AddPronunciations(std::vector<std::string>& linguistics,
                          const UniqueNames& name_offset_map,
                          const uint32_t ipa_index,
                          const uint32_t nt_sampa_index,
@@ -1684,7 +1684,7 @@ struct OSMWay {
                          const size_t name_tokens_size,
                          const size_t key) const;
 
-  void AddLanguages(std::vector<std::string>& languages,
+  void AddLanguages(std::vector<std::string>& linguistics,
                     const std::vector<baldr::Language>& token_languages,
                     const size_t key) const;
 
@@ -1716,15 +1716,14 @@ struct OSMWay {
                 const uint32_t name_lang_index,
                 uint16_t& types,
                 std::vector<std::string>& names,
-                std::vector<std::string>& pronunciations,
-                std::vector<std::string>& languages,
+                std::vector<std::string>& linguistics,
                 bool diff_names = false) const;
 
   void GetTaggedValues(const UniqueNames& name_offset_map,
                        const OSMPronunciation& pronunciation,
                        const size_t& names_size,
                        std::vector<std::string>& names,
-                       std::vector<std::string>& pronunciations) const;
+                       std::vector<std::string>& linguistics) const;
 
   // OSM way Id
   uint64_t osmwayid_;
