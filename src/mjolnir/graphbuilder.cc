@@ -734,11 +734,10 @@ void BuildTileSet(const std::string& ways_file,
             }
 
             uint16_t types = 0;
-            std::vector<std::string> names, tagged_values, pronunciations, languages;
+            std::vector<std::string> names, tagged_values, linguistics;
             w.GetNames(ref, osmdata.name_offset_map, p, default_languages, name_index,
-                       name_lang_index, types, names, pronunciations, languages, diff_names);
-            w.GetTaggedValues(osmdata.name_offset_map, p, names.size(), tagged_values,
-                              pronunciations);
+                       name_lang_index, types, names, linguistics, diff_names);
+            w.GetTaggedValues(osmdata.name_offset_map, p, names.size(), tagged_values, linguistics);
             // Update bike_network type
 
             if (bike_network) {
@@ -751,8 +750,8 @@ void BuildTileSet(const std::string& ways_file,
             edge_info_offset =
                 graphtile.AddEdgeInfo(edge_pair.second, (*nodes[source]).graph_id,
                                       (*nodes[target]).graph_id, w.way_id(), 1234, bike_network,
-                                      speed_limit, shape, names, tagged_values, pronunciations,
-                                      languages, types, added, (diff_names || dual_refs));
+                                      speed_limit, shape, names, tagged_values, linguistics, types,
+                                      added, (diff_names || dual_refs));
 
             if (added) {
               stats.edgeinfocount++;

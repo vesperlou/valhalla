@@ -52,8 +52,7 @@ struct BSSConnection {
   uint64_t wayid = std::numeric_limits<uint64_t>::max();
   std::vector<std::string> names = {};
   std::vector<std::string> tagged_values = {};
-  std::vector<std::string> pronunciations = {};
-  std::vector<std::string> languages = {};
+  std::vector<std::string> linguistics = {};
 
   std::vector<PointLL> shape = {};
   // Is the outbound edge from the waynode is forward?
@@ -83,8 +82,7 @@ struct BSSConnection {
     wayid = edgeinfo.wayid();
     names = edgeinfo.GetNames();
     tagged_values = edgeinfo.GetTaggedValues();
-    pronunciations = edgeinfo.GetLinguisticTaggedValues(true);
-    languages = edgeinfo.GetLinguisticTaggedValues();
+    linguistics = edgeinfo.GetLinguisticTaggedValues();
 
     is_forward_from_waynode = is_forward;
     speed = best.directededge->speed();
@@ -326,8 +324,7 @@ void add_bss_nodes_and_edges(GraphTileBuilder& tilebuilder_local,
                                         new_bss_node_graphid, bss_to_waynode.way_node_id,
                                         bss_to_waynode.wayid, 0, 0, 0, bss_to_waynode.shape,
                                         bss_to_waynode.names, bss_to_waynode.tagged_values,
-                                        bss_to_waynode.pronunciations, bss_to_waynode.languages, 0,
-                                        added);
+                                        bss_to_waynode.linguistics, 0, added);
 
       directededge.set_edgeinfo_offset(edge_info_offset);
       tilebuilder_local.directededges().emplace_back(std::move(directededge));
@@ -466,8 +463,8 @@ void create_edges(GraphTileBuilder& tilebuilder_local,
       uint32_t edge_info_offset =
           tilebuilder_local.AddEdgeInfo(tilebuilder_local.directededges().size(), lower->way_node_id,
                                         lower->bss_node_id, lower->wayid, 0, 0, 0, lower->shape,
-                                        lower->names, lower->tagged_values, lower->pronunciations,
-                                        lower->languages, 0, added);
+                                        lower->names, lower->tagged_values, lower->linguistics, 0,
+                                        added);
 
       directededge.set_edgeinfo_offset(edge_info_offset);
 
