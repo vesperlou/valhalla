@@ -251,6 +251,38 @@ struct OSMWay {
   }
 
   /**
+   * Sets the index for name forward
+   * @param  idx  Index for name forward.
+   */
+  void set_name_forward_index(const uint32_t idx) {
+    name_forward_index_ = idx;
+  }
+
+  /**
+   * Get the name forward index.
+   * @return  Returns the index for name forward.
+   */
+  uint32_t name_forward_index() const {
+    return name_forward_index_;
+  }
+
+  /**
+   * Sets the index for name backward
+   * @param  idx  Index for name backward.
+   */
+  void set_name_backward_index(const uint32_t idx) {
+    name_backward_index_ = idx;
+  }
+
+  /**
+   * Get the name backward index.
+   * @return  Returns the index for name backward.
+   */
+  uint32_t name_backward_index() const {
+    return name_backward_index_;
+  }
+
+  /**
    * Sets the index for alt name
    * @param  idx  Index for the alt name.
    */
@@ -1740,9 +1772,19 @@ struct OSMWay {
   uint32_t name_right_index_;
   uint32_t name_right_lang_index_;
 
+  uint32_t name_forward_index_;
+  uint32_t name_forward_lang_index_;
+  uint32_t name_backward_index_;
+  uint32_t name_backward_lang_index_;
+
   uint32_t alt_name_index_;
+  uint32_t alt_name_lang_index_;
+
   uint32_t official_name_index_;
+  uint32_t official_name_lang_index_;
+
   uint32_t tunnel_name_index_;
+  uint32_t tunnel_name_lang_index_;
 
   // Turn lanes
   uint32_t fwd_turn_lanes_index_;

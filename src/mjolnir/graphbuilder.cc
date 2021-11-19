@@ -715,6 +715,7 @@ void BuildTileSet(const std::string& ways_file,
           uint32_t edge_info_offset;
           auto found = geo_attribute_cache.cend();
           if ((w.name_left_index() && w.name_right_index()) || dual_refs ||
+              (w.name_forward_index() && w.name_backward_index()) ||
               !graphtile.HasEdgeInfo(edge_pair.second, (*nodes[source]).graph_id,
                                      (*nodes[target]).graph_id, edge_info_offset)) {
 
@@ -730,6 +731,12 @@ void BuildTileSet(const std::string& ways_file,
             } else if (w.name_left_index() && !forward) {
               name_index = w.name_left_index();
               name_lang_index = w.name_left_lang_index();
+              diff_names = true;
+            } else if (w.name_forward_index() && forward) {
+              name_index = w.name_forward_index();
+              diff_names = true;
+            } else if (w.name_backward_index() && !forward) {
+              name_index = w.name_backward_index();
               diff_names = true;
             }
 
