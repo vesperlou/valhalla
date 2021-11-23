@@ -299,6 +299,86 @@ struct OSMWay {
   }
 
   /**
+   * Sets the index for alt_name:<lang>
+   * @param  idx  Index for the languages.
+   */
+  void set_alt_name_lang_index(const uint32_t idx) {
+    alt_name_lang_index_ = idx;
+  }
+
+  /**
+   * Get the alt_name:<lang> index.
+   * @return  Returns the index for the languages.
+   */
+  uint32_t alt_name_lang_index() const {
+    return alt_name_lang_index_;
+  }
+
+  /**
+   * Sets the index for left alt_name
+   * @param  idx  Index for the left alt_name.
+   */
+  void set_alt_name_left_index(const uint32_t idx) {
+    alt_name_left_index_ = idx;
+  }
+
+  /**
+   * Get the left alt_name index.
+   * @return  Returns the index for the left alt_name.
+   */
+  uint32_t alt_name_left_index() const {
+    return alt_name_left_index_;
+  }
+
+  /**
+   * Sets the index for alt_name:left:<lang>
+   * @param  idx  Index for the left languages.
+   */
+  void set_alt_name_left_lang_index(const uint32_t idx) {
+    alt_name_left_lang_index_ = idx;
+  }
+
+  /**
+   * Get the alt_name:left:<lang> index.
+   * @return  Returns the index for the left languages.
+   */
+  uint32_t alt_name_left_lang_index() const {
+    return alt_name_left_lang_index_;
+  }
+
+  /**
+   * Sets the index for right alt_name
+   * @param  idx  Index for the right alt_name.
+   */
+  void set_alt_name_right_index(const uint32_t idx) {
+    alt_name_right_index_ = idx;
+  }
+
+  /**
+   * Get the right alt_name index.
+   * @return  Returns the index for the right alt_name.
+   */
+  uint32_t alt_name_right_index() const {
+    return alt_name_right_index_;
+  }
+
+  /**
+   * Sets the index for alt_name:right:<lang>
+   * @param  idx  Index for the right languages.
+   */
+  void set_alt_name_right_lang_index(const uint32_t idx) {
+    alt_name_right_lang_index_ = idx;
+  }
+
+  /**
+   * Get the alt_name:right:<lang> index.
+   * @return  Returns the index for the right languages.
+   */
+  uint32_t alt_name_right_lang_index() const {
+    return alt_name_right_lang_index_;
+  }
+
+  /**
    * Sets the index for official name
    * @param  idx  Index for the official name.
    */
@@ -312,6 +392,86 @@ struct OSMWay {
    */
   uint32_t official_name_index() const {
     return official_name_index_;
+  }
+
+  /**
+   * Sets the index for official_name:<lang>
+   * @param  idx  Index for the languages.
+   */
+  void set_official_name_lang_index(const uint32_t idx) {
+    official_name_lang_index_ = idx;
+  }
+
+  /**
+   * Get the official_name:<lang> index.
+   * @return  Returns the index for the languages.
+   */
+  uint32_t official_name_lang_index() const {
+    return official_name_lang_index_;
+  }
+
+  /**
+   * Sets the index for left official_name
+   * @param  idx  Index for the left official_name.
+   */
+  void set_official_name_left_index(const uint32_t idx) {
+    official_name_left_index_ = idx;
+  }
+
+  /**
+   * Get the left official_name index.
+   * @return  Returns the index for the left official_name.
+   */
+  uint32_t official_name_left_index() const {
+    return official_name_left_index_;
+  }
+
+  /**
+   * Sets the index for official_name:left:<lang>
+   * @param  idx  Index for the left languages.
+   */
+  void set_official_name_left_lang_index(const uint32_t idx) {
+    official_name_left_lang_index_ = idx;
+  }
+
+  /**
+   * Get the official_name:left:<lang> index.
+   * @return  Returns the index for the left languages.
+   */
+  uint32_t official_name_left_lang_index() const {
+    return official_name_left_lang_index_;
+  }
+
+  /**
+   * Sets the index for right official_name
+   * @param  idx  Index for the right official_name.
+   */
+  void set_official_name_right_index(const uint32_t idx) {
+    official_name_right_index_ = idx;
+  }
+
+  /**
+   * Get the right official_name index.
+   * @return  Returns the index for the right official_name.
+   */
+  uint32_t official_name_right_index() const {
+    return official_name_right_index_;
+  }
+
+  /**
+   * Sets the index for official_name:right:<lang>
+   * @param  idx  Index for the right languages.
+   */
+  void set_official_name_right_lang_index(const uint32_t idx) {
+    official_name_right_lang_index_ = idx;
+  }
+
+  /**
+   * Get the official_name:right:<lang> index.
+   * @return  Returns the index for the right languages.
+   */
+  uint32_t official_name_right_lang_index() const {
+    return official_name_right_lang_index_;
   }
 
   /**
@@ -1734,6 +1894,14 @@ struct OSMWay {
     return layer_;
   }
 
+  void ProcessNames(const UniqueNames& name_offset_map,
+                    const std::vector<std::string>& default_languages,
+                    const uint32_t name_index,
+                    const uint32_t name_lang_index,
+                    std::vector<std::string>& tokens,
+                    std::vector<baldr::Language>& token_langs,
+                    bool diff_names) const;
+
   /**
    * Get the names for the edge info based on the road class.
    * @param  ref              updated refs from relations.
@@ -1746,6 +1914,10 @@ struct OSMWay {
                 const std::vector<std::string>& default_languages,
                 const uint32_t name_index,
                 const uint32_t name_lang_index,
+                const uint32_t official_name_index,
+                const uint32_t official_name_lang_index,
+                const uint32_t alt_name_index,
+                const uint32_t alt_name_lang_index,
                 uint16_t& types,
                 std::vector<std::string>& names,
                 std::vector<std::string>& linguistics,
@@ -1779,12 +1951,24 @@ struct OSMWay {
 
   uint32_t alt_name_index_;
   uint32_t alt_name_lang_index_;
+  uint32_t alt_name_left_index_;
+  uint32_t alt_name_left_lang_index_;
+  uint32_t alt_name_right_index_;
+  uint32_t alt_name_right_lang_index_;
 
   uint32_t official_name_index_;
   uint32_t official_name_lang_index_;
+  uint32_t official_name_left_index_;
+  uint32_t official_name_left_lang_index_;
+  uint32_t official_name_right_index_;
+  uint32_t official_name_right_lang_index_;
 
   uint32_t tunnel_name_index_;
   uint32_t tunnel_name_lang_index_;
+  uint32_t tunnel_name_left_index_;
+  uint32_t tunnel_name_left_lang_index_;
+  uint32_t tunnel_name_right_index_;
+  uint32_t tunnel_name_right_lang_index_;
 
   // Turn lanes
   uint32_t fwd_turn_lanes_index_;
