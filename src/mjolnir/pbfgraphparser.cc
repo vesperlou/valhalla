@@ -1771,16 +1771,16 @@ public:
     has_default_speed_ = false, has_max_speed_ = false;
     has_average_speed_ = false, has_advisory_speed_ = false;
     has_surface_ = true;
-    name_ = {}, language_ = {}, name_w_lang_ = {}, service_ = {}, amenity_ = {};
-    name_left_ = {}, name_right_ = {}, lang_left_ = {}, lang_right_ = {};
-    name_left_w_lang_ = {}, name_right_w_lang_ = {};
+    name_ = language_ = name_w_lang_ = service_ = amenity_ = {};
+    name_left_ = name_right_ = lang_left_ = lang_right_ = {};
+    name_left_w_lang_ = name_right_w_lang_ = {};
 
-    official_name_ = {}, official_language_ = {}, official_name_w_lang_ = {},
-    official_name_left_ = {}, official_name_right_ = {}, official_lang_left_ = {},
-    official_lang_right_ = {}, official_name_left_w_lang_ = {}, official_name_right_w_lang_ = {};
+    official_name_ = official_language_ = official_name_w_lang_ = {},
+    official_name_left_ = official_name_right_ = official_lang_left_ = {},
+    official_lang_right_ = official_name_left_w_lang_ = official_name_right_w_lang_ = {};
 
-    alt_name_ = {}, alt_language_ = {}, alt_name_w_lang_ = {}, alt_name_left_ = {},
-    alt_name_right_ = {}, alt_lang_left_ = {}, alt_lang_right_ = {}, alt_name_left_w_lang_ = {},
+    alt_name_ = alt_language_ = alt_name_w_lang_ = alt_name_left_ = {},
+    alt_name_right_ = alt_lang_left_ = alt_lang_right_ = alt_name_left_w_lang_ = {},
     alt_name_right_w_lang_ = {};
 
     // Process tags
