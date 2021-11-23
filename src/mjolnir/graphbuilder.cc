@@ -714,8 +714,10 @@ void BuildTileSet(const std::string& ways_file,
           // Get the shape for the edge and compute its length
           uint32_t edge_info_offset;
           auto found = geo_attribute_cache.cend();
-          if ((w.name_left_index() && w.name_right_index()) || dual_refs ||
-              (w.name_forward_index() && w.name_backward_index()) ||
+          if (((w.name_left_index() && w.name_right_index()) ||
+               (w.official_name_left_index() && w.official_name_right_index()) ||
+               (w.alt_name_left_index() && w.alt_name_right_index())) ||
+              dual_refs || (w.name_forward_index() && w.name_backward_index()) ||
               !graphtile.HasEdgeInfo(edge_pair.second, (*nodes[source]).graph_id,
                                      (*nodes[target]).graph_id, edge_info_offset)) {
 
@@ -740,10 +742,35 @@ void BuildTileSet(const std::string& ways_file,
               diff_names = true;
             }
 
+            uint32_t official_name_index = w.official_name_index(),
+                     official_name_lang_index = w.official_name_lang_index();
+            if (w.official_name_right_index() && forward) {
+              official_name_index = w.official_name_right_index();
+              official_name_lang_index = w.official_name_right_lang_index();
+              diff_names = true;
+            } else if (w.official_name_left_index() && !forward) {
+              official_name_index = w.official_name_left_index();
+              official_name_lang_index = w.official_name_left_lang_index();
+              diff_names = true;
+            }
+
+            uint32_t alt_name_index = w.alt_name_index(),
+                     alt_name_lang_index = w.alt_name_lang_index();
+            if (w.alt_name_right_index() && forward) {
+              alt_name_index = w.alt_name_right_index();
+              alt_name_lang_index = w.alt_name_right_lang_index();
+              diff_names = true;
+            } else if (w.alt_name_left_index() && !forward) {
+              alt_name_index = w.alt_name_left_index();
+              alt_name_lang_index = w.alt_name_left_lang_index();
+              diff_names = true;
+            }
+
             uint16_t types = 0;
             std::vector<std::string> names, tagged_values, linguistics;
             w.GetNames(ref, osmdata.name_offset_map, p, default_languages, name_index,
-                       name_lang_index, types, names, linguistics, diff_names);
+                       name_lang_index, official_name_index, official_name_lang_index, alt_name_index,
+                       alt_name_lang_index, types, names, linguistics, diff_names);
             w.GetTaggedValues(osmdata.name_offset_map, p, names.size(), tagged_values, linguistics);
             // Update bike_network type
 
