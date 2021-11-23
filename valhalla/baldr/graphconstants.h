@@ -450,6 +450,7 @@ enum class Language : uint8_t {
   kUz = 69,
   kVi = 70,
   kZh = 71,
+  kCy = 72,
   kNone = 255
 };
 
@@ -478,7 +479,8 @@ inline Language stringLanguage(const std::string& s) {
        {"sr-Latn", Language::kSrLatn}, {"sv", Language::kSv},   {"tg", Language::kTg},
        {"th", Language::kTh},          {"tk", Language::kTk},   {"tr", Language::kTr},
        {"uk", Language::kUk},          {"ur", Language::kUr},   {"uz", Language::kUz},
-       {"vi", Language::kVi},          {"zh", Language::kZh},   {"none", Language::kNone}};
+       {"vi", Language::kVi},          {"zh", Language::kZh},   {"cy", Language::kCy},
+       {"none", Language::kNone}};
 
   auto i = stringToLanguage.find(s);
   if (i == stringToLanguage.cend()) {
@@ -511,7 +513,8 @@ inline std::string to_string(Language l) {
        {Language::kSrLatn, "sr-Latn"}, {Language::kSv, "sv"},   {Language::kTg, "tg"},
        {Language::kTh, "th"},          {Language::kTk, "tk"},   {Language::kTr, "tr"},
        {Language::kUk, "uk"},          {Language::kUr, "ur"},   {Language::kUz, "uz"},
-       {Language::kVi, "vi"},          {Language::kZh, "zh"},   {Language::kNone, "none"}};
+       {Language::kVi, "vi"},          {Language::kZh, "zh"},   {Language::kCy, "cy"},
+       {Language::kNone, "none"}};
 
   auto i = LanguageStrings.find((l));
   if (i == LanguageStrings.cend()) {
