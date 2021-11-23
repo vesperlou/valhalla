@@ -487,11 +487,27 @@ public:
     };
     tag_handlers_["alt_name"] = [this]() {
       if (!tag_.second.empty() && allow_alt_name_)
-        way_.set_alt_name_index(osmdata_.name_offset_map.index(tag_.second));
+        alt_name_ = tag_.second;
+    };
+    tag_handlers_["alt_name:left"] = [this]() {
+      if (!tag_.second.empty() && allow_alt_name_)
+        alt_name_left_ = tag_.second;
+    };
+    tag_handlers_["alt_name:right"] = [this]() {
+      if (!tag_.second.empty() && allow_alt_name_)
+        alt_name_right_ = tag_.second;
     };
     tag_handlers_["official_name"] = [this]() {
       if (!tag_.second.empty())
-        way_.set_official_name_index(osmdata_.name_offset_map.index(tag_.second));
+        official_name_ = tag_.second;
+    };
+    tag_handlers_["official_name:left"] = [this]() {
+      if (!tag_.second.empty())
+        official_name_left_ = tag_.second;
+    };
+    tag_handlers_["official_name:right"] = [this]() {
+      if (!tag_.second.empty())
+        official_name_right_ = tag_.second;
     };
     tag_handlers_["tunnel:name"] = [this]() {
       if (!tag_.second.empty())
@@ -1759,7 +1775,13 @@ public:
     name_left_ = {}, name_right_ = {}, lang_left_ = {}, lang_right_ = {};
     name_left_w_lang_ = {}, name_right_w_lang_ = {};
 
-    name_forward_ = {}, name_backward_ = {};
+    official_name_ = {}, official_language_ = {}, official_name_w_lang_ = {},
+    official_name_left_ = {}, official_name_right_ = {}, official_lang_left_ = {},
+    official_lang_right_ = {}, official_name_left_w_lang_ = {}, official_name_right_w_lang_ = {};
+
+    alt_name_ = {}, alt_language_ = {}, alt_name_w_lang_ = {}, alt_name_left_ = {},
+    alt_name_right_ = {}, alt_lang_left_ = {}, alt_lang_right_ = {}, alt_name_left_w_lang_ = {},
+    alt_name_right_w_lang_ = {};
 
     // Process tags
     way_ = OSMWay{osmid_};
@@ -1794,54 +1816,23 @@ public:
           LOG_WARN(ss.str());
         }
       } else if (tag_.first.substr(0, 10) == "name:left:") {
-        std::vector<std::string> tokens = GetTagTokens(tag_.first, ':');
-        if (tokens.size() == 3) {
-
-          std::string lang = tokens.at(2);
-          if (stringLanguage(lang) != Language::kNone && !tag_.second.empty()) // name:left:en
-          {
-            if (name_left_w_lang_.empty()) {
-              name_left_w_lang_ = tag_.second;
-              lang_left_ = lang;
-            } else {
-              name_left_w_lang_ += ";" + tag_.second;
-              lang_left_ += ";" + lang;
-            }
-          }
-        }
+        ProcessLeftRightNameTag(tag_, name_left_w_lang_, lang_left_);
       } else if (tag_.first.substr(0, 11) == "name:right:") {
-        std::vector<std::string> tokens = GetTagTokens(tag_.first, ':');
-        if (tokens.size() == 3) {
-
-          std::string lang = tokens.at(2);
-          if (stringLanguage(lang) != Language::kNone && !tag_.second.empty()) // name:left:en
-          {
-            if (name_right_w_lang_.empty()) {
-              name_right_w_lang_ = tag_.second;
-              lang_right_ = lang;
-            } else {
-              name_right_w_lang_ += ";" + tag_.second;
-              lang_right_ += ";" + lang;
-            }
-          }
-        }
+        ProcessLeftRightNameTag(tag_, name_right_w_lang_, lang_right_);
       } else if (tag_.first.substr(0, 5) == "name:") {
-        std::vector<std::string> tokens = GetTagTokens(tag_.first, ':');
-        if (tokens.size() == 2) {
-
-          std::string lang = tokens.at(1);
-          if (stringLanguage(lang) != Language::kNone &&
-              !tag_.second.empty()) // name:en, name:ar, name:fr, etc
-          {
-            if (name_w_lang_.empty()) {
-              name_w_lang_ = tag_.second;
-              language_ = lang;
-            } else {
-              name_w_lang_ += ";" + tag_.second;
-              language_ += ";" + lang;
-            }
-          }
-        }
+        ProcessNameTag(tag_, name_w_lang_, language_);
+      } else if (tag_.first.substr(0, 19) == "official_name:left:") {
+        ProcessLeftRightNameTag(tag_, official_name_left_w_lang_, official_lang_left_);
+      } else if (tag_.first.substr(0, 20) == "official_name:right:") {
+        ProcessLeftRightNameTag(tag_, official_name_right_w_lang_, official_lang_right_);
+      } else if (tag_.first.substr(0, 14) == "official_name:") {
+        ProcessNameTag(tag_, official_name_w_lang_, official_language_);
+      } else if (allow_alt_name_ && tag_.first.substr(0, 14) == "alt_name:left:") {
+        ProcessLeftRightNameTag(tag_, alt_name_left_w_lang_, alt_lang_left_);
+      } else if (allow_alt_name_ && tag_.first.substr(0, 15) == "alt_name:right:") {
+        ProcessLeftRightNameTag(tag_, alt_name_right_w_lang_, alt_lang_right_);
+      } else if (allow_alt_name_ && tag_.first.substr(0, 9) == "alt_name:") {
+        ProcessNameTag(tag_, alt_name_w_lang_, alt_language_);
       }
       // motor_vehicle:conditional=no @ (16:30-07:00)
       else if (tag_.first.substr(0, 20) == "motorcar:conditional" ||
@@ -2200,74 +2191,50 @@ public:
       }
     }
 
-    if (!name_.empty()) {
-      if (name_w_lang_.empty())
-        way_.set_name_index(osmdata_.name_offset_map.index(name_));
-      else {
-        uint32_t count = std::count(name_.begin(), name_.end(), ';');
-        std::string l = language_;
-        for (uint32_t i = 0; i <= count; i++) {
-          l = ";" + l;
-        }
-        way_.set_name_index(osmdata_.name_offset_map.index(name_ + ";" + name_w_lang_));
-        way_.set_name_lang_index(osmdata_.name_offset_map.index(l));
-      }
-    }
+    // begin name logic
+    std::string l = language_;
+    ProcessName(name_w_lang_, name_, language_);
+    way_.set_name_index(osmdata_.name_offset_map.index(name_));
+    way_.set_name_lang_index(osmdata_.name_offset_map.index(language_));
 
-    if (!name_left_.empty()) {
+    ProcessLeftRightName(name_left_w_lang_, name_w_lang_, l, name_left_, lang_left_);
+    way_.set_name_left_index(osmdata_.name_offset_map.index(name_left_));
+    way_.set_name_left_lang_index(osmdata_.name_offset_map.index(lang_left_));
 
-      if (name_left_w_lang_.empty())
+    ProcessLeftRightName(name_right_w_lang_, name_w_lang_, l, name_right_, lang_right_);
+    way_.set_name_right_index(osmdata_.name_offset_map.index(name_right_));
+    way_.set_name_right_lang_index(osmdata_.name_offset_map.index(lang_right_));
 
-        if (!name_w_lang_.empty()) { // other side of street name may not change
-          way_.set_name_left_index(osmdata_.name_offset_map.index(name_left_ + ";" + name_w_lang_));
-          way_.set_name_left_lang_index(osmdata_.name_offset_map.index(lang_left_ + ";" + language_));
-        } else
-          way_.set_name_left_index(osmdata_.name_offset_map.index(name_left_));
-      else {
-        uint32_t count = std::count(name_left_.begin(), name_left_.end(), ';');
-        for (uint32_t i = 0; i <= count; i++) {
-          lang_left_ = ";" + lang_left_;
-        }
+    // begin offical name logic
+    l = official_language_;
+    ProcessName(official_name_w_lang_, official_name_, official_language_);
+    way_.set_official_name_index(osmdata_.name_offset_map.index(official_name_));
+    way_.set_official_name_lang_index(osmdata_.name_offset_map.index(official_language_));
 
-        if (!name_w_lang_.empty()) { // other side of street name may not change
-          way_.set_name_left_index(osmdata_.name_offset_map.index(
-              name_left_ + ";" + name_left_w_lang_ + ";" + name_w_lang_));
-          way_.set_name_left_lang_index(osmdata_.name_offset_map.index(lang_left_ + ";" + language_));
-        } else {
-          way_.set_name_left_index(
-              osmdata_.name_offset_map.index(name_left_ + ";" + name_left_w_lang_));
-          way_.set_name_left_lang_index(osmdata_.name_offset_map.index(lang_left_));
-        }
-      }
-    }
+    ProcessLeftRightName(official_name_left_w_lang_, official_name_w_lang_, l, official_name_left_,
+                         official_lang_left_);
+    way_.set_official_name_left_index(osmdata_.name_offset_map.index(official_name_left_));
+    way_.set_official_name_left_lang_index(osmdata_.name_offset_map.index(official_lang_left_));
 
-    if (!name_right_.empty()) {
+    ProcessLeftRightName(official_name_right_w_lang_, official_name_w_lang_, l, official_name_right_,
+                         official_lang_right_);
+    way_.set_official_name_right_index(osmdata_.name_offset_map.index(official_name_right_));
+    way_.set_official_name_right_lang_index(osmdata_.name_offset_map.index(official_lang_right_));
 
-      if (name_right_w_lang_.empty())
+    // begin alt name logic
+    l = alt_language_;
+    ProcessName(alt_name_w_lang_, alt_name_, alt_language_);
+    way_.set_alt_name_index(osmdata_.name_offset_map.index(alt_name_));
+    way_.set_alt_name_lang_index(osmdata_.name_offset_map.index(alt_language_));
 
-        if (!name_w_lang_.empty()) { // other side of street name may not change
-          way_.set_name_right_index(osmdata_.name_offset_map.index(name_right_ + ";" + name_w_lang_));
-          way_.set_name_right_lang_index(
-              osmdata_.name_offset_map.index(lang_right_ + ";" + language_));
-        } else
-          way_.set_name_right_index(osmdata_.name_offset_map.index(name_right_));
-      else {
-        uint32_t count = std::count(name_right_.begin(), name_right_.end(), ';');
-        for (uint32_t i = 0; i <= count; i++) {
-          lang_right_ = ";" + lang_right_;
-        }
-        if (!name_w_lang_.empty()) { // other side of street name may not change
-          way_.set_name_right_index(osmdata_.name_offset_map.index(
-              name_right_ + ";" + name_right_w_lang_ + ";" + name_w_lang_));
-          way_.set_name_right_lang_index(
-              osmdata_.name_offset_map.index(lang_right_ + ";" + language_));
-        } else {
-          way_.set_name_right_index(
-              osmdata_.name_offset_map.index(name_right_ + ";" + name_right_w_lang_));
-          way_.set_name_right_lang_index(osmdata_.name_offset_map.index(lang_right_));
-        }
-      }
-    }
+    ProcessLeftRightName(alt_name_left_w_lang_, alt_name_w_lang_, l, alt_name_left_, alt_lang_left_);
+    way_.set_alt_name_left_index(osmdata_.name_offset_map.index(alt_name_left_));
+    way_.set_alt_name_left_lang_index(osmdata_.name_offset_map.index(alt_lang_left_));
+
+    ProcessLeftRightName(alt_name_right_w_lang_, alt_name_w_lang_, l, alt_name_right_,
+                         alt_lang_right_);
+    way_.set_alt_name_right_index(osmdata_.name_offset_map.index(alt_name_right_));
+    way_.set_alt_name_right_lang_index(osmdata_.name_offset_map.index(alt_lang_right_));
 
     // Infer cul-de-sac if a road edge is a loop and is low classification.
     if (!way_.roundabout() && loop_nodes_.size() != nodes.size() && way_.use() == Use::kRoad &&
@@ -2756,6 +2723,92 @@ public:
     bss_nodes_.reset(bss_nodes);
   }
 
+  void ProcessNameTag(const std::pair<std::string, std::string> tag,
+                      std::string& name_w_lang,
+                      std::string& language) {
+    std::vector<std::string> tokens = GetTagTokens(tag.first, ':');
+    if (tokens.size() == 2) {
+
+      std::string lang = tokens.at(1);
+      if (stringLanguage(lang) != Language::kNone &&
+          !tag.second.empty()) // name:en, name:ar, name:fr, etc
+      {
+        if (name_w_lang.empty()) {
+          name_w_lang = tag_.second;
+          language = lang;
+        } else {
+          name_w_lang += ";" + tag_.second;
+          language += ";" + lang;
+        }
+      }
+    }
+  }
+  void ProcessLeftRightNameTag(const std::pair<std::string, std::string> tag,
+                               std::string& name_left_right_w_lang,
+                               std::string& lang_left_right) {
+    std::vector<std::string> tokens = GetTagTokens(tag_.first, ':');
+    if (tokens.size() == 3) {
+
+      std::string lang = tokens.at(2);
+      if (stringLanguage(lang) != Language::kNone && !tag_.second.empty()) // name:left:en
+      {
+        if (name_left_right_w_lang.empty()) {
+          name_left_right_w_lang = tag_.second;
+          lang_left_right = lang;
+        } else {
+          name_left_right_w_lang += ";" + tag_.second;
+          lang_left_right += ";" + lang;
+        }
+      }
+    }
+  }
+
+  void ProcessName(const std::string& name_w_lang, std::string& name, std::string& language) {
+    if (!name.empty()) {
+      if (name_w_lang.empty())
+        return;
+      else {
+        uint32_t count = std::count(name.begin(), name.end(), ';');
+        std::string l = language;
+        for (uint32_t i = 0; i <= count; i++) {
+          l = ";" + l;
+        }
+        name += ";" + name_w_lang;
+        language = l;
+      }
+    }
+  }
+
+  void ProcessLeftRightName(const std::string& name_left_right_w_lang,
+                            const std::string& name_w_lang,
+                            const std::string& language,
+                            std::string& name_left_right,
+                            std::string& lang_left_right) {
+    if (!name_left_right.empty()) {
+
+      if (name_left_right_w_lang.empty())
+
+        if (!name_w_lang.empty()) { // other side of street name may not change
+          name_left_right += ";" + name_w_lang;
+          lang_left_right += ";" + language;
+        } else
+          return;
+      else {
+        uint32_t count = std::count(name_left_right.begin(), name_left_right.end(), ';');
+        for (uint32_t i = 0; i <= count; i++) {
+          lang_left_right = ";" + lang_left_right;
+        }
+
+        if (!name_w_lang.empty()) { // other side of street name may not change
+          name_left_right += ";" + name_left_right_w_lang + ";" + name_w_lang;
+          lang_left_right += ";" + language;
+        } else {
+          name_left_right += ";" + name_left_right_w_lang;
+        }
+      }
+    }
+  }
+
   void ProcessDirection(bool int_ref) {
 
     std::string ref, direction;
@@ -3032,7 +3085,13 @@ public:
   std::string name_, language_, name_w_lang_, service_, amenity_;
   std::string name_left_, name_right_, lang_left_, lang_right_;
   std::string name_left_w_lang_, name_right_w_lang_;
-  std::string name_forward_, name_backward_;
+
+  std::string official_name_, official_language_, official_name_w_lang_, official_name_left_,
+      official_name_right_, official_lang_left_, official_lang_right_, official_name_left_w_lang_,
+      official_name_right_w_lang_;
+
+  std::string alt_name_, alt_language_, alt_name_w_lang_, alt_name_left_, alt_name_right_,
+      alt_lang_left_, alt_lang_right_, alt_name_left_w_lang_, alt_name_right_w_lang_;
 
   // Configuration option to include driveways
   bool include_driveways_;
