@@ -295,6 +295,8 @@ void OSMWay::GetNames(const std::string& ref,
                       const UniqueNames& name_offset_map,
                       const OSMPronunciation& pronunciation,
                       const std::vector<std::string>& default_languages,
+                      const uint32_t ref_index,
+                      const uint32_t ref_lang_index,
                       const uint32_t name_index,
                       const uint32_t name_lang_index,
                       const uint32_t official_name_index,
@@ -310,16 +312,18 @@ void OSMWay::GetNames(const std::string& ref,
   types = 0;
 
   // Process motorway and trunk refs
-  if ((ref_index_ != 0 || !ref.empty()) &&
+  if ((ref_index != 0 || !ref.empty()) &&
       ((static_cast<RoadClass>(road_class_) == RoadClass::kMotorway) ||
        (static_cast<RoadClass>(road_class_) == RoadClass::kTrunk))) {
     std::vector<std::string> tokens;
+    std::vector<baldr::Language> token_langs;
     std::vector<std::string> pronunciation_tokens;
 
     if (!ref.empty()) {
       tokens = GetTagTokens(ref); // use updated refs from relations.
     } else {
-      tokens = GetTagTokens(name_offset_map.name(ref_index_));
+      ProcessNames(name_offset_map, default_languages, ref_index, ref_lang_index, tokens, token_langs,
+                   diff_names);
     }
 
     for (size_t i = 0; i < tokens.size(); ++i) {
@@ -334,6 +338,7 @@ void OSMWay::GetNames(const std::string& ref,
                       pronunciation.ref_pronunciation_nt_sampa_index(),
                       pronunciation.ref_pronunciation_katakana_index(),
                       pronunciation.ref_pronunciation_jeita_index(), tokens.size(), key);
+    AddLanguages(linguistics, token_langs, key);
   }
 
   // Process name
@@ -359,14 +364,17 @@ void OSMWay::GetNames(const std::string& ref,
   }
 
   // Process non limited access refs
-  if (ref_index_ != 0 && (static_cast<RoadClass>(road_class_) != RoadClass::kMotorway) &&
+  if (ref_index != 0 && (static_cast<RoadClass>(road_class_) != RoadClass::kMotorway) &&
       (static_cast<RoadClass>(road_class_) != RoadClass::kTrunk)) {
     std::vector<std::string> tokens;
+    std::vector<baldr::Language> token_langs;
 
     if (!ref.empty()) {
       tokens = GetTagTokens(ref); // use updated refs from relations.
     } else {
-      tokens = GetTagTokens(name_offset_map.name(ref_index_));
+
+      ProcessNames(name_offset_map, default_languages, ref_index, ref_lang_index, tokens, token_langs,
+                   diff_names);
     }
 
     for (size_t i = 0; i < tokens.size(); ++i) {
@@ -381,6 +389,7 @@ void OSMWay::GetNames(const std::string& ref,
                       pronunciation.ref_pronunciation_nt_sampa_index(),
                       pronunciation.ref_pronunciation_katakana_index(),
                       pronunciation.ref_pronunciation_jeita_index(), tokens.size(), key);
+    AddLanguages(linguistics, token_langs, key);
   }
 
   // Process alt_name

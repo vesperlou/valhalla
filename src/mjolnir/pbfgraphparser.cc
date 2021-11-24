@@ -783,19 +783,29 @@ public:
 
     tag_handlers_["ref"] = [this]() {
       if (!tag_.second.empty()) {
-        if (!use_direction_on_ways_)
-          way_.set_ref_index(osmdata_.name_offset_map.index(tag_.second));
-        else
-          ref_ = tag_.second;
+        ref_ = tag_.second;
       }
+    };
+    tag_handlers_["ref:left"] = [this]() {
+      if (!tag_.second.empty())
+        ref_left_ = tag_.second;
+    };
+    tag_handlers_["ref:right"] = [this]() {
+      if (!tag_.second.empty())
+        ref_right_ = tag_.second;
     };
     tag_handlers_["int_ref"] = [this]() {
       if (!tag_.second.empty()) {
-        if (!use_direction_on_ways_)
-          way_.set_int_ref_index(osmdata_.name_offset_map.index(tag_.second));
-        else
-          int_ref_ = tag_.second;
+        int_ref_ = tag_.second;
       }
+    };
+    tag_handlers_["int_ref:left"] = [this]() {
+      if (!tag_.second.empty())
+        ref_left_ = tag_.second;
+    };
+    tag_handlers_["int_ref:right"] = [this]() {
+      if (!tag_.second.empty())
+        ref_right_ = tag_.second;
     };
     tag_handlers_["ref:pronunciation"] = [this]() {
       if (!tag_.second.empty()) {
@@ -1771,17 +1781,15 @@ public:
     has_default_speed_ = false, has_max_speed_ = false;
     has_average_speed_ = false, has_advisory_speed_ = false;
     has_surface_ = true;
-    name_ = language_ = name_w_lang_ = service_ = amenity_ = {};
-    name_left_ = name_right_ = lang_left_ = lang_right_ = {};
-    name_left_w_lang_ = name_right_w_lang_ = {};
+    name_ = language_ = name_w_lang_ = service_ = amenity_ = name_left_ = name_right_ = lang_left_ =
+        lang_right_ = name_left_w_lang_ = name_right_w_lang_ = {};
 
-    official_name_ = official_language_ = official_name_w_lang_ = {},
-    official_name_left_ = official_name_right_ = official_lang_left_ = {},
-    official_lang_right_ = official_name_left_w_lang_ = official_name_right_w_lang_ = {};
+    official_name_ = official_language_ = official_name_w_lang_ = official_name_left_ =
+        official_name_right_ = official_lang_left_ = official_lang_right_ =
+            official_name_left_w_lang_ = official_name_right_w_lang_ = {};
 
-    alt_name_ = alt_language_ = alt_name_w_lang_ = alt_name_left_ = {},
-    alt_name_right_ = alt_lang_left_ = alt_lang_right_ = alt_name_left_w_lang_ = {},
-    alt_name_right_w_lang_ = {};
+    alt_name_ = alt_language_ = alt_name_w_lang_ = alt_name_left_ = alt_name_right_ = alt_lang_left_ =
+        alt_lang_right_ = alt_name_left_w_lang_ = alt_name_right_w_lang_ = {};
 
     // Process tags
     way_ = OSMWay{osmid_};
@@ -1791,7 +1799,14 @@ public:
     osm_pronunciation_ = OSMPronunciation{osmid_};
 
     has_user_tags_ = false, has_pronunciation_tags_ = false;
-    ref_ = int_ref_ = direction_ = int_direction_ = {};
+
+    ref_ = ref_language_ = ref_w_lang_ = ref_left_ = ref_right_ = ref_lang_left_ = ref_lang_right_ =
+        ref_left_w_lang_ = ref_right_w_lang_ = {};
+
+    int_ref_ = int_ref_language_ = int_ref_w_lang_ = int_ref_left_ = int_ref_right_ =
+        int_ref_lang_left_ = int_ref_lang_right_ = int_ref_left_w_lang_ = int_ref_right_w_lang_ = {};
+
+    direction_ = int_direction_ = {};
     ref_pronunciation_ = int_ref_pronunciation_ = direction_pronunciation_ =
         int_direction_pronunciation_ = {};
 
@@ -1833,6 +1848,18 @@ public:
         ProcessLeftRightNameTag(tag_, alt_name_right_w_lang_, alt_lang_right_);
       } else if (allow_alt_name_ && tag_.first.substr(0, 9) == "alt_name:") {
         ProcessNameTag(tag_, alt_name_w_lang_, alt_language_);
+      } else if (tag_.first.substr(0, 9) == "ref:left:") {
+        ProcessLeftRightNameTag(tag_, ref_left_w_lang_, ref_lang_left_);
+      } else if (tag_.first.substr(0, 10) == "ref:right:") {
+        ProcessLeftRightNameTag(tag_, ref_right_w_lang_, ref_lang_right_);
+      } else if (tag_.first.substr(0, 4) == "ref:") {
+        ProcessNameTag(tag_, ref_w_lang_, ref_language_);
+      } else if (tag_.first.substr(0, 9) == "int_ref:left:") {
+        ProcessLeftRightNameTag(tag_, int_ref_left_w_lang_, int_ref_lang_left_);
+      } else if (tag_.first.substr(0, 10) == "int_ref:right:") {
+        ProcessLeftRightNameTag(tag_, int_ref_right_w_lang_, int_ref_lang_right_);
+      } else if (tag_.first.substr(0, 4) == "int_ref:") {
+        ProcessNameTag(tag_, int_ref_w_lang_, int_ref_language_);
       }
       // motor_vehicle:conditional=no @ (16:30-07:00)
       else if (tag_.first.substr(0, 20) == "motorcar:conditional" ||
@@ -1955,11 +1982,11 @@ public:
     }
 
     // add int_refs to the end of the refs for now.  makes sure that we don't add dups.
-    if (use_direction_on_ways_ && way_.int_ref_index()) {
-      std::string tmp = osmdata_.name_offset_map.name(way_.ref_index());
+    if (!int_ref_.empty()) {
+      std::string tmp = ref_;
 
       std::vector<std::string> rs = GetTagTokens(tmp);
-      std::vector<std::string> is = GetTagTokens(osmdata_.name_offset_map.name(way_.int_ref_index()));
+      std::vector<std::string> is = GetTagTokens(int_ref_);
       bool bFound = false;
 
       for (auto& i : is) {
@@ -1978,7 +2005,7 @@ public:
         bFound = false;
       }
       if (!tmp.empty()) {
-        way_.set_ref_index(osmdata_.name_offset_map.index(tmp));
+        ref_ = tmp;
       }
       // no matter what, clear out the int_ref.
       way_.set_int_ref_index(0);
@@ -1986,9 +2013,7 @@ public:
 
     // add int_ref pronunciations to the end of the pronunciation refs for now.  makes sure that we
     // don't add dups.
-    if (use_direction_on_ways_) {
-      MergeRefPronunciations();
-    }
+    MergeRefPronunciations();
 
     // Process mtb tags.
     auto mtb_scale = results.find("mtb:scale");
@@ -2235,6 +2260,35 @@ public:
                          alt_lang_right_);
     way_.set_alt_name_right_index(osmdata_.name_offset_map.index(alt_name_right_));
     way_.set_alt_name_right_lang_index(osmdata_.name_offset_map.index(alt_lang_right_));
+
+    // begin ref logic
+    l = ref_language_;
+    ProcessName(ref_w_lang_, ref_, ref_language_);
+    way_.set_ref_index(osmdata_.name_offset_map.index(ref_));
+    way_.set_ref_lang_index(osmdata_.name_offset_map.index(ref_language_));
+
+    ProcessLeftRightName(ref_left_w_lang_, ref_w_lang_, l, ref_left_, ref_lang_left_);
+    way_.set_ref_left_index(osmdata_.name_offset_map.index(ref_left_));
+    way_.set_ref_left_lang_index(osmdata_.name_offset_map.index(ref_lang_left_));
+
+    ProcessLeftRightName(ref_right_w_lang_, ref_w_lang_, l, ref_right_, ref_lang_right_);
+    way_.set_ref_right_index(osmdata_.name_offset_map.index(ref_right_));
+    way_.set_ref_right_lang_index(osmdata_.name_offset_map.index(ref_right_));
+
+    // begin int_ref logic
+    l = int_ref_language_;
+    ProcessName(int_ref_w_lang_, int_ref_, int_ref_language_);
+    way_.set_int_ref_index(osmdata_.name_offset_map.index(int_ref_));
+    way_.set_int_ref_lang_index(osmdata_.name_offset_map.index(int_ref_language_));
+
+    ProcessLeftRightName(int_ref_left_w_lang_, int_ref_w_lang_, l, int_ref_left_, int_ref_lang_left_);
+    way_.set_int_ref_left_index(osmdata_.name_offset_map.index(int_ref_left_));
+    way_.set_int_ref_left_lang_index(osmdata_.name_offset_map.index(int_ref_lang_left_));
+
+    ProcessLeftRightName(int_ref_right_w_lang_, int_ref_w_lang_, l, int_ref_right_,
+                         int_ref_lang_right_);
+    way_.set_int_ref_right_index(osmdata_.name_offset_map.index(int_ref_right_));
+    way_.set_int_ref_right_lang_index(osmdata_.name_offset_map.index(int_ref_right_));
 
     // Infer cul-de-sac if a road edge is a loop and is low classification.
     if (!way_.roundabout() && loop_nodes_.size() != nodes.size() && way_.use() == Use::kRoad &&
@@ -2822,9 +2876,9 @@ public:
 
     if (direction.empty()) {
       if (int_ref)
-        way_.set_int_ref_index(osmdata_.name_offset_map.index(ref));
+        int_ref_ = ref;
       else
-        way_.set_ref_index(osmdata_.name_offset_map.index(ref));
+        ref_ = ref;
     } else {
       std::vector<std::string> refs = GetTagTokens(ref);
       std::vector<std::string> directions = GetTagTokens(direction);
@@ -2841,14 +2895,14 @@ public:
             tmp_ref += refs.at(i);
         }
         if (int_ref)
-          way_.set_int_ref_index(osmdata_.name_offset_map.index(tmp_ref));
+          int_ref_ = tmp_ref;
         else
-          way_.set_ref_index(osmdata_.name_offset_map.index(tmp_ref));
+          ref_ = tmp_ref;
       } else {
         if (int_ref)
-          way_.set_int_ref_index(osmdata_.name_offset_map.index(ref));
+          int_ref_ = ref;
         else
-          way_.set_ref_index(osmdata_.name_offset_map.index(ref));
+          ref_ = ref;
       }
     }
   }
@@ -3074,7 +3128,14 @@ public:
   OSMAccess osm_access_;
   OSMPronunciation osm_pronunciation_;
   bool has_user_tags_ = false, has_pronunciation_tags_ = false;
-  std::string ref_, int_ref_, direction_, int_direction_;
+  std::string ref_, ref_language_, ref_w_lang_, ref_left_, ref_right_, ref_lang_left_,
+      ref_lang_right_, ref_left_w_lang_, ref_right_w_lang_;
+
+  std::string int_ref_, int_ref_language_, int_ref_w_lang_, int_ref_left_, int_ref_right_,
+      int_ref_lang_left_, int_ref_lang_right_, int_ref_left_w_lang_, int_ref_right_w_lang_;
+
+  std::string direction_, int_direction_;
+
   std::string ref_pronunciation_, int_ref_pronunciation_, ref_pronunciation_nt_sampa_,
       int_ref_pronunciation_nt_sampa_, ref_pronunciation_katakana_, int_ref_pronunciation_katakana_,
       ref_pronunciation_jeita_, int_ref_pronunciation_jeita_;
