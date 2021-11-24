@@ -139,6 +139,86 @@ struct OSMWay {
   }
 
   /**
+   * Sets the index for ref:<lang>
+   * @param  idx  Index for the languages.
+   */
+  void set_ref_lang_index(const uint32_t idx) {
+    ref_lang_index_ = idx;
+  }
+
+  /**
+   * Get the ref:<lang> index.
+   * @return  Returns the index for the languages.
+   */
+  uint32_t ref_lang_index() const {
+    return ref_lang_index_;
+  }
+
+  /**
+   * Sets the index for left ref
+   * @param  idx  Index for the left ref.
+   */
+  void set_ref_left_index(const uint32_t idx) {
+    ref_left_index_ = idx;
+  }
+
+  /**
+   * Get the left ref index.
+   * @return  Returns the index for the left ref.
+   */
+  uint32_t ref_left_index() const {
+    return ref_left_index_;
+  }
+
+  /**
+   * Sets the index for ref:left:<lang>
+   * @param  idx  Index for the left languages.
+   */
+  void set_ref_left_lang_index(const uint32_t idx) {
+    ref_left_lang_index_ = idx;
+  }
+
+  /**
+   * Get the ref:left:<lang> index.
+   * @return  Returns the index for the left languages.
+   */
+  uint32_t ref_left_lang_index() const {
+    return ref_left_lang_index_;
+  }
+
+  /**
+   * Sets the index for right ref
+   * @param  idx  Index for the right ref.
+   */
+  void set_ref_right_index(const uint32_t idx) {
+    ref_right_index_ = idx;
+  }
+
+  /**
+   * Get the right ref index.
+   * @return  Returns the index for the right ref.
+   */
+  uint32_t ref_right_index() const {
+    return ref_right_index_;
+  }
+
+  /**
+   * Sets the index for ref:right:<lang>
+   * @param  idx  Index for the right languages.
+   */
+  void set_ref_right_lang_index(const uint32_t idx) {
+    ref_right_lang_index_ = idx;
+  }
+
+  /**
+   * Get the ref:right:<lang> index.
+   * @return  Returns the index for the right languages.
+   */
+  uint32_t ref_right_lang_index() const {
+    return ref_right_lang_index_;
+  }
+
+  /**
    * Sets the index for int ret
    * @param  idx  Index for the international reference.
    */
@@ -152,6 +232,86 @@ struct OSMWay {
    */
   uint32_t int_ref_index() const {
     return int_ref_index_;
+  }
+
+  /**
+   * Sets the index for int_ref:<lang>
+   * @param  idx  Index for the languages.
+   */
+  void set_int_ref_lang_index(const uint32_t idx) {
+    int_ref_lang_index_ = idx;
+  }
+
+  /**
+   * Get the int_ref:<lang> index.
+   * @return  Returns the index for the languages.
+   */
+  uint32_t int_ref_lang_index() const {
+    return int_ref_lang_index_;
+  }
+
+  /**
+   * Sets the index for left int_ref
+   * @param  idx  Index for the left int_ref.
+   */
+  void set_int_ref_left_index(const uint32_t idx) {
+    int_ref_left_index_ = idx;
+  }
+
+  /**
+   * Get the left int_ref index.
+   * @return  Returns the index for the left int_ref.
+   */
+  uint32_t int_ref_left_index() const {
+    return int_ref_left_index_;
+  }
+
+  /**
+   * Sets the index for int_ref:left:<lang>
+   * @param  idx  Index for the left languages.
+   */
+  void set_int_ref_left_lang_index(const uint32_t idx) {
+    int_ref_left_lang_index_ = idx;
+  }
+
+  /**
+   * Get the int_ref:left:<lang> index.
+   * @return  Returns the index for the left languages.
+   */
+  uint32_t int_ref_left_lang_index() const {
+    return int_ref_left_lang_index_;
+  }
+
+  /**
+   * Sets the index for right int_ref
+   * @param  idx  Index for the right int_ref.
+   */
+  void set_int_ref_right_index(const uint32_t idx) {
+    int_ref_right_index_ = idx;
+  }
+
+  /**
+   * Get the right int_ref index.
+   * @return  Returns the index for the right int_ref.
+   */
+  uint32_t int_ref_right_index() const {
+    return int_ref_right_index_;
+  }
+
+  /**
+   * Sets the index for int_ref:right:<lang>
+   * @param  idx  Index for the right languages.
+   */
+  void set_int_ref_right_lang_index(const uint32_t idx) {
+    int_ref_right_lang_index_ = idx;
+  }
+
+  /**
+   * Get the int_ref:right:<lang> index.
+   * @return  Returns the index for the right languages.
+   */
+  uint32_t int_ref_right_lang_index() const {
+    return int_ref_right_lang_index_;
   }
 
   /**
@@ -1912,6 +2072,8 @@ struct OSMWay {
                 const UniqueNames& name_offset_map,
                 const OSMPronunciation& pronunciation,
                 const std::vector<std::string>& default_languages,
+                const uint32_t ref_index,
+                const uint32_t ref_lang_index,
                 const uint32_t name_index,
                 const uint32_t name_lang_index,
                 const uint32_t official_name_index,
@@ -1934,8 +2096,18 @@ struct OSMWay {
 
   // Reference name (highway numbers)
   uint32_t ref_index_;
-  uint32_t int_ref_index_;
+  uint32_t ref_lang_index_;
+  uint32_t ref_left_index_;
+  uint32_t ref_left_lang_index_;
+  uint32_t ref_right_index_;
+  uint32_t ref_right_lang_index_;
 
+  uint32_t int_ref_index_;
+  uint32_t int_ref_lang_index_;
+  uint32_t int_ref_left_index_;
+  uint32_t int_ref_left_lang_index_;
+  uint32_t int_ref_right_index_;
+  uint32_t int_ref_right_lang_index_;
   // Names
   uint32_t name_index_;
   uint32_t name_lang_index_;
