@@ -96,4 +96,7 @@
 -j '{"locations":[{"lat":39.562569,"lon":-104.986635},{"lat":39.562518,"lon":-104.986877}],"costing":"auto","units":"miles"}'
 -j '{"locations":[{"lat":45.722669,"lon":-121.820260},{"lat":45.722658,"lon":-121.819831}],"costing":"auto","units":"miles"}'
 -j '{"locations":[{"lat":45.722658,"lon":-121.819831},{"lat":45.722669,"lon":-121.820260}],"costing":"auto","units":"miles"}'
-
+-j '{"locations":[{"lat":50.543074,"lon":2.799268,"street":"Rue d'Estaires"},{"lat":50.545723,"lon":2.797213,"street":"Rue d'Estaires"}],"costing":"auto","units":"miles"}'
+-j '{"locations":[{"lat":50.545723,"lon":2.797213,"street":"Rue d'Estaires"},{"lat":50.543074,"lon":2.799268,"street":"Rue d'Estaires"}],"costing":"auto","units":"miles"}'
+-j '{"locations":[{"lat":41.426044,"lon":-84.801664,"street":"Defiance Williams County Line Road"},{"lat":41.426237,"lon":-84.785721,"street":"Williams Defiance County Line Road"}],"costing":"auto","units":"miles"}'
+-j '{"locations":[{"lat":41.426237,"lon":-84.785721,"street":"Williams Defiance County Line Road"},{"lat":41.426044,"lon":-84.801664,"street":"Defiance Williams County Line Road"}],"costing":"auto","units":"miles"}'
