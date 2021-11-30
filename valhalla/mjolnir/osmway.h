@@ -651,6 +651,86 @@ struct OSMWay {
   }
 
   /**
+   * Sets the index for tunnel_name:<lang>
+   * @param  idx  Index for the languages.
+   */
+  void set_tunnel_name_lang_index(const uint32_t idx) {
+    tunnel_name_lang_index_ = idx;
+  }
+
+  /**
+   * Get the tunnel_name:<lang> index.
+   * @return  Returns the index for the languages.
+   */
+  uint32_t tunnel_name_lang_index() const {
+    return tunnel_name_lang_index_;
+  }
+
+  /**
+   * Sets the index for left tunnel_name
+   * @param  idx  Index for the left tunnel_name.
+   */
+  void set_tunnel_name_left_index(const uint32_t idx) {
+    tunnel_name_left_index_ = idx;
+  }
+
+  /**
+   * Get the left tunnel_name index.
+   * @return  Returns the index for the left tunnel_name.
+   */
+  uint32_t tunnel_name_left_index() const {
+    return tunnel_name_left_index_;
+  }
+
+  /**
+   * Sets the index for tunnel_name:left:<lang>
+   * @param  idx  Index for the left languages.
+   */
+  void set_tunnel_name_left_lang_index(const uint32_t idx) {
+    tunnel_name_left_lang_index_ = idx;
+  }
+
+  /**
+   * Get the tunnel_name:left:<lang> index.
+   * @return  Returns the index for the left languages.
+   */
+  uint32_t tunnel_name_left_lang_index() const {
+    return tunnel_name_left_lang_index_;
+  }
+
+  /**
+   * Sets the index for right tunnel_name
+   * @param  idx  Index for the right tunnel_name.
+   */
+  void set_tunnel_name_right_index(const uint32_t idx) {
+    tunnel_name_right_index_ = idx;
+  }
+
+  /**
+   * Get the right tunnel_name index.
+   * @return  Returns the index for the right tunnel_name.
+   */
+  uint32_t tunnel_name_right_index() const {
+    return tunnel_name_right_index_;
+  }
+
+  /**
+   * Sets the index for tunnel_name:right:<lang>
+   * @param  idx  Index for the right languages.
+   */
+  void set_tunnel_name_right_lang_index(const uint32_t idx) {
+    tunnel_name_right_lang_index_ = idx;
+  }
+
+  /**
+   * Get the tunnel_name:right:<lang> index.
+   * @return  Returns the index for the right languages.
+   */
+  uint32_t tunnel_name_right_lang_index() const {
+    return tunnel_name_right_lang_index_;
+  }
+
+  /**
    * Sets the index for forward turn lanes string.
    * @param  idx  Index for the forward turn lanes string.
    */
@@ -2087,9 +2167,13 @@ struct OSMWay {
 
   void GetTaggedValues(const UniqueNames& name_offset_map,
                        const OSMPronunciation& pronunciation,
+                       const std::vector<std::string>& default_languages,
+                       const uint32_t tunnel_name_index,
+                       const uint32_t tunnel_name_lang_index,
                        const size_t& names_size,
                        std::vector<std::string>& names,
-                       std::vector<std::string>& linguistics) const;
+                       std::vector<std::string>& linguistics,
+                       bool diff_names = false) const;
 
   // OSM way Id
   uint64_t osmwayid_;
