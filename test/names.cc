@@ -220,7 +220,7 @@ TEST(Names, TaggedNamesTest) {
   OSMWay w2{1234};
 
   OSMPronunciation pronunciation1{}, pronunciation2{};
-  std::vector<std::string> pronunciations;
+  std::vector<std::string> pronunciations, default_languages;
 
   UniqueNames name_offset_map;
 
@@ -246,7 +246,8 @@ TEST(Names, TaggedNamesTest) {
       name_offset_map.index("チバダ'イガ&ク% セーモンマ'エ."));
 
   std::vector<std::string> w1_tagged_names;
-  w1.GetTaggedValues(name_offset_map, pronunciation1, 0, w1_tagged_names, pronunciations);
+  w1.GetTaggedValues(name_offset_map, pronunciation1, default_languages, w1.tunnel_name_index(), 0, 0,
+                     w1_tagged_names, pronunciations);
   EXPECT_EQ(w1_tagged_names.at(0), "1Ted Williams Tunnel");
   TestKeyTypeValue(pronunciations.at(0), 0, PronunciationAlphabet::kIpa, "tɛd ˈwɪljəmz ˈtʌnl");
   TestKeyTypeValue(pronunciations.at(1), 0, PronunciationAlphabet::kNtSampa, "tEd wIly@mz t@n@l");
@@ -259,7 +260,8 @@ TEST(Names, TaggedNamesTest) {
   std::vector<std::string> w2_tagged_names;
   w2_tagged_names.emplace_back("test name"); // testing pronunciation index
 
-  w2.GetTaggedValues(name_offset_map, pronunciation2, 0, w2_tagged_names, pronunciations);
+  w2.GetTaggedValues(name_offset_map, pronunciation2, default_languages, w2.tunnel_name_index(), 0, 0,
+                     w2_tagged_names, pronunciations);
   EXPECT_EQ(w2_tagged_names.at(1), "1Fort McHenry Tunnel");
   TestKeyTypeValue(pronunciations.at(0), 1, PronunciationAlphabet::kIpa, "fɔːt McHenry ˈtʌnl");
   TestKeyTypeValue(pronunciations.at(1), 1, PronunciationAlphabet::kNtSampa, "fOrt m@kEnri t@n@l");
