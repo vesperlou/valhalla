@@ -100,3 +100,5 @@
 -j '{"locations":[{"lat":50.545723,"lon":2.797213,"street":"Rue d'Estaires"},{"lat":50.543074,"lon":2.799268,"street":"Rue d'Estaires"}],"costing":"auto","units":"miles"}'
 -j '{"locations":[{"lat":41.426044,"lon":-84.801664,"street":"Defiance Williams County Line Road"},{"lat":41.426237,"lon":-84.785721,"street":"Williams Defiance County Line Road"}],"costing":"auto","units":"miles"}'
 -j '{"locations":[{"lat":41.426237,"lon":-84.785721,"street":"Williams Defiance County Line Road"},{"lat":41.426044,"lon":-84.801664,"street":"Defiance Williams County Line Road"}],"costing":"auto","units":"miles"}'
+-j '{"locations":[{"lat":50.841984,"lon":4.406626,"street":"Boulevard Brand Whitlock"},{"lat":50.842623,"lon":4.406258,"street":"Boulevard Brand Whitlock"}],"costing":"auto","units":"miles"}'
+-j '{"locations":[{"lat":50.842585,"lon":4.406105,"street":"Boulevard Brand Whitlock"},{"lat":50.841952,"lon":4.406470,"street":"Boulevard Brand Whitlock"}],"costing":"auto","units":"miles"}'
