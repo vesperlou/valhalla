@@ -2273,7 +2273,7 @@ public:
 
     ProcessLeftRightName(ref_right_w_lang_, ref_w_lang_, l, ref_right_, ref_lang_right_);
     way_.set_ref_right_index(osmdata_.name_offset_map.index(ref_right_));
-    way_.set_ref_right_lang_index(osmdata_.name_offset_map.index(ref_right_));
+    way_.set_ref_right_lang_index(osmdata_.name_offset_map.index(ref_lang_right_));
 
     // begin int_ref logic
     l = int_ref_language_;
@@ -2288,7 +2288,7 @@ public:
     ProcessLeftRightName(int_ref_right_w_lang_, int_ref_w_lang_, l, int_ref_right_,
                          int_ref_lang_right_);
     way_.set_int_ref_right_index(osmdata_.name_offset_map.index(int_ref_right_));
-    way_.set_int_ref_right_lang_index(osmdata_.name_offset_map.index(int_ref_right_));
+    way_.set_int_ref_right_lang_index(osmdata_.name_offset_map.index(int_ref_lang_right_));
 
     // Infer cul-de-sac if a road edge is a loop and is low classification.
     if (!way_.roundabout() && loop_nodes_.size() != nodes.size() && way_.use() == Use::kRoad &&
