@@ -778,12 +778,26 @@ void BuildTileSet(const std::string& ways_file,
               diff_names = true;
             }
 
+            uint32_t tunnel_index = w.tunnel_name_index(),
+                     tunnel_lang_index = w.tunnel_name_lang_index();
+            if (w.tunnel_name_right_index() && forward) {
+              tunnel_index = w.tunnel_name_right_index();
+              tunnel_lang_index = w.tunnel_name_right_lang_index();
+              diff_names = true;
+            } else if (w.tunnel_name_left_index() && !forward) {
+              tunnel_index = w.tunnel_name_left_index();
+              tunnel_lang_index = w.tunnel_name_left_lang_index();
+              diff_names = true;
+            }
+
             uint16_t types = 0;
             std::vector<std::string> names, tagged_values, linguistics;
             w.GetNames(ref, osmdata.name_offset_map, p, default_languages, ref_index, ref_lang_index,
                        name_index, name_lang_index, official_name_index, official_name_lang_index,
                        alt_name_index, alt_name_lang_index, types, names, linguistics, diff_names);
-            w.GetTaggedValues(osmdata.name_offset_map, p, names.size(), tagged_values, linguistics);
+            w.GetTaggedValues(osmdata.name_offset_map, p, default_languages, tunnel_index,
+                              tunnel_lang_index, names.size(), tagged_values, linguistics,
+                              diff_names);
             // Update bike_network type
 
             if (bike_network) {

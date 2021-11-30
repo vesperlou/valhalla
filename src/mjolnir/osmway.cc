@@ -436,18 +436,27 @@ void OSMWay::GetNames(const std::string& ref,
 // Get the tagged names for an edge
 void OSMWay::GetTaggedValues(const UniqueNames& name_offset_map,
                              const OSMPronunciation& pronunciation,
+                             const std::vector<std::string>& default_languages,
+                             const uint32_t tunnel_name_index,
+                             const uint32_t tunnel_name_lang_index,
                              const size_t& names_size,
                              std::vector<std::string>& names,
-                             std::vector<std::string>& linguistics) const {
+                             std::vector<std::string>& linguistics,
+                             bool diff_names) const {
 
   std::vector<std::string> tokens;
 
   auto encode_tag = [](TaggedValue tag) {
     return std::string(1, static_cast<std::string::value_type>(tag));
   };
-  if (tunnel_name_index_ != 0) {
+  if (tunnel_name_index != 0) {
     // tunnel names
-    auto tokens = GetTagTokens(name_offset_map.name(tunnel_name_index_));
+
+    std::vector<std::string> tokens;
+    std::vector<baldr::Language> token_langs;
+    ProcessNames(name_offset_map, default_languages, tunnel_name_index, tunnel_name_lang_index,
+                 tokens, token_langs, diff_names);
+
     for (const auto& t : tokens) {
       names.emplace_back(encode_tag(TaggedValue::kTunnel) + t);
     }
@@ -458,6 +467,7 @@ void OSMWay::GetTaggedValues(const UniqueNames& name_offset_map,
                       pronunciation.tunnel_name_pronunciation_nt_sampa_index(),
                       pronunciation.tunnel_name_pronunciation_katakana_index(),
                       pronunciation.tunnel_name_pronunciation_jeita_index(), tokens.size(), key);
+    AddLanguages(linguistics, token_langs, key);
   }
 
   if (layer_ != 0) {

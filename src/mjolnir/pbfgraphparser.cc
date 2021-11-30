@@ -511,7 +511,15 @@ public:
     };
     tag_handlers_["tunnel:name"] = [this]() {
       if (!tag_.second.empty())
-        way_.set_tunnel_name_index(osmdata_.name_offset_map.index(tag_.second));
+        tunnel_name_ = tag_.second;
+    };
+    tag_handlers_["tunnel:name:left"] = [this]() {
+      if (!tag_.second.empty())
+        tunnel_name_left_ = tag_.second;
+    };
+    tag_handlers_["tunnel:name:right"] = [this]() {
+      if (!tag_.second.empty())
+        tunnel_name_right_ = tag_.second;
     };
     tag_handlers_["name:pronunciation"] = [this]() {
       if (!tag_.second.empty()) {
@@ -1788,6 +1796,10 @@ public:
         official_name_right_ = official_lang_left_ = official_lang_right_ =
             official_name_left_w_lang_ = official_name_right_w_lang_ = {};
 
+    tunnel_name_ = tunnel_language_ = tunnel_name_w_lang_ = tunnel_name_left_ = tunnel_name_right_ =
+        tunnel_lang_left_ = tunnel_lang_right_ = tunnel_name_left_w_lang_ =
+            tunnel_name_right_w_lang_ = {};
+
     alt_name_ = alt_language_ = alt_name_w_lang_ = alt_name_left_ = alt_name_right_ = alt_lang_left_ =
         alt_lang_right_ = alt_name_left_w_lang_ = alt_name_right_w_lang_ = {};
 
@@ -1860,6 +1872,12 @@ public:
         ProcessLeftRightNameTag(tag_, int_ref_right_w_lang_, int_ref_lang_right_);
       } else if (tag_.first.substr(0, 4) == "int_ref:") {
         ProcessNameTag(tag_, int_ref_w_lang_, int_ref_language_);
+      } else if (tag_.first.substr(0, 17) == "tunnel:name:left:") {
+        ProcessLeftRightNameTag(tag_, tunnel_name_left_w_lang_, tunnel_lang_left_);
+      } else if (tag_.first.substr(0, 18) == "tunnel:name:right:") {
+        ProcessLeftRightNameTag(tag_, tunnel_name_right_w_lang_, tunnel_lang_right_);
+      } else if (tag_.first.substr(0, 12) == "tunnel:name:") {
+        ProcessNameTag(tag_, tunnel_name_w_lang_, tunnel_language_);
       }
       // motor_vehicle:conditional=no @ (16:30-07:00)
       else if (tag_.first.substr(0, 20) == "motorcar:conditional" ||
@@ -2230,7 +2248,7 @@ public:
     way_.set_name_right_index(osmdata_.name_offset_map.index(name_right_));
     way_.set_name_right_lang_index(osmdata_.name_offset_map.index(lang_right_));
 
-    // begin offical name logic
+    // begin official name logic
     l = official_language_;
     ProcessName(official_name_w_lang_, official_name_, official_language_);
     way_.set_official_name_index(osmdata_.name_offset_map.index(official_name_));
@@ -2289,6 +2307,22 @@ public:
                          int_ref_lang_right_);
     way_.set_int_ref_right_index(osmdata_.name_offset_map.index(int_ref_right_));
     way_.set_int_ref_right_lang_index(osmdata_.name_offset_map.index(int_ref_lang_right_));
+
+    // begin tunnel name logic
+    l = tunnel_language_;
+    ProcessName(tunnel_name_w_lang_, tunnel_name_, tunnel_language_);
+    way_.set_tunnel_name_index(osmdata_.name_offset_map.index(tunnel_name_));
+    way_.set_tunnel_name_lang_index(osmdata_.name_offset_map.index(tunnel_language_));
+
+    ProcessLeftRightName(tunnel_name_left_w_lang_, tunnel_name_w_lang_, l, tunnel_name_left_,
+                         tunnel_lang_left_);
+    way_.set_tunnel_name_left_index(osmdata_.name_offset_map.index(tunnel_name_left_));
+    way_.set_tunnel_name_left_lang_index(osmdata_.name_offset_map.index(tunnel_lang_left_));
+
+    ProcessLeftRightName(tunnel_name_right_w_lang_, tunnel_name_w_lang_, l, tunnel_name_right_,
+                         tunnel_lang_right_);
+    way_.set_tunnel_name_right_index(osmdata_.name_offset_map.index(tunnel_name_right_));
+    way_.set_tunnel_name_right_lang_index(osmdata_.name_offset_map.index(tunnel_lang_right_));
 
     // Infer cul-de-sac if a road edge is a loop and is low classification.
     if (!way_.roundabout() && loop_nodes_.size() != nodes.size() && way_.use() == Use::kRoad &&
@@ -2780,7 +2814,11 @@ public:
   void ProcessNameTag(const std::pair<std::string, std::string> tag,
                       std::string& name_w_lang,
                       std::string& language) {
-    std::vector<std::string> tokens = GetTagTokens(tag.first, ':');
+    std::string t = tag.first;
+    if (tag_.first.substr(0, 12) == "tunnel:name:")
+      t = tag_.first.substr(7);
+
+    std::vector<std::string> tokens = GetTagTokens(t, ':');
     if (tokens.size() == 2) {
 
       std::string lang = tokens.at(1);
@@ -3150,6 +3188,10 @@ public:
   std::string official_name_, official_language_, official_name_w_lang_, official_name_left_,
       official_name_right_, official_lang_left_, official_lang_right_, official_name_left_w_lang_,
       official_name_right_w_lang_;
+
+  std::string tunnel_name_, tunnel_language_, tunnel_name_w_lang_, tunnel_name_left_,
+      tunnel_name_right_, tunnel_lang_left_, tunnel_lang_right_, tunnel_name_left_w_lang_,
+      tunnel_name_right_w_lang_;
 
   std::string alt_name_, alt_language_, alt_name_w_lang_, alt_name_left_, alt_name_right_,
       alt_lang_left_, alt_lang_right_, alt_name_left_w_lang_, alt_name_right_w_lang_;
