@@ -188,31 +188,45 @@ void OSMWay::AddLanguages(std::vector<std::string>& linguistics,
 }
 
 void OSMWay::ProcessNames(const UniqueNames& name_offset_map,
-                          const std::vector<std::string>& default_languages,
+                          const std::vector<std::pair<std::string, bool>>& default_languages,
                           const uint32_t name_index,
                           const uint32_t name_lang_index,
                           std::vector<std::string>& tokens,
                           std::vector<baldr::Language>& token_langs,
                           bool diff_names) const {
 
-  std::vector<std::string> token_languages;
+  std::vector<std::string> token_languages, found_languages;
   std::vector<std::pair<std::string, std::string>> updated_token_languages;
   tokens = GetTagTokens(name_offset_map.name(name_index));
   token_languages = GetTagTokens(name_offset_map.name(name_lang_index));
+
+  bool all_default = false;
+  ;
+  if (std::find_if(default_languages.begin() + 1, default_languages.end(),
+                   [](const std::pair<std::string, bool>& p) { return p.second == false; }) ==
+      default_languages.end()) {
+    all_default = true;
+  }
 
   // remove any entries that are not in our country language list
   // then sort our names based on the list.
   if (default_languages.size() && tokens.size() == token_languages.size()) { // should always be equal
     for (size_t i = 0; i < token_languages.size(); i++) {
-      if (std::find(default_languages.begin(), default_languages.end(), token_languages[i]) !=
-          default_languages.end()) {
+      const auto& current_lang = token_languages[i];
+      if (std::find_if(default_languages.begin(), default_languages.end(),
+                       [&current_lang](const std::pair<std::string, bool>& p) {
+                         return p.first == current_lang;
+                       }) != default_languages.end()) {
         updated_token_languages.emplace_back(tokens[i], token_languages[i]);
       }
     }
 
     std::unordered_map<std::string, uint32_t> lang_sort_order;
-    for (size_t i = 0; i < default_languages.size(); i++)
-      lang_sort_order[default_languages[i]] = i;
+    for (size_t i = 0; i < default_languages.size(); i++) {
+      if (i != 0)
+        found_languages.emplace_back(default_languages[i].first);
+      lang_sort_order[default_languages[i].first] = i;
+    }
 
     auto cmp = [&lang_sort_order](const std::pair<std::string, std::string>& p1,
                                   const std::pair<std::string, std::string>& p2) {
@@ -226,7 +240,10 @@ void OSMWay::ProcessNames(const UniqueNames& name_offset_map,
     uint32_t names_w_no_lang_count = 0;
 
     for (size_t i = 0; i < updated_token_languages.size(); ++i) {
-      if (updated_token_languages[i].second.empty()) {
+
+      const auto& current_lang = updated_token_languages[i].second;
+
+      if (current_lang.empty()) {
         // multilingual name
         // name = Place Saint-Pierre - Sint-Pietersplein
         std::vector<std::string> temp_names = GetTagTokens(updated_token_languages[i].first, " - ");
@@ -242,16 +259,26 @@ void OSMWay::ProcessNames(const UniqueNames& name_offset_map,
       } else if (std::find(multilingual_names.begin(), multilingual_names.end(),
                            updated_token_languages[i].first) != multilingual_names.end()) {
         multilingual_names_found.emplace_back(updated_token_languages[i].first);
-        multilingual_langs_found.emplace_back(stringLanguage(updated_token_languages[i].second));
-      } else if (std::find(default_languages.begin(), default_languages.end(),
-                           updated_token_languages[i].second) != default_languages.end()) {
+        multilingual_langs_found.emplace_back(stringLanguage(current_lang));
+        found_languages.erase(std::remove(found_languages.begin(), found_languages.end(),
+                                          current_lang),
+                              found_languages.end());
+
+      } else if (std::find_if(default_languages.begin(), default_languages.end(),
+                              [&current_lang](const std::pair<std::string, bool>& p) {
+                                return p.first == current_lang;
+                              }) != default_languages.end()) {
 
         if (diff_names && std::find(names_w_no_lang.begin(), names_w_no_lang.end(),
                                     updated_token_languages[i].first) == names_w_no_lang.end())
           continue; // is right or left name.
 
         supported_names.emplace_back(updated_token_languages[i].first);
-        supported_langs.emplace_back(stringLanguage(updated_token_languages[i].second));
+        supported_langs.emplace_back(stringLanguage(current_lang));
+        found_languages.erase(std::remove(found_languages.begin(), found_languages.end(),
+                                          current_lang),
+                              found_languages.end());
+
       } else if (std::find(names_w_no_lang.begin(), names_w_no_lang.end(),
                            updated_token_languages[i].first) != names_w_no_lang.end()) {
         names_w_no_lang_count++;
@@ -276,25 +303,50 @@ void OSMWay::ProcessNames(const UniqueNames& name_offset_map,
           token_langs.emplace_back(Language::kNone);
       }
       if (allowed_names) {
-        tokens.insert(tokens.end(), supported_names.begin(), supported_names.end());
-        token_langs.insert(token_langs.end(), supported_langs.begin(), supported_langs.end());
+        // assume the lang.
+        if (names_w_no_lang.size() == 1 && found_languages.size() == 1) {
+
+          // need to check the order.
+          std::vector<std::pair<std::string, std::string>> temp_token_languages;
+
+          for (size_t i = 0; i < supported_names.size(); ++i) {
+            temp_token_languages.emplace_back(supported_names[i], to_string(supported_langs[i]));
+          }
+          temp_token_languages.emplace_back(names_w_no_lang.at(0), found_languages.at(0));
+          std::sort(temp_token_languages.begin(), temp_token_languages.end(), cmp);
+
+          for (size_t i = 0; i < temp_token_languages.size(); ++i) {
+            tokens.emplace_back(temp_token_languages[i].first);
+            token_langs.emplace_back(stringLanguage(temp_token_languages[i].second));
+          }
+        } else {
+          tokens.insert(tokens.end(), supported_names.begin(), supported_names.end());
+          token_langs.insert(token_langs.end(), supported_langs.begin(), supported_langs.end());
+        }
       }
     } else { // bail
       tokens.clear();
+      if (updated_token_languages.size() > 1)
+        all_default = false;
       for (size_t i = 0; i < updated_token_languages.size(); ++i) {
         if (updated_token_languages[i].second.empty()) {
           tokens.emplace_back(updated_token_languages[i].first);
+          if (all_default)
+            token_langs.emplace_back(stringLanguage(default_languages.at(1).first));
         }
       }
     }
   }
 }
+// if none found and all are default then assume first one is lang.
+// if one found and 2 assume other is the other lang.
+//
 
 // Get the names for the edge info based on the road class.
 void OSMWay::GetNames(const std::string& ref,
                       const UniqueNames& name_offset_map,
                       const OSMPronunciation& pronunciation,
-                      const std::vector<std::string>& default_languages,
+                      const std::vector<std::pair<std::string, bool>>& default_languages,
                       const uint32_t ref_index,
                       const uint32_t ref_lang_index,
                       const uint32_t name_index,
@@ -436,7 +488,7 @@ void OSMWay::GetNames(const std::string& ref,
 // Get the tagged names for an edge
 void OSMWay::GetTaggedValues(const UniqueNames& name_offset_map,
                              const OSMPronunciation& pronunciation,
-                             const std::vector<std::string>& default_languages,
+                             const std::vector<std::pair<std::string, bool>>& default_languages,
                              const uint32_t tunnel_name_index,
                              const uint32_t tunnel_name_lang_index,
                              const size_t& names_size,
