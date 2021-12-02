@@ -54,8 +54,8 @@ uint32_t GetMultiPolyId(const std::unordered_multimap<uint32_t, multi_polygon_ty
 uint32_t GetMultiPolyId(const std::unordered_multimap<uint32_t, multi_polygon_type>& polys,
                         const PointLL& ll);
 
-std::vector<std::string>
-GetMultiPolyIndexes(const std::vector<std::pair<std::string, multi_polygon_type>>& polys,
+std::vector<std::pair<std::string, bool>>
+GetMultiPolyIndexes(const std::vector<std::tuple<std::string, multi_polygon_type, bool>>& polys,
                     const PointLL& ll);
 
 /**
@@ -86,7 +86,7 @@ void GetData(sqlite3* db_handle,
              GraphTileBuilder& tilebuilder,
              std::unordered_multimap<uint32_t, multi_polygon_type>& polys,
              std::unordered_map<uint32_t, bool>& drive_on_right,
-             std::vector<std::pair<std::string, multi_polygon_type>>& language_ploys,
+             std::vector<std::tuple<std::string, multi_polygon_type, bool>>& language_ploys,
              bool languages_only);
 
 /**
@@ -107,7 +107,7 @@ std::unordered_multimap<uint32_t, multi_polygon_type>
 GetAdminInfo(sqlite3* db_handle,
              std::unordered_map<uint32_t, bool>& drive_on_right,
              std::unordered_map<uint32_t, bool>& allow_intersection_names,
-             std::vector<std::pair<std::string, multi_polygon_type>>& language_ploys,
+             std::vector<std::tuple<std::string, multi_polygon_type, bool>>& language_ploys,
              const AABB2<PointLL>& aabb,
              GraphTileBuilder& tilebuilder);
 
