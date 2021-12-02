@@ -473,7 +473,7 @@ void BuildTileSet(const std::string& ways_file,
       std::unordered_multimap<uint32_t, multi_polygon_type> admin_polys;
       std::unordered_map<uint32_t, bool> drive_on_right;
       std::unordered_map<uint32_t, bool> allow_intersection_names;
-      std::vector<std::pair<std::string, multi_polygon_type>> language_ploys;
+      std::vector<std::tuple<std::string, multi_polygon_type, bool>> language_ploys;
 
       if (admin_db_handle) {
         admin_polys = GetAdminInfo(admin_db_handle, drive_on_right, allow_intersection_names,
@@ -531,7 +531,8 @@ void BuildTileSet(const std::string& ways_file,
           admin_index = graphtile.AddAdmin("", "", osmdata.node_names.name(node.country_iso_index()),
                                            osmdata.node_names.name(node.state_iso_index()));
         }
-        std::vector<std::string> default_languages = GetMultiPolyIndexes(language_ploys, node_ll);
+        std::vector<std::pair<std::string, bool>> default_languages =
+            GetMultiPolyIndexes(language_ploys, node_ll);
 
         // Look for potential duplicates
         // CheckForDuplicates(nodeid, node, edgelengths, nodes, edges, osmdata.ways, stats);
