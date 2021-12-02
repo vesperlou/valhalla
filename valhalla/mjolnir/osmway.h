@@ -2135,7 +2135,7 @@ struct OSMWay {
   }
 
   void ProcessNames(const UniqueNames& name_offset_map,
-                    const std::vector<std::string>& default_languages,
+                    const std::vector<std::pair<std::string, bool>>& default_languages,
                     const uint32_t name_index,
                     const uint32_t name_lang_index,
                     std::vector<std::string>& tokens,
@@ -2151,7 +2151,7 @@ struct OSMWay {
   void GetNames(const std::string& ref,
                 const UniqueNames& name_offset_map,
                 const OSMPronunciation& pronunciation,
-                const std::vector<std::string>& default_languages,
+                const std::vector<std::pair<std::string, bool>>& default_languages,
                 const uint32_t ref_index,
                 const uint32_t ref_lang_index,
                 const uint32_t name_index,
@@ -2167,7 +2167,7 @@ struct OSMWay {
 
   void GetTaggedValues(const UniqueNames& name_offset_map,
                        const OSMPronunciation& pronunciation,
-                       const std::vector<std::string>& default_languages,
+                       const std::vector<std::pair<std::string, bool>>& default_languages,
                        const uint32_t tunnel_name_index,
                        const uint32_t tunnel_name_lang_index,
                        const size_t& names_size,
