@@ -338,9 +338,6 @@ void OSMWay::ProcessNames(const UniqueNames& name_offset_map,
     }
   }
 }
-// if none found and all are default then assume first one is lang.
-// if one found and 2 assume other is the other lang.
-//
 
 // Get the names for the edge info based on the road class.
 void OSMWay::GetNames(const std::string& ref,
