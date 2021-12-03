@@ -510,14 +510,22 @@ void GraphTileBuilder::AddSigns(const uint32_t idx,
           size_t pos = 0;
           std::string updated_pronunciation;
 
-          while (pos < strlen(p)) {
+          while (*p != '\0') {
+            linguistic_text_header_t header = *reinterpret_cast<linguistic_text_header_t*>(p);
+            header.name_index_ = i;
+            updated_pronunciation.append(std::string(reinterpret_cast<const char*>(&header), 3) +
+                                         (p + 3));
+            p += header.length_ + 3;
+          }
+
+          /*while (pos < strlen(p)) {
             linguistic_text_header_t header = *reinterpret_cast<linguistic_text_header_t*>(p + pos);
             pos += 3;
             header.name_index_ = i;
             updated_pronunciation.append(std::string(reinterpret_cast<const char*>(&header), 3) +
                                          (p + pos));
             pos += header.length_;
-          }
+          }*/
 
           uint32_t offset = AddName(updated_pronunciation);
           signs_builder_.emplace_back(idx, Sign::Type::kLinguistic, phoneme_on_node, true, offset);
