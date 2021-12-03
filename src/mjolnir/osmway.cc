@@ -201,11 +201,13 @@ void OSMWay::ProcessNames(const UniqueNames& name_offset_map,
   token_languages = GetTagTokens(name_offset_map.name(name_lang_index));
 
   bool all_default = false;
-  ;
-  if (std::find_if(default_languages.begin() + 1, default_languages.end(),
-                   [](const std::pair<std::string, bool>& p) { return p.second == false; }) ==
-      default_languages.end()) {
-    all_default = true;
+
+  if (default_languages.size() > 1) {
+    if (std::find_if(default_languages.begin() + 1, default_languages.end(),
+                     [](const std::pair<std::string, bool>& p) { return p.second == false; }) ==
+        default_languages.end()) {
+      all_default = true;
+    }
   }
 
   // remove any entries that are not in our country language list
