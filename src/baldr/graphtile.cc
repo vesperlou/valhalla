@@ -797,7 +797,25 @@ std::vector<SignInfo> GraphTile::GetSigns(
         // is_route_num_type indicates if this phonome is for a node or not
         if ((signs_[found].is_route_num_type() && signs_on_node) ||
             (!signs_[found].is_route_num_type() && !signs_on_node)) {
-          size_t pos = 0;
+
+          while (*text != '\0') {
+            const auto& header = *reinterpret_cast<const linguistic_text_header_t*>(text);
+
+            auto iter = index_pronunciation_map.insert(
+                std::make_pair(header.name_index_,
+                               std::make_pair(header.phonetic_alphabet_,
+                                              std::string(text + 3, header.length_))));
+            if (!iter.second) {
+              if (header.phonetic_alphabet_ > iter.first->second.first) {
+                iter.first->second =
+                    std::make_pair(header.phonetic_alphabet_, std::string(text + 3, header.length_));
+              }
+            }
+
+            text += header.length_ + 3;
+          }
+
+          /*size_t pos = 0;
           while (pos < strlen(text)) {
             const auto& header = *reinterpret_cast<const linguistic_text_header_t*>(text + pos);
             pos += 3;
@@ -814,7 +832,7 @@ std::vector<SignInfo> GraphTile::GetSigns(
             }
 
             pos += header.length_;
-          }
+          }*/
         }
         continue;
       }
