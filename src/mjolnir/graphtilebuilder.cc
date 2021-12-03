@@ -507,7 +507,6 @@ void GraphTileBuilder::AddSigns(const uint32_t idx,
         uint32_t count = (sign.phoneme_start_index() + sign.phoneme_count()) - 1;
         for (uint32_t x = sign.phoneme_start_index(); x <= count; x++) {
           auto* p = const_cast<char*>(pronunciations[x].c_str());
-          size_t pos = 0;
           std::string updated_pronunciation;
 
           while (*p != '\0') {
