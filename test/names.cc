@@ -62,7 +62,8 @@ TEST(Names, NamesTest) {
   w3.set_road_class(RoadClass::kPrimary);
 
   uint16_t types;
-  std::vector<std::string> w1_names, default_languages;
+  std::vector<std::string> w1_names;
+  std::vector<std::pair<std::string, bool>> default_languages;
 
   w1.GetNames(ref, name_offset_map, pronunciation, default_languages, w1.ref_index(), 0,
               w1.name_index(), 0, w1.official_name_index(), 0, w1.alt_name_index(), 0, types,
@@ -220,7 +221,8 @@ TEST(Names, TaggedNamesTest) {
   OSMWay w2{1234};
 
   OSMPronunciation pronunciation1{}, pronunciation2{};
-  std::vector<std::string> pronunciations, default_languages;
+  std::vector<std::string> pronunciations;
+  std::vector<std::pair<std::string, bool>> default_languages;
 
   UniqueNames name_offset_map;
 
