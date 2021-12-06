@@ -883,8 +883,9 @@ void BuildTileSet(const std::string& ways_file,
           std::vector<SignInfo> signs;
           std::vector<std::string> pronunciations;
           bool has_guide =
-              GraphBuilder::CreateSignInfoList(node, w, p, osmdata, signs, pronunciations, fork,
-                                               forward, (directededge.use() == Use::kRamp),
+              GraphBuilder::CreateSignInfoList(node, w, p, osmdata, default_languages, signs,
+                                               pronunciations, fork, forward,
+                                               (directededge.use() == Use::kRamp),
                                                (directededge.use() == Use::kTurnChannel));
           // add signs if signs exist
           // and directed edge if forward access and auto use
@@ -1464,16 +1465,18 @@ void GraphBuilder::BuildPronunciations(const std::vector<std::string>& ipa_token
     AddPronunciation(PronunciationAlphabet::kXJeita, jeita_tokens[index], pronunciations, count);
 }
 
-bool GraphBuilder::CreateSignInfoList(const OSMNode& node,
-                                      const OSMWay& way,
-                                      const OSMPronunciation& pronunciation,
-                                      const OSMData& osmdata,
-                                      std::vector<SignInfo>& exit_list,
-                                      std::vector<std::string>& pronunciations,
-                                      bool fork,
-                                      bool forward,
-                                      bool ramp,
-                                      bool tc) {
+bool GraphBuilder::CreateSignInfoList(
+    const OSMNode& node,
+    const OSMWay& way,
+    const OSMPronunciation& pronunciation,
+    const OSMData& osmdata,
+    const std::vector<std::pair<std::string, bool>>& default_languages,
+    std::vector<SignInfo>& exit_list,
+    std::vector<std::string>& pronunciations,
+    bool fork,
+    bool forward,
+    bool ramp,
+    bool tc) {
 
   bool has_guide = false;
   std::vector<std::string> ipa_tokens, nt_sampa_tokens, katakana_tokens, jeita_tokens;
@@ -1637,6 +1640,13 @@ bool GraphBuilder::CreateSignInfoList(const OSMNode& node,
   // Exit sign toward locations
   if (way.destination_index() != 0 || (forward && way.destination_forward_index() != 0) ||
       (!forward && way.destination_backward_index() != 0)) {
+
+    std::vector<std::string> tokens;
+    std::vector<baldr::Language> token_langs;
+
+    way.ProcessNames(osmdata.name_offset_map, default_languages, way.destination_index(),
+                     way.destination_lang_index(), tokens, token_langs, false);
+
     uint32_t index = way.destination_index() ? way.destination_index()
                                              : (forward ? way.destination_forward_index()
                                                         : way.destination_backward_index());

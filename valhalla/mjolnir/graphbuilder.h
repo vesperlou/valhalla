@@ -89,6 +89,7 @@ public:
                                  const OSMWay& way,
                                  const OSMPronunciation& pronunciation,
                                  const OSMData& osmdata,
+                                 const std::vector<std::pair<std::string, bool>>& default_languages,
                                  std::vector<baldr::SignInfo>& exits,
                                  std::vector<std::string>& pronunciations,
                                  bool fork,
