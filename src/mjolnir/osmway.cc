@@ -195,6 +195,10 @@ void OSMWay::ProcessNames(const UniqueNames& name_offset_map,
                           std::vector<baldr::Language>& token_langs,
                           bool diff_names) const {
 
+  if (way_id() == 712498144) {
+    std::cout << "asdf" << std::endl;
+  }
+
   std::vector<std::string> token_languages, found_languages;
   std::vector<std::pair<std::string, std::string>> updated_token_languages;
   tokens = GetTagTokens(name_offset_map.name(name_index));
@@ -306,7 +310,7 @@ void OSMWay::ProcessNames(const UniqueNames& name_offset_map,
       }
       if (allowed_names) {
         // assume the lang.
-        if (names_w_no_lang.size() == 1 && found_languages.size() == 1) {
+        if (names_w_no_lang.size() >= 1 && found_languages.size() == 1) {
 
           // need to check the order.
           std::vector<std::pair<std::string, std::string>> temp_token_languages;
@@ -314,7 +318,10 @@ void OSMWay::ProcessNames(const UniqueNames& name_offset_map,
           for (size_t i = 0; i < supported_names.size(); ++i) {
             temp_token_languages.emplace_back(supported_names[i], to_string(supported_langs[i]));
           }
-          temp_token_languages.emplace_back(names_w_no_lang.at(0), found_languages.at(0));
+
+          for (size_t i = 0; i < names_w_no_lang.size(); ++i) {
+            temp_token_languages.emplace_back(names_w_no_lang.at(i), found_languages.at(0));
+          }
           std::sort(temp_token_languages.begin(), temp_token_languages.end(), cmp);
 
           for (size_t i = 0; i < temp_token_languages.size(); ++i) {

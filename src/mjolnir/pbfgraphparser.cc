@@ -1832,6 +1832,10 @@ public:
 
     way_.set_drive_on_right(true); // default
 
+    if (osmid_ == 712498144) {
+      std::cout << "asdf" << std::endl;
+    }
+
     for (const auto& kv : results) {
       tag_ = kv;
       const auto it = tag_handlers_.find(tag_.first);
@@ -2825,8 +2829,8 @@ public:
                       std::string& name_w_lang,
                       std::string& language) {
     std::string t = tag.first;
-    if (tag_.first.substr(0, 12) == "tunnel:name:")
-      t = tag_.first.substr(7);
+    if (tag.first.substr(0, 12) == "tunnel:name:")
+      t = tag.first.substr(7);
 
     std::vector<std::string> tokens = GetTagTokens(t, ':');
     if (tokens.size() == 2) {
@@ -2835,12 +2839,19 @@ public:
       if (stringLanguage(lang) != Language::kNone &&
           !tag.second.empty()) // name:en, name:ar, name:fr, etc
       {
+        t = tag.second;
+        uint32_t count = std::count(t.begin(), t.end(), ';');
+        std::string l = lang;
+        for (uint32_t i = 0; i < count; i++) {
+          l += ";" + l;
+        }
+
         if (name_w_lang.empty()) {
-          name_w_lang = tag_.second;
-          language = lang;
+          name_w_lang = tag.second;
+          language = l;
         } else {
-          name_w_lang += ";" + tag_.second;
-          language += ";" + lang;
+          name_w_lang += ";" + tag.second;
+          language += ";" + l;
         }
       }
     }
