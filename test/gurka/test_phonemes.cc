@@ -901,7 +901,7 @@ TEST(Standalone, PhonemesWithAltandDirection) {
     auto edgeinfo = tile->edgeinfo(AB_edge);
     std::vector<uint8_t> types;
     auto names_and_types = edgeinfo.GetNamesAndTypes(types, true);
-    ASSERT_EQ(names_and_types.size(), 7);
+    ASSERT_EQ(names_and_types.size(), 6);
 
     std::unordered_map<uint8_t, std::pair<uint8_t, std::string>> pronunciations =
         edgeinfo.GetPronunciationsMap();
@@ -946,11 +946,11 @@ TEST(Standalone, PhonemesWithAltandDirection) {
           EXPECT_EQ(names_and_types.at(name_index).first, "official_name");
           EXPECT_EQ(static_cast<int>((iter->second).first),
                     static_cast<int>(baldr::PronunciationAlphabet::kNtSampa));
-        } else if ((iter->second).second == "name:en:pronunciation:nt-sampa") {
+        } /*else if ((iter->second).second == "name:en:pronunciation:nt-sampa") {
           EXPECT_EQ(names_and_types.at(name_index).first, "name:en");
           EXPECT_EQ(static_cast<int>((iter->second).first),
                     static_cast<int>(baldr::PronunciationAlphabet::kNtSampa));
-        } else
+        }*/ else
           FAIL() << (iter->second).second << " Extra key. This should not happen.";
       }
       ++name_index;
@@ -1108,7 +1108,7 @@ TEST(Standalone, PhonemesWithAltandDirection) {
       auto edgeinfo = tile->edgeinfo(BC_edge);
       std::vector<uint8_t> types;
       auto names_and_types = edgeinfo.GetNamesAndTypes(types, true);
-      ASSERT_EQ(names_and_types.size(), 4);
+      ASSERT_EQ(names_and_types.size(), 3);
 
       std::unordered_map<uint8_t, std::pair<uint8_t, std::string>> pronunciations =
           edgeinfo.GetPronunciationsMap();
@@ -1135,11 +1135,11 @@ TEST(Standalone, PhonemesWithAltandDirection) {
           EXPECT_EQ(names_and_types.at(name_index).first, "official_name");
           EXPECT_EQ(static_cast<int>((iter->second).first),
                     static_cast<int>(baldr::PronunciationAlphabet::kXJeita));
-        } else if ((iter->second).second == "name:en:pronunciation:x-katakana") {
+        } /*else if ((iter->second).second == "name:en:pronunciation:x-katakana") {
           EXPECT_EQ(names_and_types.at(name_index).first, "name:en");
           EXPECT_EQ(static_cast<int>((iter->second).first),
                     static_cast<int>(baldr::PronunciationAlphabet::kXKatakana));
-        } else
+        }*/ else
           FAIL() << (iter->second).second << " Extra key. This should not happen.";
 
         ++name_index;
