@@ -254,7 +254,7 @@ void GetData(sqlite3* db_handle,
 
       if (!default_language.empty())
         language_ploys.push_back(std::make_tuple(default_language, multi_poly, true));
-      else if (!supported_languages.empty())
+      if (!supported_languages.empty())
         language_ploys.push_back(std::make_tuple(supported_languages, multi_poly, false));
 
     } else {
@@ -284,7 +284,7 @@ void GetData(sqlite3* db_handle,
 
       if (!default_language.empty())
         language_ploys.push_back(std::make_tuple(default_language, multi_poly, true));
-      else if (!supported_languages.empty())
+      if (!supported_languages.empty())
         language_ploys.push_back(std::make_tuple(supported_languages, multi_poly, false));
     }
 
