@@ -195,10 +195,6 @@ void OSMWay::ProcessNames(const UniqueNames& name_offset_map,
                           std::vector<baldr::Language>& token_langs,
                           bool diff_names) const {
 
-  if (way_id() == 712498144) {
-    std::cout << "asdf" << std::endl;
-  }
-
   std::vector<std::string> token_languages, found_languages;
   std::vector<std::pair<std::string, std::string>> updated_token_languages;
   tokens = GetTagTokens(name_offset_map.name(name_index));
