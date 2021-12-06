@@ -1119,7 +1119,7 @@ public:
     //    };
     tag_handlers_["destination"] = [this]() {
       if (!tag_.second.empty()) {
-        way_.set_destination_index(osmdata_.name_offset_map.index(tag_.second));
+        destination_ = tag_.second;
         way_.set_exit(true);
       }
     };
@@ -1803,6 +1803,8 @@ public:
     alt_name_ = alt_language_ = alt_name_w_lang_ = alt_name_left_ = alt_name_right_ = alt_lang_left_ =
         alt_lang_right_ = alt_name_left_w_lang_ = alt_name_right_w_lang_ = {};
 
+    destination_ = destination_language_ = destination_w_lang_ = {};
+
     // Process tags
     way_ = OSMWay{osmid_};
     way_.set_node_count(nodes.size());
@@ -1878,6 +1880,8 @@ public:
         ProcessLeftRightNameTag(tag_, tunnel_name_right_w_lang_, tunnel_lang_right_);
       } else if (tag_.first.substr(0, 12) == "tunnel:name:") {
         ProcessNameTag(tag_, tunnel_name_w_lang_, tunnel_language_);
+      } else if (tag_.first.substr(0, 12) == "destination:") {
+        ProcessNameTag(tag_, destination_w_lang_, destination_language_);
       }
       // motor_vehicle:conditional=no @ (16:30-07:00)
       else if (tag_.first.substr(0, 20) == "motorcar:conditional" ||
@@ -2323,6 +2327,12 @@ public:
                          tunnel_lang_right_);
     way_.set_tunnel_name_right_index(osmdata_.name_offset_map.index(tunnel_name_right_));
     way_.set_tunnel_name_right_lang_index(osmdata_.name_offset_map.index(tunnel_lang_right_));
+
+    // begin destination logic
+    l = destination_language_;
+    ProcessName(destination_w_lang_, destination_, destination_language_);
+    way_.set_destination_index(osmdata_.name_offset_map.index(destination_));
+    way_.set_destination_lang_index(osmdata_.name_offset_map.index(destination_language_));
 
     // Infer cul-de-sac if a road edge is a loop and is low classification.
     if (!way_.roundabout() && loop_nodes_.size() != nodes.size() && way_.use() == Use::kRoad &&
@@ -3195,6 +3205,8 @@ public:
 
   std::string alt_name_, alt_language_, alt_name_w_lang_, alt_name_left_, alt_name_right_,
       alt_lang_left_, alt_lang_right_, alt_name_left_w_lang_, alt_name_right_w_lang_;
+
+  std::string destination_, destination_language_, destination_w_lang_;
 
   // Configuration option to include driveways
   bool include_driveways_;
