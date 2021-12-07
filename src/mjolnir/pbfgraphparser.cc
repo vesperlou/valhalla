@@ -1832,10 +1832,6 @@ public:
 
     way_.set_drive_on_right(true); // default
 
-    if (osmid_ == 712498144) {
-      std::cout << "asdf" << std::endl;
-    }
-
     for (const auto& kv : results) {
       tag_ = kv;
       const auto it = tag_handlers_.find(tag_.first);

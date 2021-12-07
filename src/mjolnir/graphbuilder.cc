@@ -1650,6 +1650,7 @@ bool GraphBuilder::CreateSignInfoList(
     uint32_t index = way.destination_index() ? way.destination_index()
                                              : (forward ? way.destination_forward_index()
                                                         : way.destination_backward_index());
+
     sign_names = GetTagTokens(osmdata.name_offset_map.name(index));
     sign_type = is_branch_or_toward ? Sign::Type::kGuideToward : Sign::Type::kExitToward;
     has_toward = true;
