@@ -142,7 +142,7 @@ std::vector<std::string> EdgeInfo::GetLinguisticTaggedValues() const {
         if (tv == baldr::TaggedValue::kLinguistic) {
           name += 1;
           while (*name != '\0') {
-            const auto& header = *reinterpret_cast<const linguistic_text_header_t*>(name);
+            const auto header = midgard::unaligned_read<linguistic_text_header_t>(name);
             names.emplace_back(std::string(name, header.length_ + 3));
             name += header.length_ + 3;
           }
@@ -239,7 +239,7 @@ std::unordered_map<uint8_t, std::pair<uint8_t, std::string>> EdgeInfo::GetPronun
         if (tv == baldr::TaggedValue::kLinguistic) {
           name += 1;
           while (*name != '\0') {
-            const auto& header = *reinterpret_cast<const linguistic_text_header_t*>(name);
+            const auto header = midgard::unaligned_read<linguistic_text_header_t>(name);
             if (static_cast<baldr::PronunciationAlphabet>(header.phonetic_alphabet_) !=
                 PronunciationAlphabet::kNone) {
               std::unordered_map<uint8_t, std::pair<uint8_t, std::string>>::iterator iter =
@@ -286,7 +286,7 @@ std::unordered_map<uint8_t, uint8_t> EdgeInfo::GetLanguageMap() const {
         if (tv == baldr::TaggedValue::kLinguistic) {
           name += 1;
           while (*name != '\0') {
-            const auto& header = *reinterpret_cast<const linguistic_text_header_t*>(name);
+            const auto header = midgard::unaligned_read<linguistic_text_header_t>(name);
             if (static_cast<baldr::PronunciationAlphabet>(header.phonetic_alphabet_) ==
                 PronunciationAlphabet::kNone) {
               index_language_map.emplace(std::make_pair(header.name_index_, header.language_));

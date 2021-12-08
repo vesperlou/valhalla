@@ -950,7 +950,8 @@ TEST(Standalone, PhonemesWithAltandDirection) {
           EXPECT_EQ(names_and_types.at(name_index).first, "name:en");
           EXPECT_EQ(static_cast<int>((iter->second).first),
                     static_cast<int>(baldr::PronunciationAlphabet::kNtSampa));
-        }*/ else
+        }*/
+        else
           FAIL() << (iter->second).second << " Extra key. This should not happen.";
       }
       ++name_index;
@@ -1139,7 +1140,8 @@ TEST(Standalone, PhonemesWithAltandDirection) {
           EXPECT_EQ(names_and_types.at(name_index).first, "name:en");
           EXPECT_EQ(static_cast<int>((iter->second).first),
                     static_cast<int>(baldr::PronunciationAlphabet::kXKatakana));
-        }*/ else
+        }*/
+        else
           FAIL() << (iter->second).second << " Extra key. This should not happen.";
 
         ++name_index;
