@@ -70,9 +70,8 @@ std::vector<std::pair<std::string, bool>>
 GetMultiPolyIndexes(const std::vector<std::tuple<std::string, multi_polygon_type, bool>>& polys,
                     const PointLL& ll) {
 
-  auto process_languages = [](const std::vector<std::string>& langs,
-                              bool is_default,
-                              std::map<std::string,bool>& languages) {
+  auto process_languages = [](const std::vector<std::string>& langs, bool is_default,
+                              std::map<std::string, bool>& languages) {
     for (const auto& l : langs) {
       if (stringLanguage(l) != Language::kNone) {
         auto it = languages.find(l);
@@ -85,8 +84,8 @@ GetMultiPolyIndexes(const std::vector<std::tuple<std::string, multi_polygon_type
     }
   };
 
-  std::map<std::string,bool> languages;
-  std::map<std::string,bool>::iterator it;
+  std::map<std::string, bool> languages;
+  std::map<std::string, bool>::iterator it;
 
   // first entry is blank for the default name
   languages.emplace("", false);
