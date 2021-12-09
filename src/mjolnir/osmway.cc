@@ -308,8 +308,20 @@ void OSMWay::ProcessNames(const UniqueNames& name_offset_map,
         // assume the lang.
         if (names_w_no_lang.size() >= 1 && found_languages.size() == 1) {
 
-          // need to check the order.
-          std::vector<std::pair<std::string, std::string>> temp_token_languages;
+          for (size_t i = 0; i < names_w_no_lang.size(); ++i) {
+            tokens.emplace_back(names_w_no_lang.at(i));
+            token_langs.emplace_back(stringLanguage(found_languages.at(0)));
+          }
+
+          for (size_t i = 0; i < supported_names.size(); ++i) {
+            tokens.emplace_back(supported_names[i]);
+            token_langs.emplace_back(supported_langs[i]);
+          }
+
+          /* need to check the order.
+           *
+           *
+           * std::vector<std::pair<std::string, std::string>> temp_token_languages;
 
           for (size_t i = 0; i < supported_names.size(); ++i) {
             temp_token_languages.emplace_back(supported_names[i], to_string(supported_langs[i]));
@@ -323,7 +335,7 @@ void OSMWay::ProcessNames(const UniqueNames& name_offset_map,
           for (size_t i = 0; i < temp_token_languages.size(); ++i) {
             tokens.emplace_back(temp_token_languages[i].first);
             token_langs.emplace_back(stringLanguage(temp_token_languages[i].second));
-          }
+          }*/
         } else {
           tokens.insert(tokens.end(), supported_names.begin(), supported_names.end());
           token_langs.insert(token_langs.end(), supported_langs.begin(), supported_langs.end());
