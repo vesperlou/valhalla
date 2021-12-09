@@ -275,8 +275,8 @@ void OSMWay::ProcessNames(const UniqueNames& name_offset_map,
                                     updated_token_languages[i].first) == names_w_no_lang.end())
           continue; // is right or left name.
 
-        supported_names.emplace_back(updated_token_languages[i].first);
-        supported_langs.emplace_back(stringLanguage(current_lang));
+        supported_names.insert(supported_names.begin(), updated_token_languages[i].first);
+        supported_langs.insert(supported_langs.begin(), stringLanguage(current_lang));
         found_languages.erase(std::remove(found_languages.begin(), found_languages.end(),
                                           current_lang),
                               found_languages.end());
