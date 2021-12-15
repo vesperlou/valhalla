@@ -494,9 +494,27 @@ void GraphTileBuilder::AddAccessRestrictions(const std::vector<AccessRestriction
 // Add signs
 void GraphTileBuilder::AddSigns(const uint32_t idx,
                                 const std::vector<SignInfo>& signs,
-                                const std::vector<std::string>& pronunciations) {
+                                const std::vector<std::string>& pronunciations,
+                                const std::vector<std::string>& languages) {
   // Iterate through the list of sign info (with sign text) and add sign
   // text to the text list. Skip signs with no text.
+
+  auto process_linguistic_header = [](const uint32_t ling_start_index, const uint32_t ling_count,
+                                      const std::vector<std::string>& linguistics,
+                                      const size_t index) {
+    std::string updated_linguistics;
+    for (uint32_t x = ling_start_index; x <= ling_count; x++) {
+      auto* p = const_cast<char*>(linguistics[x].c_str());
+      while (*p != '\0') {
+        linguistic_text_header_t header = midgard::unaligned_read<linguistic_text_header_t>(p);
+        header.name_index_ = index;
+        updated_linguistics.append(std::string(reinterpret_cast<const char*>(&header), 3) + (p + 3));
+        p += header.length_ + 3;
+      }
+    }
+    return updated_linguistics;
+  };
+
   for (size_t i = 0; i < signs.size(); ++i) {
     auto sign = signs[i];
     if (!(sign.text().empty())) {
@@ -505,30 +523,16 @@ void GraphTileBuilder::AddSigns(const uint32_t idx,
       if (sign.has_phoneme()) {
         bool phoneme_on_node = sign.type() == Sign::Type::kJunctionName;
         uint32_t count = (sign.phoneme_start_index() + sign.phoneme_count()) - 1;
-        for (uint32_t x = sign.phoneme_start_index(); x <= count; x++) {
-          auto* p = const_cast<char*>(pronunciations[x].c_str());
-          std::string updated_pronunciation;
-
-          while (*p != '\0') {
-            linguistic_text_header_t header = *reinterpret_cast<linguistic_text_header_t*>(p);
-            header.name_index_ = i;
-            updated_pronunciation.append(std::string(reinterpret_cast<const char*>(&header), 3) +
-                                         (p + 3));
-            p += header.length_ + 3;
-          }
-
-          /*while (pos < strlen(p)) {
-            linguistic_text_header_t header = *reinterpret_cast<linguistic_text_header_t*>(p + pos);
-            pos += 3;
-            header.name_index_ = i;
-            updated_pronunciation.append(std::string(reinterpret_cast<const char*>(&header), 3) +
-                                         (p + pos));
-            pos += header.length_;
-          }*/
-
-          uint32_t offset = AddName(updated_pronunciation);
-          signs_builder_.emplace_back(idx, Sign::Type::kLinguistic, phoneme_on_node, true, offset);
-        }
+        uint32_t offset =
+            AddName(process_linguistic_header(sign.phoneme_start_index(), count, pronunciations, i));
+        signs_builder_.emplace_back(idx, Sign::Type::kLinguistic, phoneme_on_node, true, offset);
+      }
+      if (sign.has_language()) {
+        bool lang_on_node = sign.type() == Sign::Type::kJunctionName;
+        uint32_t count = (sign.lang_start_index() + sign.lang_count()) - 1;
+        uint32_t offset =
+            AddName(process_linguistic_header(sign.lang_start_index(), count, languages, i));
+        signs_builder_.emplace_back(idx, Sign::Type::kLinguistic, lang_on_node, true, offset);
       }
     }
   }
