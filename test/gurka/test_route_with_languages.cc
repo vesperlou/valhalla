@@ -1392,12 +1392,8 @@ TEST_F(RouteWithStreetnameAndSign_cy_en_Wales, CheckStreetNamesAndSigns1) {
 ///////////////////////////////////////////////////////////////////////////////
 TEST_F(RouteWithStreetnameAndSign_cy_en_Wales, CheckStreetNamesAndSigns2) {
   auto result = gurka::do_action(valhalla::Options::route, map, {"G", "J"}, "auto");
-  // TODO - put back in when data processing is fixed
-  //  gurka::assert::raw::expect_path(result, {"A55/Gwibffordd Gogledd Cymru/North Wales Expressway",
-  //  "",
-  //                                           "Caernarfon Road/Ffordd Caernarfon/A4087"});
   gurka::assert::raw::expect_path(result, {"A55/Gwibffordd Gogledd Cymru/North Wales Expressway", "",
-                                           "Ffordd Caernarfon/A4087"});
+                                           "Caernarfon Road/Ffordd Caernarfon/A4087"});
 
   // Verify starting on A55
   int maneuver_index = 0;
@@ -1458,24 +1454,19 @@ TEST_F(RouteWithStreetnameAndSign_cy_en_Wales, CheckStreetNamesAndSigns2) {
 ///////////////////////////////////////////////////////////////////////////////
 TEST_F(RouteWithStreetnameAndSign_cy_en_Wales, CheckGuideSigns) {
   auto result = gurka::do_action(valhalla::Options::route, map, {"J", "O"}, "auto");
-  // TODO - put back in when data processing is fixed
-  //  gurka::assert::raw::expect_path(result, {"Ffordd Caernarfon/Caernarfon Road/A4087",
-  //                                           "Ffordd Caernarfon/Caernarfon Road/A4087",
-  //                                           "Ffordd Caernarfon/Caernarfon Road/A4087", "",
-  //                                           "Ffordd Penchwintan/Penchwintan Road"});
-  gurka::assert::raw::expect_path(result, {"Ffordd Caernarfon/A4087", "Ffordd Caernarfon/A4087",
-                                           "Ffordd Caernarfon/A4087", "",
+  gurka::assert::raw::expect_path(result, {"Caernarfon Road/Ffordd Caernarfon/A4087",
+                                           "Caernarfon Road/Ffordd Caernarfon/A4087",
+                                           "Caernarfon Road/Ffordd Caernarfon/A4087", "",
                                            "Ffordd Penchwintan/Penchwintan Road"});
 
   // Verify starting on Caernarfon Road/A4087
   int maneuver_index = 0;
-  EXPECT_EQ(result.directions().routes(0).legs(0).maneuver(maneuver_index).street_name_size(), 2);
+  EXPECT_EQ(result.directions().routes(0).legs(0).maneuver(maneuver_index).street_name_size(), 3);
   EXPECT_EQ(result.directions().routes(0).legs(0).maneuver(maneuver_index).street_name(0).value(),
-            "Ffordd Caernarfon");
-  // TODO - put back in when data processing is fixed
-  //  EXPECT_EQ(result.directions().routes(0).legs(0).maneuver(maneuver_index).street_name(1).value(),
-  //            "Caernarfon Road");
+            "Caernarfon Road");
   EXPECT_EQ(result.directions().routes(0).legs(0).maneuver(maneuver_index).street_name(1).value(),
+            "Ffordd Caernarfon");
+  EXPECT_EQ(result.directions().routes(0).legs(0).maneuver(maneuver_index).street_name(2).value(),
             "A4087");
 
   // Verify sign language tag is en
@@ -1535,27 +1526,23 @@ TEST_F(RouteWithStreetnameAndSign_cy_en_Wales, CheckGuideSigns) {
 ///////////////////////////////////////////////////////////////////////////////
 TEST_F(RouteWithStreetnameAndSign_cy_en_Wales, CheckNonJunctionName) {
   auto result = gurka::do_action(valhalla::Options::route, map, {"J", "Q"}, "auto");
-  // TODO - put back in when data processing is fixed
-  //  gurka::assert::raw::expect_path(result, {"Ffordd Caernarfon/Caernarfon Road/A4087",
-  //                                           "Ffordd Caernarfon/Caernarfon Road/A4087",
-  //                                           "Ffordd Caernarfon/Caernarfon Road/A4087", "",
-  //                                           "Ffordd Penchwintan/Penchwintan Road"});
-  gurka::assert::raw::expect_path(result, {"Ffordd Caernarfon/A4087", "Ffordd Caernarfon/A4087",
-                                           "Ffordd Caernarfon/A4087", "Ffordd Caernarfon/A4087",
+  gurka::assert::raw::expect_path(result, {"Caernarfon Road/Ffordd Caernarfon/A4087",
+                                           "Caernarfon Road/Ffordd Caernarfon/A4087",
+                                           "Caernarfon Road/Ffordd Caernarfon/A4087",
+                                           "Caernarfon Road/Ffordd Caernarfon/A4087",
                                            "Ffordd Penchwintan/Penchwintan Road"});
 
   // Verify starting on Caernarfon Road/A4087
   int maneuver_index = 0;
-  EXPECT_EQ(result.directions().routes(0).legs(0).maneuver(maneuver_index).street_name_size(), 2);
+  EXPECT_EQ(result.directions().routes(0).legs(0).maneuver(maneuver_index).street_name_size(), 3);
   EXPECT_EQ(result.directions().routes(0).legs(0).maneuver(maneuver_index).street_name(0).value(),
-            "Ffordd Caernarfon");
-  // TODO - put back in when data processing is fixed
-  //  EXPECT_EQ(result.directions().routes(0).legs(0).maneuver(maneuver_index).street_name(1).value(),
-  //            "Caernarfon Road");
+            "Caernarfon Road");
   EXPECT_EQ(result.directions().routes(0).legs(0).maneuver(maneuver_index).street_name(1).value(),
+            "Ffordd Caernarfon");
+  EXPECT_EQ(result.directions().routes(0).legs(0).maneuver(maneuver_index).street_name(2).value(),
             "A4087");
 
-  // Verify street name language tag is en
+  // Verify street name language tag
   ++maneuver_index;
   EXPECT_EQ(result.directions().routes(0).legs(0).maneuver(maneuver_index).street_name_size(), 2);
   EXPECT_EQ(result.directions().routes(0).legs(0).maneuver(maneuver_index).street_name(0).value(),
