@@ -373,28 +373,31 @@ TEST(Standalone, PhonemesWithAltandDirection) {
     GraphId node_id = AB_edge->endnode();
     auto tile = graph_reader.GetGraphTile(node_id);
 
-    std::unordered_map<uint32_t, std::pair<uint8_t, std::string>> pronunciations;
-    std::vector<SignInfo> signs = tile->GetSigns(node_id.id(), pronunciations, true);
+    std::unordered_map<uint8_t, std::tuple<uint8_t, uint8_t, std::string>> index_linguistic_map;
+    std::vector<SignInfo> signs = tile->GetSigns(node_id.id(), index_linguistic_map, true);
 
     uint32_t sign_index = 0;
     ASSERT_EQ(signs.size(), 1);
-    ASSERT_EQ(pronunciations.size(), 1);
+    ASSERT_EQ(index_linguistic_map.size(), 1);
     for (const auto& sign : signs) {
 
-      std::unordered_map<uint32_t, std::pair<uint8_t, std::string>>::const_iterator iter =
-          pronunciations.find(sign_index);
-      ASSERT_NE(iter, pronunciations.end());
+      std::unordered_map<uint8_t, std::tuple<uint8_t, uint8_t, std::string>>::const_iterator iter =
+          index_linguistic_map.find(sign_index);
+      ASSERT_NE(iter, index_linguistic_map.end());
 
-      if ((iter->second).second == "named junction:pronunciation:nt-sampa") {
+      if (std::get<kLinguisticMapTuplePronunciationIndex>(iter->second) ==
+          "named junction:pronunciation:nt-sampa") {
         EXPECT_EQ(signs.at(sign_index).text(), "named junction");
-        EXPECT_EQ(static_cast<int>((iter->second).first),
+        EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(iter->second)),
                   static_cast<int>(baldr::PronunciationAlphabet::kNtSampa));
-      } else if ((iter->second).second == "destination:pronunciation:nt-sampa") {
+      } else if (std::get<kLinguisticMapTuplePronunciationIndex>(iter->second) ==
+                 "destination:pronunciation:nt-sampa") {
         EXPECT_EQ(signs.at(sign_index).text(), "destination");
-        EXPECT_EQ(static_cast<int>((iter->second).first),
+        EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(iter->second)),
                   static_cast<int>(baldr::PronunciationAlphabet::kNtSampa));
       } else
-        FAIL() << (iter->second).second << " Extra key. This should not happen.";
+        FAIL() << std::get<kLinguisticMapTuplePronunciationIndex>(iter->second)
+               << " Extra key. This should not happen.";
       ++sign_index;
     }
   }
@@ -405,28 +408,31 @@ TEST(Standalone, PhonemesWithAltandDirection) {
     auto tile = graph_reader.GetGraphTile(node_id);
     auto edgeinfo = tile->edgeinfo(EF_edge);
 
-    std::unordered_map<uint32_t, std::pair<uint8_t, std::string>> pronunciations;
-    std::vector<SignInfo> signs = tile->GetSigns(EF_edge_id.id(), pronunciations);
+    std::unordered_map<uint8_t, std::tuple<uint8_t, uint8_t, std::string>> index_linguistic_map;
+    std::vector<SignInfo> signs = tile->GetSigns(EF_edge_id.id(), index_linguistic_map);
 
     uint32_t sign_index = 0;
     ASSERT_EQ(signs.size(), 4);
-    ASSERT_EQ(pronunciations.size(), 1);
+    ASSERT_EQ(index_linguistic_map.size(), 1);
     for (const auto& sign : signs) {
 
-      std::unordered_map<uint32_t, std::pair<uint8_t, std::string>>::const_iterator iter =
-          pronunciations.find(sign_index);
-      if (iter == pronunciations.end()) {
+      std::unordered_map<uint8_t, std::tuple<uint8_t, uint8_t, std::string>>::const_iterator iter =
+          index_linguistic_map.find(sign_index);
+      if (iter == index_linguistic_map.end()) {
         if (sign_index == 1)
           EXPECT_EQ(signs.at(sign_index).text(), "destination1");
         if (sign_index == 2)
           EXPECT_EQ(signs.at(sign_index).text(), "destination2");
       } else {
-        if ((iter->second).second == "node ref:pronunciation:x-katakana") {
+        if (std::get<kLinguisticMapTuplePronunciationIndex>(iter->second) ==
+            "node ref:pronunciation:x-katakana") {
           EXPECT_EQ(signs.at(sign_index).text(), "node ref");
-          EXPECT_EQ(static_cast<int>((iter->second).first),
+          EXPECT_EQ(static_cast<int>(
+                        std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(iter->second)),
                     static_cast<int>(baldr::PronunciationAlphabet::kXKatakana));
         } else
-          FAIL() << (iter->second).second << " Extra key. This should not happen.";
+          FAIL() << std::get<kLinguisticMapTuplePronunciationIndex>(iter->second)
+                 << " Extra key. This should not happen.";
       }
       ++sign_index;
     }
@@ -454,7 +460,8 @@ TEST(Standalone, PhonemesWithAltandDirection) {
         EXPECT_EQ(name_index, 1);
         if ((iter->second).second == "name:pronunciation2") {
           EXPECT_EQ(names_and_types.at(name_index).first, "xyz street");
-          EXPECT_EQ(static_cast<int>((iter->second).first),
+          EXPECT_EQ(static_cast<int>(
+                        std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(iter->second)),
                     static_cast<int>(baldr::PronunciationAlphabet::kIpa));
         } else
           FAIL() << (iter->second).second << " Extra key. This should not happen.";
@@ -470,30 +477,33 @@ TEST(Standalone, PhonemesWithAltandDirection) {
     auto tile = graph_reader.GetGraphTile(node_id);
     auto edgeinfo = tile->edgeinfo(FG_edge);
 
-    std::unordered_map<uint32_t, std::pair<uint8_t, std::string>> pronunciations;
-    std::vector<SignInfo> signs = tile->GetSigns(FG_edge_id.id(), pronunciations);
+    std::unordered_map<uint8_t, std::tuple<uint8_t, uint8_t, std::string>> index_linguistic_map;
+    std::vector<SignInfo> signs = tile->GetSigns(FG_edge_id.id(), index_linguistic_map);
 
     uint32_t sign_index = 0;
     ASSERT_EQ(signs.size(), 3);
-    ASSERT_EQ(pronunciations.size(), 1);
+    ASSERT_EQ(index_linguistic_map.size(), 1);
     for (const auto& sign : signs) {
 
-      std::unordered_map<uint32_t, std::pair<uint8_t, std::string>>::const_iterator iter =
-          pronunciations.find(sign_index);
+      std::unordered_map<uint8_t, std::tuple<uint8_t, uint8_t, std::string>>::const_iterator iter =
+          index_linguistic_map.find(sign_index);
 
-      if (iter == pronunciations.end()) {
+      if (iter == index_linguistic_map.end()) {
         if (sign_index == 0)
           EXPECT_EQ(signs.at(sign_index).text(), "destination1");
         else if (sign_index == 1)
           EXPECT_EQ(signs.at(sign_index).text(), "destination2");
         else
-          FAIL() << (iter->second).second << " Extra key. This should not happen.";
-      } else if ((iter->second).second == "destination:pronunciation3") {
+          FAIL() << std::get<kLinguisticMapTuplePronunciationIndex>(iter->second)
+                 << " Extra key. This should not happen.";
+      } else if (std::get<kLinguisticMapTuplePronunciationIndex>(iter->second) ==
+                 "destination:pronunciation3") {
         EXPECT_EQ(signs.at(sign_index).text(), "destination3");
-        EXPECT_EQ(static_cast<int>((iter->second).first),
+        EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(iter->second)),
                   static_cast<int>(baldr::PronunciationAlphabet::kIpa));
       } else
-        FAIL() << (iter->second).second << " Extra key. This should not happen.";
+        FAIL() << std::get<kLinguisticMapTuplePronunciationIndex>(iter->second)
+               << " Extra key. This should not happen.";
       ++sign_index;
     }
 
@@ -536,31 +546,34 @@ TEST(Standalone, PhonemesWithAltandDirection) {
     auto tile = graph_reader.GetGraphTile(node_id);
     auto edgeinfo = tile->edgeinfo(GH_edge);
 
-    std::unordered_map<uint32_t, std::pair<uint8_t, std::string>> pronunciations;
-    std::vector<SignInfo> signs = tile->GetSigns(GH_edge_id.id(), pronunciations);
+    std::unordered_map<uint8_t, std::tuple<uint8_t, uint8_t, std::string>> index_linguistic_map;
+    std::vector<SignInfo> signs = tile->GetSigns(GH_edge_id.id(), index_linguistic_map);
 
     uint32_t sign_index = 0;
     ASSERT_EQ(signs.size(), 3);
-    ASSERT_EQ(pronunciations.size(), 1);
+    ASSERT_EQ(index_linguistic_map.size(), 1);
     for (const auto& sign : signs) {
 
-      std::unordered_map<uint32_t, std::pair<uint8_t, std::string>>::const_iterator iter =
-          pronunciations.find(sign_index);
+      std::unordered_map<uint8_t, std::tuple<uint8_t, uint8_t, std::string>>::const_iterator iter =
+          index_linguistic_map.find(sign_index);
 
-      if (iter == pronunciations.end()) {
+      if (iter == index_linguistic_map.end()) {
         if (sign_index == 0)
           EXPECT_EQ(signs.at(sign_index).text(), "destination1");
         else if (sign_index == 2)
           EXPECT_EQ(signs.at(sign_index).text(), "destination3");
         else
-          FAIL() << (iter->second).second << " Extra key. This should not happen.";
-      } else if ((iter->second).second == "destination:pronunciation2") {
+          FAIL() << std::get<kLinguisticMapTuplePronunciationIndex>(iter->second)
+                 << " Extra key. This should not happen.";
+      } else if (std::get<kLinguisticMapTuplePronunciationIndex>(iter->second) ==
+                 "destination:pronunciation2") {
 
         EXPECT_EQ(signs.at(sign_index).text(), "destination2");
-        EXPECT_EQ(static_cast<int>((iter->second).first),
+        EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(iter->second)),
                   static_cast<int>(baldr::PronunciationAlphabet::kIpa));
       } else
-        FAIL() << (iter->second).second << " Extra key. This should not happen.";
+        FAIL() << std::get<kLinguisticMapTuplePronunciationIndex>(iter->second)
+               << " Extra key. This should not happen.";
       ++sign_index;
     }
 
@@ -605,35 +618,39 @@ TEST(Standalone, PhonemesWithAltandDirection) {
     auto tile = graph_reader.GetGraphTile(node_id);
     auto edgeinfo = tile->edgeinfo(HI_edge);
 
-    std::unordered_map<uint32_t, std::pair<uint8_t, std::string>> pronunciations;
-    std::vector<SignInfo> signs = tile->GetSigns(HI_edge_id.id(), pronunciations);
+    std::unordered_map<uint8_t, std::tuple<uint8_t, uint8_t, std::string>> index_linguistic_map;
+    std::vector<SignInfo> signs = tile->GetSigns(HI_edge_id.id(), index_linguistic_map);
 
     uint32_t sign_index = 0;
     ASSERT_EQ(signs.size(), 3);
-    ASSERT_EQ(pronunciations.size(), 2);
+    ASSERT_EQ(index_linguistic_map.size(), 2);
 
     for (const auto& sign : signs) {
 
-      std::unordered_map<uint32_t, std::pair<uint8_t, std::string>>::const_iterator iter =
-          pronunciations.find(sign_index);
+      std::unordered_map<uint8_t, std::tuple<uint8_t, uint8_t, std::string>>::const_iterator iter =
+          index_linguistic_map.find(sign_index);
 
-      if (iter == pronunciations.end()) {
+      if (iter == index_linguistic_map.end()) {
         if (sign_index == 0)
           EXPECT_EQ(signs.at(sign_index).text(), "destination1");
         else
-          FAIL() << (iter->second).second << " Extra key. This should not happen.";
-      } else if ((iter->second).second == "destination:pronunciation2") {
+          FAIL() << std::get<kLinguisticMapTuplePronunciationIndex>(iter->second)
+                 << " Extra key. This should not happen.";
+      } else if (std::get<kLinguisticMapTuplePronunciationIndex>(iter->second) ==
+                 "destination:pronunciation2") {
 
         EXPECT_EQ(signs.at(sign_index).text(), "destination2");
-        EXPECT_EQ(static_cast<int>((iter->second).first),
+        EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(iter->second)),
                   static_cast<int>(baldr::PronunciationAlphabet::kIpa));
-      } else if ((iter->second).second == "destination:pronunciation3") {
+      } else if (std::get<kLinguisticMapTuplePronunciationIndex>(iter->second) ==
+                 "destination:pronunciation3") {
 
         EXPECT_EQ(signs.at(sign_index).text(), "destination3");
-        EXPECT_EQ(static_cast<int>((iter->second).first),
+        EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(iter->second)),
                   static_cast<int>(baldr::PronunciationAlphabet::kIpa));
       } else
-        FAIL() << (iter->second).second << " Extra key. This should not happen.";
+        FAIL() << std::get<kLinguisticMapTuplePronunciationIndex>(iter->second)
+               << " Extra key. This should not happen.";
       ++sign_index;
     }
 
@@ -658,11 +675,13 @@ TEST(Standalone, PhonemesWithAltandDirection) {
       } else {
         if ((iter->second).second == "name:pronunciation2:x-jeita") {
           EXPECT_EQ(names_and_types.at(name_index).first, "xyz street");
-          EXPECT_EQ(static_cast<int>((iter->second).first),
+          EXPECT_EQ(static_cast<int>(
+                        std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(iter->second)),
                     static_cast<int>(baldr::PronunciationAlphabet::kXJeita));
         } else if ((iter->second).second == "name:pronunciation3:x-jeita") {
           EXPECT_EQ(names_and_types.at(name_index).first, "abc ave");
-          EXPECT_EQ(static_cast<int>((iter->second).first),
+          EXPECT_EQ(static_cast<int>(
+                        std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(iter->second)),
                     static_cast<int>(baldr::PronunciationAlphabet::kXJeita));
         } else
           FAIL() << (iter->second).second << " Extra key. This should not happen.";
@@ -678,34 +697,38 @@ TEST(Standalone, PhonemesWithAltandDirection) {
     auto tile = graph_reader.GetGraphTile(node_id);
     auto edgeinfo = tile->edgeinfo(IJ_edge);
 
-    std::unordered_map<uint32_t, std::pair<uint8_t, std::string>> pronunciations;
-    std::vector<SignInfo> signs = tile->GetSigns(IJ_edge_id.id(), pronunciations);
+    std::unordered_map<uint8_t, std::tuple<uint8_t, uint8_t, std::string>> index_linguistic_map;
+    std::vector<SignInfo> signs = tile->GetSigns(IJ_edge_id.id(), index_linguistic_map);
 
     uint32_t sign_index = 0;
     ASSERT_EQ(signs.size(), 3);
-    ASSERT_EQ(pronunciations.size(), 2);
+    ASSERT_EQ(index_linguistic_map.size(), 2);
     for (const auto& sign : signs) {
 
-      std::unordered_map<uint32_t, std::pair<uint8_t, std::string>>::const_iterator iter =
-          pronunciations.find(sign_index);
+      std::unordered_map<uint8_t, std::tuple<uint8_t, uint8_t, std::string>>::const_iterator iter =
+          index_linguistic_map.find(sign_index);
 
-      if (iter == pronunciations.end()) {
+      if (iter == index_linguistic_map.end()) {
         if (sign_index == 1)
           EXPECT_EQ(signs.at(sign_index).text(), "destination2");
         else
-          FAIL() << (iter->second).second << " Extra key. This should not happen.";
-      } else if ((iter->second).second == "destination:pronunciation1") {
+          FAIL() << std::get<kLinguisticMapTuplePronunciationIndex>(iter->second)
+                 << " Extra key. This should not happen.";
+      } else if (std::get<kLinguisticMapTuplePronunciationIndex>(iter->second) ==
+                 "destination:pronunciation1") {
 
         EXPECT_EQ(signs.at(sign_index).text(), "destination1");
-        EXPECT_EQ(static_cast<int>((iter->second).first),
+        EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(iter->second)),
                   static_cast<int>(baldr::PronunciationAlphabet::kIpa));
-      } else if ((iter->second).second == "destination:pronunciation3") {
+      } else if (std::get<kLinguisticMapTuplePronunciationIndex>(iter->second) ==
+                 "destination:pronunciation3") {
 
         EXPECT_EQ(signs.at(sign_index).text(), "destination3");
-        EXPECT_EQ(static_cast<int>((iter->second).first),
+        EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(iter->second)),
                   static_cast<int>(baldr::PronunciationAlphabet::kIpa));
       } else
-        FAIL() << (iter->second).second << " Extra key. This should not happen.";
+        FAIL() << std::get<kLinguisticMapTuplePronunciationIndex>(iter->second)
+               << " Extra key. This should not happen.";
       ++sign_index;
     }
 
@@ -750,34 +773,38 @@ TEST(Standalone, PhonemesWithAltandDirection) {
     auto tile = graph_reader.GetGraphTile(node_id);
     auto edgeinfo = tile->edgeinfo(JK_edge);
 
-    std::unordered_map<uint32_t, std::pair<uint8_t, std::string>> pronunciations;
-    std::vector<SignInfo> signs = tile->GetSigns(JK_edge_id.id(), pronunciations);
+    std::unordered_map<uint8_t, std::tuple<uint8_t, uint8_t, std::string>> index_linguistic_map;
+    std::vector<SignInfo> signs = tile->GetSigns(JK_edge_id.id(), index_linguistic_map);
 
     uint32_t sign_index = 0;
     ASSERT_EQ(signs.size(), 3);
-    ASSERT_EQ(pronunciations.size(), 2);
+    ASSERT_EQ(index_linguistic_map.size(), 2);
     for (const auto& sign : signs) {
 
-      std::unordered_map<uint32_t, std::pair<uint8_t, std::string>>::const_iterator iter =
-          pronunciations.find(sign_index);
+      std::unordered_map<uint8_t, std::tuple<uint8_t, uint8_t, std::string>>::const_iterator iter =
+          index_linguistic_map.find(sign_index);
 
-      if (iter == pronunciations.end()) {
+      if (iter == index_linguistic_map.end()) {
         if (sign_index == 2)
           EXPECT_EQ(signs.at(sign_index).text(), "destination3");
         else
-          FAIL() << (iter->second).second << " Extra key. This should not happen.";
-      } else if ((iter->second).second == "destination:pronunciation1") {
+          FAIL() << std::get<kLinguisticMapTuplePronunciationIndex>(iter->second)
+                 << " Extra key. This should not happen.";
+      } else if (std::get<kLinguisticMapTuplePronunciationIndex>(iter->second) ==
+                 "destination:pronunciation1") {
 
         EXPECT_EQ(signs.at(sign_index).text(), "destination1");
-        EXPECT_EQ(static_cast<int>((iter->second).first),
+        EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(iter->second)),
                   static_cast<int>(baldr::PronunciationAlphabet::kIpa));
-      } else if ((iter->second).second == "destination:pronunciation2") {
+      } else if (std::get<kLinguisticMapTuplePronunciationIndex>(iter->second) ==
+                 "destination:pronunciation2") {
 
         EXPECT_EQ(signs.at(sign_index).text(), "destination2");
-        EXPECT_EQ(static_cast<int>((iter->second).first),
+        EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(iter->second)),
                   static_cast<int>(baldr::PronunciationAlphabet::kIpa));
       } else
-        FAIL() << (iter->second).second << " Extra key. This should not happen.";
+        FAIL() << std::get<kLinguisticMapTuplePronunciationIndex>(iter->second)
+               << " Extra key. This should not happen.";
       ++sign_index;
     }
   }
@@ -789,31 +816,34 @@ TEST(Standalone, PhonemesWithAltandDirection) {
     auto tile = graph_reader.GetGraphTile(node_id);
     auto edgeinfo = tile->edgeinfo(KL_edge);
 
-    std::unordered_map<uint32_t, std::pair<uint8_t, std::string>> pronunciations;
-    std::vector<SignInfo> signs = tile->GetSigns(KL_edge_id.id(), pronunciations);
+    std::unordered_map<uint8_t, std::tuple<uint8_t, uint8_t, std::string>> index_linguistic_map;
+    std::vector<SignInfo> signs = tile->GetSigns(KL_edge_id.id(), index_linguistic_map);
 
     uint32_t sign_index = 0;
     ASSERT_EQ(signs.size(), 3);
-    ASSERT_EQ(pronunciations.size(), 1);
+    ASSERT_EQ(index_linguistic_map.size(), 1);
     for (const auto& sign : signs) {
 
-      std::unordered_map<uint32_t, std::pair<uint8_t, std::string>>::const_iterator iter =
-          pronunciations.find(sign_index);
+      std::unordered_map<uint8_t, std::tuple<uint8_t, uint8_t, std::string>>::const_iterator iter =
+          index_linguistic_map.find(sign_index);
 
-      if (iter == pronunciations.end()) {
+      if (iter == index_linguistic_map.end()) {
         if (sign_index == 1)
           EXPECT_EQ(signs.at(sign_index).text(), "destination2");
         else if (sign_index == 2)
           EXPECT_EQ(signs.at(sign_index).text(), "destination3");
         else
-          FAIL() << (iter->second).second << " Extra key. This should not happen.";
-      } else if ((iter->second).second == "destination:pronunciation1") {
+          FAIL() << std::get<kLinguisticMapTuplePronunciationIndex>(iter->second)
+                 << " Extra key. This should not happen.";
+      } else if (std::get<kLinguisticMapTuplePronunciationIndex>(iter->second) ==
+                 "destination:pronunciation1") {
 
         EXPECT_EQ(signs.at(sign_index).text(), "destination1");
-        EXPECT_EQ(static_cast<int>((iter->second).first),
+        EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(iter->second)),
                   static_cast<int>(baldr::PronunciationAlphabet::kIpa));
       } else
-        FAIL() << (iter->second).second << " Extra key. This should not happen.";
+        FAIL() << std::get<kLinguisticMapTuplePronunciationIndex>(iter->second)
+               << " Extra key. This should not happen.";
       ++sign_index;
     }
   }
@@ -825,31 +855,34 @@ TEST(Standalone, PhonemesWithAltandDirection) {
     auto tile = graph_reader.GetGraphTile(node_id);
     auto edgeinfo = tile->edgeinfo(LM_edge);
 
-    std::unordered_map<uint32_t, std::pair<uint8_t, std::string>> pronunciations;
-    std::vector<SignInfo> signs = tile->GetSigns(LM_edge_id.id(), pronunciations);
+    std::unordered_map<uint8_t, std::tuple<uint8_t, uint8_t, std::string>> index_linguistic_map;
+    std::vector<SignInfo> signs = tile->GetSigns(LM_edge_id.id(), index_linguistic_map);
 
     uint32_t sign_index = 0;
     ASSERT_EQ(signs.size(), 3);
-    ASSERT_EQ(pronunciations.size(), 1);
+    ASSERT_EQ(index_linguistic_map.size(), 1);
     for (const auto& sign : signs) {
 
-      std::unordered_map<uint32_t, std::pair<uint8_t, std::string>>::const_iterator iter =
-          pronunciations.find(sign_index);
+      std::unordered_map<uint8_t, std::tuple<uint8_t, uint8_t, std::string>>::const_iterator iter =
+          index_linguistic_map.find(sign_index);
 
-      if (iter == pronunciations.end()) {
+      if (iter == index_linguistic_map.end()) {
         if (sign_index == 0)
           EXPECT_EQ(signs.at(sign_index).text(), "destination1");
         else if (sign_index == 2)
           EXPECT_EQ(signs.at(sign_index).text(), "destination3");
         else
-          FAIL() << (iter->second).second << " Extra key. This should not happen.";
-      } else if ((iter->second).second == "destination:pronunciation2:x-jeita") {
+          FAIL() << std::get<kLinguisticMapTuplePronunciationIndex>(iter->second)
+                 << " Extra key. This should not happen.";
+      } else if (std::get<kLinguisticMapTuplePronunciationIndex>(iter->second) ==
+                 "destination:pronunciation2:x-jeita") {
 
         EXPECT_EQ(signs.at(sign_index).text(), "destination2");
-        EXPECT_EQ(static_cast<int>((iter->second).first),
+        EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(iter->second)),
                   static_cast<int>(baldr::PronunciationAlphabet::kXJeita));
       } else
-        FAIL() << (iter->second).second << " Extra key. This should not happen.";
+        FAIL() << std::get<kLinguisticMapTuplePronunciationIndex>(iter->second)
+               << " Extra key. This should not happen.";
       ++sign_index;
     }
   }
@@ -861,34 +894,38 @@ TEST(Standalone, PhonemesWithAltandDirection) {
     auto tile = graph_reader.GetGraphTile(node_id);
     auto edgeinfo = tile->edgeinfo(MN_edge);
 
-    std::unordered_map<uint32_t, std::pair<uint8_t, std::string>> pronunciations;
-    std::vector<SignInfo> signs = tile->GetSigns(MN_edge_id.id(), pronunciations);
+    std::unordered_map<uint8_t, std::tuple<uint8_t, uint8_t, std::string>> index_linguistic_map;
+    std::vector<SignInfo> signs = tile->GetSigns(MN_edge_id.id(), index_linguistic_map);
 
     uint32_t sign_index = 0;
     ASSERT_EQ(signs.size(), 3);
-    ASSERT_EQ(pronunciations.size(), 2);
+    ASSERT_EQ(index_linguistic_map.size(), 2);
     for (const auto& sign : signs) {
 
-      std::unordered_map<uint32_t, std::pair<uint8_t, std::string>>::const_iterator iter =
-          pronunciations.find(sign_index);
+      std::unordered_map<uint8_t, std::tuple<uint8_t, uint8_t, std::string>>::const_iterator iter =
+          index_linguistic_map.find(sign_index);
 
-      if (iter == pronunciations.end()) {
+      if (iter == index_linguistic_map.end()) {
         if (sign_index == 0)
           EXPECT_EQ(signs.at(sign_index).text(), "destination1");
         else
-          FAIL() << (iter->second).second << " Extra key. This should not happen.";
-      } else if ((iter->second).second == "destination:pronunciation3:x-katakana") {
+          FAIL() << std::get<kLinguisticMapTuplePronunciationIndex>(iter->second)
+                 << " Extra key. This should not happen.";
+      } else if (std::get<kLinguisticMapTuplePronunciationIndex>(iter->second) ==
+                 "destination:pronunciation3:x-katakana") {
 
         EXPECT_EQ(signs.at(sign_index).text(), "destination3");
-        EXPECT_EQ(static_cast<int>((iter->second).first),
+        EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(iter->second)),
                   static_cast<int>(baldr::PronunciationAlphabet::kXKatakana));
-      } else if ((iter->second).second == "destination:pronunciation2:x-jeita") {
+      } else if (std::get<kLinguisticMapTuplePronunciationIndex>(iter->second) ==
+                 "destination:pronunciation2:x-jeita") {
 
         EXPECT_EQ(signs.at(sign_index).text(), "destination2");
-        EXPECT_EQ(static_cast<int>((iter->second).first),
+        EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(iter->second)),
                   static_cast<int>(baldr::PronunciationAlphabet::kXJeita));
       } else
-        FAIL() << (iter->second).second << " Extra key. This should not happen.";
+        FAIL() << std::get<kLinguisticMapTuplePronunciationIndex>(iter->second)
+               << " Extra key. This should not happen.";
       ++sign_index;
     }
   }
@@ -964,44 +1001,51 @@ TEST(Standalone, PhonemesWithAltandDirection) {
     auto tile = graph_reader.GetGraphTile(node_id);
     const NodeInfo* node_info = tile->node(node_id);
 
-    std::unordered_map<uint32_t, std::pair<uint8_t, std::string>> pronunciations;
-    std::vector<SignInfo> signs = tile->GetSigns(BD_edge_id.id(), pronunciations);
+    std::unordered_map<uint8_t, std::tuple<uint8_t, uint8_t, std::string>> index_linguistic_map;
+    std::vector<SignInfo> signs = tile->GetSigns(BD_edge_id.id(), index_linguistic_map);
 
     uint32_t sign_index = 0;
     ASSERT_EQ(signs.size(), 6);
-    ASSERT_EQ(pronunciations.size(), 6);
+    ASSERT_EQ(index_linguistic_map.size(), 6);
     for (const auto& sign : signs) {
 
-      std::unordered_map<uint32_t, std::pair<uint8_t, std::string>>::const_iterator iter =
-          pronunciations.find(sign_index);
-      ASSERT_NE(iter, pronunciations.end());
+      std::unordered_map<uint8_t, std::tuple<uint8_t, uint8_t, std::string>>::const_iterator iter =
+          index_linguistic_map.find(sign_index);
+      ASSERT_NE(iter, index_linguistic_map.end());
 
-      if ((iter->second).second == "destination:forward:pronunciation:x-katakana") {
+      if (std::get<kLinguisticMapTuplePronunciationIndex>(iter->second) ==
+          "destination:forward:pronunciation:x-katakana") {
         EXPECT_EQ(signs.at(sign_index).text(), "destination:forward");
-        EXPECT_EQ(static_cast<int>((iter->second).first),
+        EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(iter->second)),
                   static_cast<int>(baldr::PronunciationAlphabet::kXKatakana));
-      } else if ((iter->second).second == "destination:street:to:pronunciation:x-katakana") {
+      } else if (std::get<kLinguisticMapTuplePronunciationIndex>(iter->second) ==
+                 "destination:street:to:pronunciation:x-katakana") {
         EXPECT_EQ(signs.at(sign_index).text(), "destination:street:to");
-        EXPECT_EQ(static_cast<int>((iter->second).first),
+        EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(iter->second)),
                   static_cast<int>(baldr::PronunciationAlphabet::kXKatakana));
-      } else if ((iter->second).second == "destination:ref:to:pronunciation:x-katakana") {
+      } else if (std::get<kLinguisticMapTuplePronunciationIndex>(iter->second) ==
+                 "destination:ref:to:pronunciation:x-katakana") {
         EXPECT_EQ(signs.at(sign_index).text(), "destination:ref:to");
-        EXPECT_EQ(static_cast<int>((iter->second).first),
+        EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(iter->second)),
                   static_cast<int>(baldr::PronunciationAlphabet::kXKatakana));
-      } else if ((iter->second).second == "destination:ref:pronunciation:x-katakana") {
+      } else if (std::get<kLinguisticMapTuplePronunciationIndex>(iter->second) ==
+                 "destination:ref:pronunciation:x-katakana") {
         EXPECT_EQ(signs.at(sign_index).text(), "destination:ref");
-        EXPECT_EQ(static_cast<int>((iter->second).first),
+        EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(iter->second)),
                   static_cast<int>(baldr::PronunciationAlphabet::kXKatakana));
-      } else if ((iter->second).second == "destination:street:pronunciation:x-katakana") {
+      } else if (std::get<kLinguisticMapTuplePronunciationIndex>(iter->second) ==
+                 "destination:street:pronunciation:x-katakana") {
         EXPECT_EQ(signs.at(sign_index).text(), "destination:street");
-        EXPECT_EQ(static_cast<int>((iter->second).first),
+        EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(iter->second)),
                   static_cast<int>(baldr::PronunciationAlphabet::kXKatakana));
-      } else if ((iter->second).second == "junction:ref:pronunciation:x-katakana") {
+      } else if (std::get<kLinguisticMapTuplePronunciationIndex>(iter->second) ==
+                 "junction:ref:pronunciation:x-katakana") {
         EXPECT_EQ(signs.at(sign_index).text(), "junction:ref");
-        EXPECT_EQ(static_cast<int>((iter->second).first),
+        EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(iter->second)),
                   static_cast<int>(baldr::PronunciationAlphabet::kXKatakana));
       } else
-        FAIL() << (iter->second).second << " Extra key. This should not happen.";
+        FAIL() << std::get<kLinguisticMapTuplePronunciationIndex>(iter->second)
+               << " Extra key. This should not happen.";
 
       ++sign_index;
     }
@@ -1010,45 +1054,52 @@ TEST(Standalone, PhonemesWithAltandDirection) {
     tile = graph_reader.GetGraphTile(node_id);
     node_info = tile->node(node_id);
 
-    pronunciations.clear();
+    index_linguistic_map.clear();
     signs.clear();
-    signs = tile->GetSigns(DB_edge_id.id(), pronunciations);
+    signs = tile->GetSigns(DB_edge_id.id(), index_linguistic_map);
 
     sign_index = 0;
     ASSERT_EQ(signs.size(), 6);
-    ASSERT_EQ(pronunciations.size(), 6);
+    ASSERT_EQ(index_linguistic_map.size(), 6);
     for (const auto& sign : signs) {
 
-      std::unordered_map<uint32_t, std::pair<uint8_t, std::string>>::const_iterator iter =
-          pronunciations.find(sign_index);
-      ASSERT_NE(iter, pronunciations.end());
+      std::unordered_map<uint8_t, std::tuple<uint8_t, uint8_t, std::string>>::const_iterator iter =
+          index_linguistic_map.find(sign_index);
+      ASSERT_NE(iter, index_linguistic_map.end());
 
-      if ((iter->second).second == "destination:backward:pronunciation:x-katakana") {
+      if (std::get<kLinguisticMapTuplePronunciationIndex>(iter->second) ==
+          "destination:backward:pronunciation:x-katakana") {
         EXPECT_EQ(signs.at(sign_index).text(), "destination:backward");
-        EXPECT_EQ(static_cast<int>((iter->second).first),
+        EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(iter->second)),
                   static_cast<int>(baldr::PronunciationAlphabet::kXKatakana));
-      } else if ((iter->second).second == "destination:street:to:pronunciation:x-katakana") {
+      } else if (std::get<kLinguisticMapTuplePronunciationIndex>(iter->second) ==
+                 "destination:street:to:pronunciation:x-katakana") {
         EXPECT_EQ(signs.at(sign_index).text(), "destination:street:to");
-        EXPECT_EQ(static_cast<int>((iter->second).first),
+        EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(iter->second)),
                   static_cast<int>(baldr::PronunciationAlphabet::kXKatakana));
-      } else if ((iter->second).second == "destination:ref:to:pronunciation:x-katakana") {
+      } else if (std::get<kLinguisticMapTuplePronunciationIndex>(iter->second) ==
+                 "destination:ref:to:pronunciation:x-katakana") {
         EXPECT_EQ(signs.at(sign_index).text(), "destination:ref:to");
-        EXPECT_EQ(static_cast<int>((iter->second).first),
+        EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(iter->second)),
                   static_cast<int>(baldr::PronunciationAlphabet::kXKatakana));
-      } else if ((iter->second).second == "destination:ref:pronunciation:x-katakana") {
+      } else if (std::get<kLinguisticMapTuplePronunciationIndex>(iter->second) ==
+                 "destination:ref:pronunciation:x-katakana") {
         EXPECT_EQ(signs.at(sign_index).text(), "destination:ref");
-        EXPECT_EQ(static_cast<int>((iter->second).first),
+        EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(iter->second)),
                   static_cast<int>(baldr::PronunciationAlphabet::kXKatakana));
-      } else if ((iter->second).second == "destination:street:pronunciation:x-katakana") {
+      } else if (std::get<kLinguisticMapTuplePronunciationIndex>(iter->second) ==
+                 "destination:street:pronunciation:x-katakana") {
         EXPECT_EQ(signs.at(sign_index).text(), "destination:street");
-        EXPECT_EQ(static_cast<int>((iter->second).first),
+        EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(iter->second)),
                   static_cast<int>(baldr::PronunciationAlphabet::kXKatakana));
-      } else if ((iter->second).second == "junction:ref:pronunciation:x-katakana") {
+      } else if (std::get<kLinguisticMapTuplePronunciationIndex>(iter->second) ==
+                 "junction:ref:pronunciation:x-katakana") {
         EXPECT_EQ(signs.at(sign_index).text(), "junction:ref");
-        EXPECT_EQ(static_cast<int>((iter->second).first),
+        EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(iter->second)),
                   static_cast<int>(baldr::PronunciationAlphabet::kXKatakana));
       } else
-        FAIL() << (iter->second).second << " Extra key. This should not happen.";
+        FAIL() << std::get<kLinguisticMapTuplePronunciationIndex>(iter->second)
+               << " Extra key. This should not happen.";
 
       ++sign_index;
     }
@@ -1058,45 +1109,52 @@ TEST(Standalone, PhonemesWithAltandDirection) {
     tile = graph_reader.GetGraphTile(node_id);
     node_info = tile->node(node_id);
 
-    pronunciations.clear();
+    index_linguistic_map.clear();
     signs.clear();
-    signs = tile->GetSigns(BC_edge_id.id(), pronunciations);
+    signs = tile->GetSigns(BC_edge_id.id(), index_linguistic_map);
 
     sign_index = 0;
     ASSERT_EQ(signs.size(), 6);
-    ASSERT_EQ(pronunciations.size(), 6);
+    ASSERT_EQ(index_linguistic_map.size(), 6);
     for (const auto& sign : signs) {
 
-      std::unordered_map<uint32_t, std::pair<uint8_t, std::string>>::const_iterator iter =
-          pronunciations.find(sign_index);
-      ASSERT_NE(iter, pronunciations.end());
+      std::unordered_map<uint8_t, std::tuple<uint8_t, uint8_t, std::string>>::const_iterator iter =
+          index_linguistic_map.find(sign_index);
+      ASSERT_NE(iter, index_linguistic_map.end());
 
-      if ((iter->second).second == "destination:forward:pronunciation:x-jeita") {
+      if (std::get<kLinguisticMapTuplePronunciationIndex>(iter->second) ==
+          "destination:forward:pronunciation:x-jeita") {
         EXPECT_EQ(signs.at(sign_index).text(), "destination:forward");
-        EXPECT_EQ(static_cast<int>((iter->second).first),
+        EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(iter->second)),
                   static_cast<int>(baldr::PronunciationAlphabet::kXJeita));
-      } else if ((iter->second).second == "destination:street:to:pronunciation:x-jeita") {
+      } else if (std::get<kLinguisticMapTuplePronunciationIndex>(iter->second) ==
+                 "destination:street:to:pronunciation:x-jeita") {
         EXPECT_EQ(signs.at(sign_index).text(), "destination:street:to");
-        EXPECT_EQ(static_cast<int>((iter->second).first),
+        EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(iter->second)),
                   static_cast<int>(baldr::PronunciationAlphabet::kXJeita));
-      } else if ((iter->second).second == "destination:ref:to:pronunciation:x-jeita") {
+      } else if (std::get<kLinguisticMapTuplePronunciationIndex>(iter->second) ==
+                 "destination:ref:to:pronunciation:x-jeita") {
         EXPECT_EQ(signs.at(sign_index).text(), "destination:ref:to");
-        EXPECT_EQ(static_cast<int>((iter->second).first),
+        EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(iter->second)),
                   static_cast<int>(baldr::PronunciationAlphabet::kXJeita));
-      } else if ((iter->second).second == "destination:ref:pronunciation:x-jeita") {
+      } else if (std::get<kLinguisticMapTuplePronunciationIndex>(iter->second) ==
+                 "destination:ref:pronunciation:x-jeita") {
         EXPECT_EQ(signs.at(sign_index).text(), "destination:ref");
-        EXPECT_EQ(static_cast<int>((iter->second).first),
+        EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(iter->second)),
                   static_cast<int>(baldr::PronunciationAlphabet::kXJeita));
-      } else if ((iter->second).second == "destination:street:pronunciation:x-jeita") {
+      } else if (std::get<kLinguisticMapTuplePronunciationIndex>(iter->second) ==
+                 "destination:street:pronunciation:x-jeita") {
         EXPECT_EQ(signs.at(sign_index).text(), "destination:street");
-        EXPECT_EQ(static_cast<int>((iter->second).first),
+        EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(iter->second)),
                   static_cast<int>(baldr::PronunciationAlphabet::kXJeita));
-      } else if ((iter->second).second == "junction:ref:pronunciation:x-jeita") {
+      } else if (std::get<kLinguisticMapTuplePronunciationIndex>(iter->second) ==
+                 "junction:ref:pronunciation:x-jeita") {
         EXPECT_EQ(signs.at(sign_index).text(), "junction:ref");
-        EXPECT_EQ(static_cast<int>((iter->second).first),
+        EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(iter->second)),
                   static_cast<int>(baldr::PronunciationAlphabet::kXJeita));
       } else
-        FAIL() << (iter->second).second << " Extra key. This should not happen.";
+        FAIL() << std::get<kLinguisticMapTuplePronunciationIndex>(iter->second)
+               << " Extra key. This should not happen.";
 
       ++sign_index;
     }
@@ -1153,30 +1211,33 @@ TEST(Standalone, PhonemesWithAltandDirection) {
     graph_reader.GetGraphTile(node_id);
     node_info = tile->node(node_id);
 
-    pronunciations.clear();
+    index_linguistic_map.clear();
     signs.clear();
 
-    signs = tile->GetSigns(DE_edge_id.id(), pronunciations);
+    signs = tile->GetSigns(DE_edge_id.id(), index_linguistic_map);
 
     sign_index = 0;
     ASSERT_EQ(signs.size(), 2);
-    ASSERT_EQ(pronunciations.size(), 2);
+    ASSERT_EQ(index_linguistic_map.size(), 2);
     for (const auto& sign : signs) {
 
-      std::unordered_map<uint32_t, std::pair<uint8_t, std::string>>::const_iterator iter =
-          pronunciations.find(sign_index);
-      ASSERT_NE(iter, pronunciations.end());
+      std::unordered_map<uint8_t, std::tuple<uint8_t, uint8_t, std::string>>::const_iterator iter =
+          index_linguistic_map.find(sign_index);
+      ASSERT_NE(iter, index_linguistic_map.end());
 
-      if ((iter->second).second == "destination:pronunciation1") {
+      if (std::get<kLinguisticMapTuplePronunciationIndex>(iter->second) ==
+          "destination:pronunciation1") {
         EXPECT_EQ(signs.at(sign_index).text(), "destination1");
-        EXPECT_EQ(static_cast<int>((iter->second).first),
+        EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(iter->second)),
                   static_cast<int>(baldr::PronunciationAlphabet::kIpa));
-      } else if ((iter->second).second == "destination:pronunciation2") {
+      } else if (std::get<kLinguisticMapTuplePronunciationIndex>(iter->second) ==
+                 "destination:pronunciation2") {
         EXPECT_EQ(signs.at(sign_index).text(), "destination2");
-        EXPECT_EQ(static_cast<int>((iter->second).first),
+        EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(iter->second)),
                   static_cast<int>(baldr::PronunciationAlphabet::kIpa));
       } else
-        FAIL() << (iter->second).second << " Extra key. This should not happen.";
+        FAIL() << std::get<kLinguisticMapTuplePronunciationIndex>(iter->second)
+               << " Extra key. This should not happen.";
 
       ++sign_index;
     }
@@ -1220,29 +1281,32 @@ TEST(Standalone, PhonemesWithAltandDirection) {
     graph_reader.GetGraphTile(node_id);
     node_info = tile->node(node_id);
 
-    pronunciations.clear();
+    index_linguistic_map.clear();
     signs.clear();
-    signs = tile->GetSigns(ED_edge_id.id(), pronunciations);
+    signs = tile->GetSigns(ED_edge_id.id(), index_linguistic_map);
 
     sign_index = 0;
     ASSERT_EQ(signs.size(), 2);
-    ASSERT_EQ(pronunciations.size(), 2);
+    ASSERT_EQ(index_linguistic_map.size(), 2);
     for (const auto& sign : signs) {
 
-      std::unordered_map<uint32_t, std::pair<uint8_t, std::string>>::const_iterator iter =
-          pronunciations.find(sign_index);
-      ASSERT_NE(iter, pronunciations.end());
+      std::unordered_map<uint8_t, std::tuple<uint8_t, uint8_t, std::string>>::const_iterator iter =
+          index_linguistic_map.find(sign_index);
+      ASSERT_NE(iter, index_linguistic_map.end());
 
-      if ((iter->second).second == "destination:pronunciation1") {
+      if (std::get<kLinguisticMapTuplePronunciationIndex>(iter->second) ==
+          "destination:pronunciation1") {
         EXPECT_EQ(signs.at(sign_index).text(), "destination1");
-        EXPECT_EQ(static_cast<int>((iter->second).first),
+        EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(iter->second)),
                   static_cast<int>(baldr::PronunciationAlphabet::kIpa));
-      } else if ((iter->second).second == "destination:pronunciation2") {
+      } else if (std::get<kLinguisticMapTuplePronunciationIndex>(iter->second) ==
+                 "destination:pronunciation2") {
         EXPECT_EQ(signs.at(sign_index).text(), "destination2");
-        EXPECT_EQ(static_cast<int>((iter->second).first),
+        EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(iter->second)),
                   static_cast<int>(baldr::PronunciationAlphabet::kIpa));
       } else
-        FAIL() << (iter->second).second << " Extra key. This should not happen.";
+        FAIL() << std::get<kLinguisticMapTuplePronunciationIndex>(iter->second)
+               << " Extra key. This should not happen.";
 
       ++sign_index;
     }
