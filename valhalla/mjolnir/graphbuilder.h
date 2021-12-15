@@ -73,6 +73,11 @@ public:
                                std::vector<std::string>& pronunciations,
                                uint32_t& count);
 
+  static void AddLanguages(const std::vector<baldr::Language>& sign_langs,
+                           const size_t index,
+                           std::vector<std::string>& languages,
+                           uint32_t& count);
+
   static void BuildPronunciations(const std::vector<std::string>& ipa_tokens,
                                   const std::vector<std::string>& nt_sampa_tokens,
                                   const std::vector<std::string>& katakana_tokens,
@@ -92,6 +97,7 @@ public:
                                  const std::vector<std::pair<std::string, bool>>& default_languages,
                                  std::vector<baldr::SignInfo>& exits,
                                  std::vector<std::string>& pronunciations,
+                                 std::vector<std::string>& languages,
                                  bool fork,
                                  bool forward,
                                  bool ramp,
