@@ -1125,13 +1125,13 @@ public:
     };
     tag_handlers_["destination:forward"] = [this]() {
       if (!tag_.second.empty()) {
-        way_.set_destination_forward_index(osmdata_.name_offset_map.index(tag_.second));
+        destination_forward_ = tag_.second;
         way_.set_exit(true);
       }
     };
     tag_handlers_["destination:backward"] = [this]() {
       if (!tag_.second.empty()) {
-        way_.set_destination_backward_index(osmdata_.name_offset_map.index(tag_.second));
+        destination_backward_ = tag_.second;
         way_.set_exit(true);
       }
     };
@@ -1803,7 +1803,9 @@ public:
     alt_name_ = alt_language_ = alt_name_w_lang_ = alt_name_left_ = alt_name_right_ = alt_lang_left_ =
         alt_lang_right_ = alt_name_left_w_lang_ = alt_name_right_w_lang_ = {};
 
-    destination_ = destination_language_ = destination_w_lang_ = {};
+    destination_ = destination_language_ = destination_w_lang_ = destination_forward_ =
+        destination_forward_language_ = destination_forward_w_lang_ = destination_backward_ =
+            destination_backward_language_ = destination_backward_w_lang_ = {};
 
     // Process tags
     way_ = OSMWay{osmid_};
@@ -1880,6 +1882,10 @@ public:
         ProcessLeftRightNameTag(tag_, tunnel_name_right_w_lang_, tunnel_lang_right_);
       } else if (tag_.first.substr(0, 12) == "tunnel:name:") {
         ProcessNameTag(tag_, tunnel_name_w_lang_, tunnel_language_);
+      } else if (tag_.first.substr(0, 21) == "destination:backward:") {
+        ProcessNameTag(tag_, destination_backward_w_lang_, destination_backward_language_);
+      } else if (tag_.first.substr(0, 20) == "destination:forward:") {
+        ProcessNameTag(tag_, destination_forward_w_lang_, destination_forward_language_);
       } else if (tag_.first.substr(0, 12) == "destination:") {
         ProcessNameTag(tag_, destination_w_lang_, destination_language_);
       }
@@ -2333,6 +2339,18 @@ public:
     ProcessName(destination_w_lang_, destination_, destination_language_);
     way_.set_destination_index(osmdata_.name_offset_map.index(destination_));
     way_.set_destination_lang_index(osmdata_.name_offset_map.index(destination_language_));
+
+    l = destination_forward_language_;
+    ProcessName(destination_forward_w_lang_, destination_forward_, destination_forward_language_);
+    way_.set_destination_forward_index(osmdata_.name_offset_map.index(destination_forward_));
+    way_.set_destination_forward_lang_index(
+        osmdata_.name_offset_map.index(destination_forward_language_));
+
+    l = destination_backward_language_;
+    ProcessName(destination_backward_w_lang_, destination_backward_, destination_backward_language_);
+    way_.set_destination_backward_index(osmdata_.name_offset_map.index(destination_backward_));
+    way_.set_destination_backward_lang_index(
+        osmdata_.name_offset_map.index(destination_backward_language_));
 
     // Infer cul-de-sac if a road edge is a loop and is low classification.
     if (!way_.roundabout() && loop_nodes_.size() != nodes.size() && way_.use() == Use::kRoad &&
@@ -2885,7 +2903,8 @@ public:
         name += ";" + name_w_lang;
         language = l;
       }
-    }
+    } else
+      name = name_w_lang;
   }
 
   void ProcessLeftRightName(const std::string& name_left_right_w_lang,
@@ -3213,7 +3232,9 @@ public:
   std::string alt_name_, alt_language_, alt_name_w_lang_, alt_name_left_, alt_name_right_,
       alt_lang_left_, alt_lang_right_, alt_name_left_w_lang_, alt_name_right_w_lang_;
 
-  std::string destination_, destination_language_, destination_w_lang_;
+  std::string destination_, destination_language_, destination_w_lang_, destination_forward_,
+      destination_forward_language_, destination_forward_w_lang_, destination_backward_,
+      destination_backward_language_, destination_backward_w_lang_;
 
   // Configuration option to include driveways
   bool include_driveways_;
