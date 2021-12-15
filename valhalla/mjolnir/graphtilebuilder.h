@@ -138,7 +138,8 @@ public:
    */
   void AddSigns(const uint32_t idx,
                 const std::vector<baldr::SignInfo>& signs,
-                const std::vector<std::string>& pronunciations);
+                const std::vector<std::string>& pronunciations,
+                const std::vector<std::string>& languages);
 
   /**
    * Add sign information.
