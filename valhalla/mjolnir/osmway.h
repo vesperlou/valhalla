@@ -906,6 +906,22 @@ struct OSMWay {
   }
 
   /**
+   * Sets the index for destination:lang in forward direction.
+   * @param  idx  Index for the destination.
+   */
+  void set_destination_forward_lang_index(const uint32_t idx) {
+    destination_forward_lang_index_ = idx;
+  }
+
+  /**
+   * Get the destination:lang in forward direction index.
+   * @return  Returns the index for the destination:lang in forward direction.
+   */
+  uint32_t destination_forward_lang_index() const {
+    return destination_forward_lang_index_;
+  }
+
+  /**
    * Sets the index for destination in backward direction.
    * @param  idx  Index for the destination.
    */
@@ -919,6 +935,22 @@ struct OSMWay {
    */
   uint32_t destination_backward_index() const {
     return destination_backward_index_;
+  }
+
+  /**
+   * Sets the index for destination:lang in backward direction.
+   * @param  idx  Index for the destination.
+   */
+  void set_destination_backward_lang_index(const uint32_t idx) {
+    destination_backward_lang_index_ = idx;
+  }
+
+  /**
+   * Get the destination:lang in backward direction index.
+   * @return  Returns the index for the destination:lang in backward direction.
+   */
+  uint32_t destination_backward_lang_index() const {
+    return destination_backward_lang_index_;
   }
 
   /**
@@ -2261,6 +2293,8 @@ struct OSMWay {
   uint32_t destination_lang_index_;
   uint32_t destination_forward_index_;
   uint32_t destination_backward_index_;
+  uint32_t destination_forward_lang_index_;
+  uint32_t destination_backward_lang_index_;
   uint32_t destination_ref_index_;
   uint32_t destination_ref_to_index_;
   uint32_t destination_street_index_;
