@@ -174,12 +174,12 @@ void OSMWay::AddLanguages(std::vector<std::string>& linguistics,
   if (token_languages.size() != 0) {
     std::string language;
 
-    linguistic_text_header_t header{static_cast<uint8_t>(baldr::Language::kNone), 0,
+    linguistic_text_header_t header{static_cast<uint8_t>(baldr::Language::kNone),
+                                    static_cast<uint8_t>(0),
                                     static_cast<uint8_t>(baldr::PronunciationAlphabet::kNone),
                                     static_cast<uint8_t>(key)};
     for (const auto& t : token_languages) {
       header.language_ = static_cast<uint8_t>(t);
-      header.length_ = 0;
       language.append(std::string(reinterpret_cast<const char*>(&header), 3));
       ++header.name_index_;
     }
@@ -275,8 +275,11 @@ void OSMWay::ProcessNames(const UniqueNames& name_offset_map,
                                     updated_token_languages[i].first) == names_w_no_lang.end())
           continue; // is right or left name.
 
-        supported_names.insert(supported_names.begin(), updated_token_languages[i].first);
-        supported_langs.insert(supported_langs.begin(), stringLanguage(current_lang));
+        supported_names.emplace_back(updated_token_languages[i].first);
+        // Todo do we need to still insert at the beginining.
+        // supported_names.insert(supported_names.begin(), updated_token_languages[i].first);
+
+        supported_langs.emplace_back(stringLanguage(current_lang));
         found_languages.erase(std::remove(found_languages.begin(), found_languages.end(),
                                           current_lang),
                               found_languages.end());
@@ -318,7 +321,8 @@ void OSMWay::ProcessNames(const UniqueNames& name_offset_map,
             token_langs.emplace_back(supported_langs[i]);
           }
 
-          /* need to check the order.
+          /* TODO determine if the following is needed.
+           * need to check the order.
            *
            *
            * std::vector<std::pair<std::string, std::string>> temp_token_languages;
@@ -479,7 +483,7 @@ void OSMWay::GetNames(const std::string& ref,
   }
   // Process official_name
   if (official_name_index != 0 && official_name_index != name_index &&
-      official_name_index != alt_name_index_) {
+      official_name_index != alt_name_index) {
 
     std::vector<std::string> tokens;
     std::vector<baldr::Language> token_langs;
