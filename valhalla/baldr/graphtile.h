@@ -400,10 +400,10 @@ public:
    *                       intersection names.
    * @return  Returns a list (vector) of signs.
    */
-  std::vector<SignInfo>
-  GetSigns(const uint32_t idx,
-           std::unordered_map<uint32_t, std::pair<uint8_t, std::string>>& index_pronunciation_map,
-           bool signs_on_node = false) const;
+  std::vector<SignInfo> GetSigns(
+      const uint32_t idx,
+      std::unordered_map<uint8_t, std::tuple<uint8_t, uint8_t, std::string>>& index_linguistic_map,
+      bool signs_on_node = false) const;
 
   /**
    * Get the next departure given the directed edge Id and the current
