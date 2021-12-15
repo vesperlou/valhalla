@@ -725,7 +725,7 @@ std::vector<SignInfo> GraphTile::GetSigns(const uint32_t idx, bool signs_on_node
   for (; found < count && signs_[found].index() == idx; ++found) {
     if (signs_[found].text_offset() < textlist_size_) {
 
-      std::string text = (textlist_ + signs_[found].text_offset());
+      const auto* text = (textlist_ + signs_[found].text_offset());
 
       // only add named signs when asking for signs at the node and
       // only add edge signs when asking for signs at the edges.
@@ -739,9 +739,19 @@ std::vector<SignInfo> GraphTile::GetSigns(const uint32_t idx, bool signs_on_node
              signs_[found].type() != Sign::Type::kLinguistic) ||
             (signs_[found].type() == Sign::Type::kLinguistic &&
              !signs_[found].is_route_num_type())) &&
-           !signs_on_node))
+           !signs_on_node)) {
+        std::string sign_text = text;
+        if (signs_[found].type() == Sign::Type::kLinguistic) {
+          sign_text.clear();
+          while (*text != '\0') {
+            const auto header = midgard::unaligned_read<linguistic_text_header_t>(text);
+            sign_text.append(std::string(reinterpret_cast<const char*>(&header), 3) + (text + 3));
+            text += header.length_ + 3;
+          }
+        }
         signs.emplace_back(signs_[found].type(), signs_[found].is_route_num_type(),
-                           signs_[found].tagged(), false, 0, 0, text);
+                           signs_[found].tagged(), false, false, 0, 0, 0, 0, sign_text);
+      }
     } else {
       throw std::runtime_error("GetSigns: offset exceeds size of text list");
     }
@@ -756,14 +766,14 @@ std::vector<SignInfo> GraphTile::GetSigns(const uint32_t idx, bool signs_on_node
 // directed edge index.
 std::vector<SignInfo> GraphTile::GetSigns(
     const uint32_t idx,
-    std::unordered_map<uint32_t, std::pair<uint8_t, std::string>>& index_pronunciation_map,
+    std::unordered_map<uint8_t, std::tuple<uint8_t, uint8_t, std::string>>& index_linguistic_map,
     bool signs_on_node) const {
   uint32_t count = header_->signcount();
   std::vector<SignInfo> signs;
   if (count == 0) {
     return signs;
   }
-  index_pronunciation_map.reserve(count);
+  index_linguistic_map.reserve(count);
 
   // Signs are sorted by edge index.
   // Binary search to find a sign with matching edge index.
@@ -799,40 +809,31 @@ std::vector<SignInfo> GraphTile::GetSigns(
             (!signs_[found].is_route_num_type() && !signs_on_node)) {
 
           while (*text != '\0') {
-            const auto& header = *reinterpret_cast<const linguistic_text_header_t*>(text);
+            const auto header = midgard::unaligned_read<linguistic_text_header_t>(text);
+            std::tuple<uint8_t, uint8_t, std::string> liguistic_attributes;
 
-            auto iter = index_pronunciation_map.insert(
-                std::make_pair(header.name_index_,
-                               std::make_pair(header.phonetic_alphabet_,
-                                              std::string(text + 3, header.length_))));
+            std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(liguistic_attributes) =
+                header.phonetic_alphabet_;
+            std::get<kLinguisticMapTupleLanguageIndex>(liguistic_attributes) = header.language_;
+
+            if (static_cast<valhalla::baldr::PronunciationAlphabet>(header.phonetic_alphabet_) ==
+                PronunciationAlphabet::kNone) {
+              std::get<kLinguisticMapTuplePronunciationIndex>(liguistic_attributes) = "";
+            } else
+              std::get<kLinguisticMapTuplePronunciationIndex>(liguistic_attributes) =
+                  std::string(text + 3, header.length_);
+            auto iter =
+                index_linguistic_map.insert(std::make_pair(header.name_index_, liguistic_attributes));
+
             if (!iter.second) {
-              if (header.phonetic_alphabet_ > iter.first->second.first) {
-                iter.first->second =
-                    std::make_pair(header.phonetic_alphabet_, std::string(text + 3, header.length_));
+              if (header.phonetic_alphabet_ >
+                  std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(iter.first->second)) {
+                iter.first->second = liguistic_attributes;
               }
             }
 
             text += header.length_ + 3;
           }
-
-          /*size_t pos = 0;
-          while (pos < strlen(text)) {
-            const auto header = midgard::unaligned_read<linguistic_text_header_t>(text + pos);
-            pos += 3;
-
-            auto iter = index_pronunciation_map.insert(
-                std::make_pair(header.name_index_,
-                               std::make_pair(header.phonetic_alphabet_,
-                                              std::string((text + pos), header.length_))));
-            if (!iter.second) {
-              if (header.phonetic_alphabet_ > iter.first->second.first) {
-                iter.first->second = std::make_pair(header.phonetic_alphabet_,
-                                                    std::string((text + pos), header.length_));
-              }
-            }
-
-            pos += header.length_;
-          }*/
         }
         continue;
       }
@@ -842,7 +843,7 @@ std::vector<SignInfo> GraphTile::GetSigns(
       if ((signs_[found].type() == Sign::Type::kJunctionName && signs_on_node) ||
           (signs_[found].type() != Sign::Type::kJunctionName && !signs_on_node))
         signs.emplace_back(signs_[found].type(), signs_[found].is_route_num_type(),
-                           signs_[found].tagged(), false, 0, 0, text);
+                           signs_[found].tagged(), false, false, 0, 0, 0, 0, text);
     } else {
       throw std::runtime_error("GetSigns: offset exceeds size of text list");
     }
