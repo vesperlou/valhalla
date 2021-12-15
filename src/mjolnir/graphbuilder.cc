@@ -882,9 +882,11 @@ void BuildTileSet(const std::string& ways_file,
           // Any exits for this directed edge? is auto and oneway?
           std::vector<SignInfo> signs;
           std::vector<std::string> pronunciations;
+          std::vector<std::string> languages;
+
           bool has_guide =
               GraphBuilder::CreateSignInfoList(node, w, p, osmdata, default_languages, signs,
-                                               pronunciations, fork, forward,
+                                               pronunciations, languages, fork, forward,
                                                (directededge.use() == Use::kRamp),
                                                (directededge.use() == Use::kTurnChannel));
           // add signs if signs exist
@@ -897,7 +899,7 @@ void BuildTileSet(const std::string& ways_file,
                 (!((bundle.link_count == 2) && (bundle.driveforward_count == 1)))) ||
                fork || has_guide)) {
 
-            graphtile.AddSigns(idx, signs, pronunciations);
+            graphtile.AddSigns(idx, signs, pronunciations, languages);
             directededge.set_sign(true);
           }
 
@@ -1128,6 +1130,7 @@ void BuildTileSet(const std::string& ways_file,
           bool add_jeita = (jeita_tokens.size() && node_names.size() == jeita_tokens.size());
 
           std::vector<std::string> pronunciations;
+          std::vector<std::string> languages;
 
           for (size_t i = 0; i < node_names.size(); ++i) {
             if (add_ipa || add_nt_sampa || add_katakana || add_jeita) {
@@ -1136,15 +1139,17 @@ void BuildTileSet(const std::string& ways_file,
               GraphBuilder::BuildPronunciations(ipa_tokens, nt_sampa_tokens, katakana_tokens,
                                                 jeita_tokens, i, pronunciations, add_ipa,
                                                 add_nt_sampa, add_katakana, add_jeita, count);
-              signs.emplace_back(Sign::Type::kJunctionName, false, false, (count != 0), size, count,
+              signs.emplace_back(Sign::Type::kJunctionName, false, false, (count != 0),
+                                 false /*lang*/, size, count, 0 /*lang size*/, 0 /*lang count*/,
                                  node_names[i]);
             } else
-              signs.emplace_back(Sign::Type::kJunctionName, false, false, false, 0, 0, node_names[i]);
+              signs.emplace_back(Sign::Type::kJunctionName, false, false, false, false, 0, 0, 0, 0,
+                                 node_names[i]);
           }
 
           if (signs.size()) {
             graphtile.nodes().back().set_named_intersection(true);
-            graphtile.AddSigns(graphtile.nodes().size() - 1, signs, pronunciations);
+            graphtile.AddSigns(graphtile.nodes().size() - 1, signs, pronunciations, languages);
           }
         }
         // Set drive on right flag
@@ -1425,6 +1430,25 @@ void GraphBuilder::GetPronunciationTokens(const OSMData& osmdata,
   }
 }
 
+void GraphBuilder::AddLanguages(const std::vector<baldr::Language>& sign_langs,
+                                const size_t index,
+                                std::vector<std::string>& languages,
+                                uint32_t& count) {
+
+  if (sign_langs.size() != 0) {
+    std::string language;
+
+    linguistic_text_header_t header{static_cast<uint8_t>(baldr::Language::kNone),
+                                    static_cast<uint8_t>(0),
+                                    static_cast<uint8_t>(baldr::PronunciationAlphabet::kNone),
+                                    static_cast<uint8_t>(0)};
+    const auto& lang = sign_langs.at(index);
+    header.language_ = static_cast<uint8_t>(lang);
+    languages.emplace_back(std::string(reinterpret_cast<const char*>(&header), 3));
+    count++;
+  }
+}
+
 void GraphBuilder::AddPronunciation(const baldr::PronunciationAlphabet alphabet,
                                     const std::string& phoneme,
                                     std::vector<std::string>& pronunciations,
@@ -1473,6 +1497,7 @@ bool GraphBuilder::CreateSignInfoList(
     const std::vector<std::pair<std::string, bool>>& default_languages,
     std::vector<SignInfo>& exit_list,
     std::vector<std::string>& pronunciations,
+    std::vector<std::string>& languages,
     bool fork,
     bool forward,
     bool ramp,
@@ -1504,7 +1529,8 @@ bool GraphBuilder::CreateSignInfoList(
       };
 
   // helper to build SignInfo and update exit_list
-  auto add_sign_info = [&](const std::vector<std::string>& refs, const Sign::Type& type,
+  auto add_sign_info = [&](const std::vector<std::string>& refs,
+                           const std::vector<baldr::Language>& sign_langs, const Sign::Type& type,
                            const bool is_route_number, const bool add_phoneme) {
     for (size_t i = 0; i < refs.size(); ++i) {
       uint32_t phoneme_count = 0;
@@ -1518,12 +1544,19 @@ bool GraphBuilder::CreateSignInfoList(
         // reset phoneme index if no phonemes were found
         phoneme_start_index = 0;
       }
-      exit_list.emplace_back(type, is_route_number, false, (phoneme_count != 0), phoneme_start_index,
-                             phoneme_count, refs[i]);
+
+      size_t languages_start_index = languages.size();
+      uint32_t language_count = 0;
+      AddLanguages(sign_langs, i, languages, language_count);
+
+      exit_list.emplace_back(type, is_route_number, false, (phoneme_count != 0),
+                             (language_count != 0), phoneme_start_index, phoneme_count,
+                             languages_start_index, language_count, refs[i]);
     }
   };
 
   std::vector<std::string> sign_names;
+  std::vector<baldr::Language> sign_langs;
 
   ////////////////////////////////////////////////////////////////////////////
   // NUMBER
@@ -1548,8 +1581,10 @@ bool GraphBuilder::CreateSignInfoList(
                                      add_nt_sampa, add_katakana, add_jeita, true);
   }
 
-  add_sign_info(sign_names, Sign::Type::kExitNumber, false /* is_route_number */, has_phoneme);
+  add_sign_info(sign_names, sign_langs, Sign::Type::kExitNumber, false /* is_route_number */,
+                has_phoneme);
   sign_names.clear();
+  sign_langs.clear();
 
   ////////////////////////////////////////////////////////////////////////////
   // BRANCH
@@ -1572,8 +1607,9 @@ bool GraphBuilder::CreateSignInfoList(
                                    ipa_tokens, nt_sampa_tokens, katakana_tokens, jeita_tokens,
                                    add_ipa, add_nt_sampa, add_katakana, add_jeita);
 
-  add_sign_info(sign_names, sign_type, true /* is_route_number */, has_phoneme);
+  add_sign_info(sign_names, sign_langs, sign_type, true /* is_route_number */, has_phoneme);
   sign_names.clear();
+  sign_langs.clear();
 
   // Guide or Exit sign branch road names
   if (way.destination_street_index() != 0) {
@@ -1591,8 +1627,9 @@ bool GraphBuilder::CreateSignInfoList(
                                    ipa_tokens, nt_sampa_tokens, katakana_tokens, jeita_tokens,
                                    add_ipa, add_nt_sampa, add_katakana, add_jeita);
 
-  add_sign_info(sign_names, sign_type, false /* is_route_number */, has_phoneme);
+  add_sign_info(sign_names, sign_langs, sign_type, false /* is_route_number */, has_phoneme);
   sign_names.clear();
+  sign_langs.clear();
 
   ////////////////////////////////////////////////////////////////////////////
   // TOWARD
@@ -1615,8 +1652,9 @@ bool GraphBuilder::CreateSignInfoList(
                                    ipa_tokens, nt_sampa_tokens, katakana_tokens, jeita_tokens,
                                    add_ipa, add_nt_sampa, add_katakana, add_jeita);
 
-  add_sign_info(sign_names, sign_type, true /* is_route_number */, has_phoneme);
+  add_sign_info(sign_names, sign_langs, sign_type, true /* is_route_number */, has_phoneme);
   sign_names.clear();
+  sign_langs.clear();
 
   // Guide or Exit sign toward streets
   if (way.destination_street_to_index() != 0) {
@@ -1634,24 +1672,26 @@ bool GraphBuilder::CreateSignInfoList(
                                    ipa_tokens, nt_sampa_tokens, katakana_tokens, jeita_tokens,
                                    add_ipa, add_nt_sampa, add_katakana, add_jeita);
 
-  add_sign_info(sign_names, sign_type, false /* is_route_number */, has_phoneme);
+  add_sign_info(sign_names, sign_langs, sign_type, false /* is_route_number */, has_phoneme);
   sign_names.clear();
+  sign_langs.clear();
 
   // Exit sign toward locations
   if (way.destination_index() != 0 || (forward && way.destination_forward_index() != 0) ||
       (!forward && way.destination_backward_index() != 0)) {
 
-    std::vector<std::string> tokens;
-    std::vector<baldr::Language> token_langs;
-
-    way.ProcessNames(osmdata.name_offset_map, default_languages, way.destination_index(),
-                     way.destination_lang_index(), tokens, token_langs, false);
-
     uint32_t index = way.destination_index() ? way.destination_index()
                                              : (forward ? way.destination_forward_index()
                                                         : way.destination_backward_index());
 
-    sign_names = GetTagTokens(osmdata.name_offset_map.name(index));
+    // make sure we grab the correct lang based on the index we used above.
+    uint32_t lang_index = way.destination_index() ? way.destination_lang_index()
+                                                  : (forward ? way.destination_forward_lang_index()
+                                                             : way.destination_backward_lang_index());
+
+    way.ProcessNames(osmdata.name_offset_map, default_languages, index, lang_index, sign_names,
+                     sign_langs, false);
+
     sign_type = is_branch_or_toward ? Sign::Type::kGuideToward : Sign::Type::kExitToward;
     has_toward = true;
     has_guide = is_branch_or_toward;
@@ -1686,8 +1726,9 @@ bool GraphBuilder::CreateSignInfoList(
                            add_ipa, add_nt_sampa, add_katakana, add_jeita);
   }
 
-  add_sign_info(sign_names, sign_type, false /* is_route_number */, has_phoneme);
+  add_sign_info(sign_names, sign_langs, sign_type, false /* is_route_number */, has_phoneme);
   sign_names.clear();
+  sign_langs.clear();
 
   ////////////////////////////////////////////////////////////////////////////
   // Process exit_to only if other branch or toward info does not exist  No pronunciations.
@@ -1703,13 +1744,13 @@ bool GraphBuilder::CreateSignInfoList(
 
         // remove the "To" For example:  US 11;To I 81;Carlisle;Harrisburg
         if (boost::starts_with(tmp, "to ")) {
-          exit_list.emplace_back(Sign::Type::kExitToward, false, false, false, 0, 0,
+          exit_list.emplace_back(Sign::Type::kExitToward, false, false, false, false, 0, 0, 0, 0,
                                  exit_to.substr(3));
           continue;
         }
         // remove the "Toward" For example:  US 11;Toward I 81;Carlisle;Harrisburg
         if (boost::starts_with(tmp, "toward ")) {
-          exit_list.emplace_back(Sign::Type::kExitToward, false, false, false, 0, 0,
+          exit_list.emplace_back(Sign::Type::kExitToward, false, false, false, false, 0, 0, 0, 0,
                                  exit_to.substr(7));
           continue;
         }
@@ -1721,10 +1762,10 @@ bool GraphBuilder::CreateSignInfoList(
         if (found != std::string::npos && (tmp.find(" to ", found + 4) == std::string::npos &&
                                            tmp.find(" toward ") == std::string::npos)) {
 
-          exit_list.emplace_back(Sign::Type::kExitBranch, false, false, false, 0, 0,
+          exit_list.emplace_back(Sign::Type::kExitBranch, false, false, false, false, 0, 0, 0, 0,
                                  exit_to.substr(0, found));
 
-          exit_list.emplace_back(Sign::Type::kExitToward, false, false, false, 0, 0,
+          exit_list.emplace_back(Sign::Type::kExitToward, false, false, false, false, 0, 0, 0, 0,
                                  exit_to.substr(found + 4));
           continue;
         }
@@ -1736,16 +1777,17 @@ bool GraphBuilder::CreateSignInfoList(
         if (found != std::string::npos && (tmp.find(" toward ", found + 8) == std::string::npos &&
                                            tmp.find(" to ") == std::string::npos)) {
 
-          exit_list.emplace_back(Sign::Type::kExitBranch, false, false, false, 0, 0,
+          exit_list.emplace_back(Sign::Type::kExitBranch, false, false, false, false, 0, 0, 0, 0,
                                  exit_to.substr(0, found));
 
-          exit_list.emplace_back(Sign::Type::kExitToward, false, false, false, 0, 0,
+          exit_list.emplace_back(Sign::Type::kExitToward, false, false, false, false, 0, 0, 0, 0,
                                  exit_to.substr(found + 8));
           continue;
         }
 
         // default to toward.
-        exit_list.emplace_back(Sign::Type::kExitToward, false, false, false, 0, 0, exit_to);
+        exit_list.emplace_back(Sign::Type::kExitToward, false, false, false, false, 0, 0, 0, 0,
+                               exit_to);
       }
     }
   }
@@ -1767,8 +1809,9 @@ bool GraphBuilder::CreateSignInfoList(
                                    katakana_tokens, jeita_tokens, add_ipa, add_nt_sampa, add_katakana,
                                    add_jeita, true);
 
-  add_sign_info(sign_names, sign_type, false /* is_route_number */, has_phoneme);
+  add_sign_info(sign_names, sign_langs, sign_type, false /* is_route_number */, has_phoneme);
   sign_names.clear();
+  sign_langs.clear();
 
   ////////////////////////////////////////////////////////////////////////////
   // GUIDANCE VIEWS
@@ -1779,7 +1822,8 @@ bool GraphBuilder::CreateSignInfoList(
         GetTagTokens(osmdata.name_offset_map.name(way.fwd_jct_base_index()), '|');
     // route number set to true for kGuidanceViewJct type means base type
     for (auto& name : names) {
-      exit_list.emplace_back(Sign::Type::kGuidanceViewJunction, true, false, false, 0, 0, name);
+      exit_list.emplace_back(Sign::Type::kGuidanceViewJunction, true, false, false, false, 0, 0, 0, 0,
+                             name);
       has_guidance_view = true;
     }
   } else if (!forward && way.bwd_jct_base_index() > 0) {
@@ -1787,7 +1831,8 @@ bool GraphBuilder::CreateSignInfoList(
         GetTagTokens(osmdata.name_offset_map.name(way.bwd_jct_base_index()), '|');
     // route number set to true for kGuidanceViewJct type means base type
     for (auto& name : names) {
-      exit_list.emplace_back(Sign::Type::kGuidanceViewJunction, true, false, false, 0, 0, name);
+      exit_list.emplace_back(Sign::Type::kGuidanceViewJunction, true, false, false, false, 0, 0, 0, 0,
+                             name);
       has_guidance_view = true;
     }
   }
@@ -1797,7 +1842,8 @@ bool GraphBuilder::CreateSignInfoList(
         GetTagTokens(osmdata.name_offset_map.name(way.fwd_jct_overlay_index()), '|');
     // route number set to false for kGuidanceViewJct type means overlay type
     for (auto& name : names) {
-      exit_list.emplace_back(Sign::Type::kGuidanceViewJunction, false, false, false, 0, 0, name);
+      exit_list.emplace_back(Sign::Type::kGuidanceViewJunction, false, false, false, false, 0, 0, 0,
+                             0, name);
       has_guidance_view = true;
     }
   } else if (!forward && way.bwd_jct_overlay_index() > 0) {
@@ -1805,7 +1851,8 @@ bool GraphBuilder::CreateSignInfoList(
         GetTagTokens(osmdata.name_offset_map.name(way.bwd_jct_overlay_index()), '|');
     // route number set to false for kGuidanceViewJct type means overlay type
     for (auto& name : names) {
-      exit_list.emplace_back(Sign::Type::kGuidanceViewJunction, false, false, false, 0, 0, name);
+      exit_list.emplace_back(Sign::Type::kGuidanceViewJunction, false, false, false, false, 0, 0, 0,
+                             0, name);
       has_guidance_view = true;
     }
   }
@@ -1815,7 +1862,8 @@ bool GraphBuilder::CreateSignInfoList(
         GetTagTokens(osmdata.name_offset_map.name(way.fwd_signboard_base_index()), '|');
     // route number set to true for kGuidanceViewSignboard type means base type
     for (auto& name : names) {
-      exit_list.emplace_back(Sign::Type::kGuidanceViewSignboard, true, false, false, 0, 0, name);
+      exit_list.emplace_back(Sign::Type::kGuidanceViewSignboard, true, false, false, false, 0, 0, 0,
+                             0, name);
       has_guidance_view_signboard = true;
     }
   } else if (!forward && way.bwd_signboard_base_index() > 0) {
@@ -1823,7 +1871,8 @@ bool GraphBuilder::CreateSignInfoList(
         GetTagTokens(osmdata.name_offset_map.name(way.bwd_signboard_base_index()), '|');
     // route number set to true for kGuidanceViewSignboard type means base type
     for (auto& name : names) {
-      exit_list.emplace_back(Sign::Type::kGuidanceViewSignboard, true, false, false, 0, 0, name);
+      exit_list.emplace_back(Sign::Type::kGuidanceViewSignboard, true, false, false, false, 0, 0, 0,
+                             0, name);
       has_guidance_view_signboard = true;
     }
   }
