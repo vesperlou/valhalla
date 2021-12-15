@@ -53,6 +53,11 @@ struct NameInfo {
   }
 };
 
+// indexes of linguistic attributes in the linguistic map value-tuple
+constexpr size_t kLinguisticMapTuplePhoneticAlphabetIndex = 0;
+constexpr size_t kLinguisticMapTupleLanguageIndex = 1;
+constexpr size_t kLinguisticMapTuplePronunciationIndex = 2;
+
 struct linguistic_text_header_t {
   uint32_t language_ : 8; // this is just the language as we will derive locale by getting admin info
   uint32_t length_ : 8;   // pronunciation length
