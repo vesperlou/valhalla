@@ -483,28 +483,40 @@ void SetHeadings(TripLeg_Edge* trip_edge,
 void PopulateSignElement(
     uint32_t sign_index,
     const SignInfo& sign,
-    const std::unordered_map<uint32_t, std::pair<uint8_t, std::string>>& pronunciations,
+    const std::unordered_map<uint8_t, std::tuple<uint8_t, uint8_t, std::string>>& linguistics,
     valhalla::TripSignElement* sign_element) {
   sign_element->set_text(sign.text());
   sign_element->set_is_route_number(sign.is_route_num());
 
   // Assign pronunciation alphabet and value if they exist
-  std::unordered_map<uint32_t, std::pair<uint8_t, std::string>>::const_iterator iter =
-      pronunciations.find(sign_index);
-  if (iter != pronunciations.end()) {
-    auto* pronunciation = sign_element->mutable_pronunciation();
-    pronunciation->set_alphabet(GetTripPronunciationAlphabet(
-        static_cast<valhalla::baldr::PronunciationAlphabet>((iter->second).first)));
-    pronunciation->set_value((iter->second).second);
+  std::unordered_map<uint8_t, std::tuple<uint8_t, uint8_t, std::string>>::const_iterator iter =
+      linguistics.find(sign_index);
+  if (iter != linguistics.end()) {
+
+    if (static_cast<valhalla::baldr::PronunciationAlphabet>(
+            std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(iter->second)) ==
+        PronunciationAlphabet::kNone)
+      std::cout << "sign: " << sign.text() << " "
+                << to_string(static_cast<Language>(
+                       std::get<kLinguisticMapTupleLanguageIndex>(iter->second)))
+                << " " << std::get<kLinguisticMapTuplePronunciationIndex>(iter->second) << std::endl;
+    else {
+      auto* pronunciation = sign_element->mutable_pronunciation();
+      pronunciation->set_alphabet(
+          GetTripPronunciationAlphabet(static_cast<valhalla::baldr::PronunciationAlphabet>(
+              std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(iter->second))));
+      pronunciation->set_value(std::get<kLinguisticMapTuplePronunciationIndex>(iter->second));
+    }
   }
 }
 
 // Walk the edge_signs, add sign information onto the trip_sign, honoring which to
 // add per the attributes-controller.
-void AddSignInfo(const AttributesController& controller,
-                 const std::vector<SignInfo>& edge_signs,
-                 const std::unordered_map<uint32_t, std::pair<uint8_t, std::string>>& pronunciations,
-                 valhalla::TripSign* trip_sign) {
+void AddSignInfo(
+    const AttributesController& controller,
+    const std::vector<SignInfo>& edge_signs,
+    const std::unordered_map<uint8_t, std::tuple<uint8_t, uint8_t, std::string>>& linguistics,
+    valhalla::TripSign* trip_sign) {
 
   if (!edge_signs.empty()) {
     uint32_t sign_index = 0;
@@ -512,56 +524,56 @@ void AddSignInfo(const AttributesController& controller,
       switch (sign.type()) {
         case valhalla::baldr::Sign::Type::kExitNumber: {
           if (controller.attributes.at(kEdgeSignExitNumber)) {
-            PopulateSignElement(sign_index, sign, pronunciations,
+            PopulateSignElement(sign_index, sign, linguistics,
                                 trip_sign->mutable_exit_numbers()->Add());
           }
           break;
         }
         case valhalla::baldr::Sign::Type::kExitBranch: {
           if (controller.attributes.at(kEdgeSignExitBranch)) {
-            PopulateSignElement(sign_index, sign, pronunciations,
+            PopulateSignElement(sign_index, sign, linguistics,
                                 trip_sign->mutable_exit_onto_streets()->Add());
           }
           break;
         }
         case valhalla::baldr::Sign::Type::kExitToward: {
           if (controller.attributes.at(kEdgeSignExitToward)) {
-            PopulateSignElement(sign_index, sign, pronunciations,
+            PopulateSignElement(sign_index, sign, linguistics,
                                 trip_sign->mutable_exit_toward_locations()->Add());
           }
           break;
         }
         case valhalla::baldr::Sign::Type::kExitName: {
           if (controller.attributes.at(kEdgeSignExitName)) {
-            PopulateSignElement(sign_index, sign, pronunciations,
+            PopulateSignElement(sign_index, sign, linguistics,
                                 trip_sign->mutable_exit_names()->Add());
           }
           break;
         }
         case valhalla::baldr::Sign::Type::kGuideBranch: {
           if (controller.attributes.at(kEdgeSignGuideBranch)) {
-            PopulateSignElement(sign_index, sign, pronunciations,
+            PopulateSignElement(sign_index, sign, linguistics,
                                 trip_sign->mutable_guide_onto_streets()->Add());
           }
           break;
         }
         case valhalla::baldr::Sign::Type::kGuideToward: {
           if (controller.attributes.at(kEdgeSignGuideToward)) {
-            PopulateSignElement(sign_index, sign, pronunciations,
+            PopulateSignElement(sign_index, sign, linguistics,
                                 trip_sign->mutable_guide_toward_locations()->Add());
           }
           break;
         }
         case valhalla::baldr::Sign::Type::kGuidanceViewJunction: {
           if (controller.attributes.at(kEdgeSignGuidanceViewJunction)) {
-            PopulateSignElement(sign_index, sign, pronunciations,
+            PopulateSignElement(sign_index, sign, linguistics,
                                 trip_sign->mutable_guidance_view_junctions()->Add());
           }
           break;
         }
         case valhalla::baldr::Sign::Type::kGuidanceViewSignboard: {
           if (controller.attributes.at(kEdgeSignGuidanceViewSignboard)) {
-            PopulateSignElement(sign_index, sign, pronunciations,
+            PopulateSignElement(sign_index, sign, linguistics,
                                 trip_sign->mutable_guidance_view_signboards()->Add());
           }
           break;
@@ -665,12 +677,12 @@ void AddTripIntersectingEdge(const AttributesController& controller,
   // Set the sign info for the intersecting edge if requested
   if (controller.attributes.at(kNodeIntersectingEdgeSignInfo)) {
     if (intersecting_de->sign()) {
-      std::unordered_map<uint32_t, std::pair<uint8_t, std::string>> pronunciations;
+      std::unordered_map<uint8_t, std::tuple<uint8_t, uint8_t, std::string>> linguistics;
       std::vector<SignInfo> edge_signs =
-          graphtile->GetSigns(intersecting_de - graphtile->directededge(0), pronunciations);
+          graphtile->GetSigns(intersecting_de - graphtile->directededge(0), linguistics);
       if (!edge_signs.empty()) {
         valhalla::TripSign* sign = intersecting_edge->mutable_sign();
-        AddSignInfo(controller, edge_signs, pronunciations, sign);
+        AddSignInfo(controller, edge_signs, linguistics, sign);
       }
     }
   }
@@ -876,19 +888,19 @@ TripLeg_Edge* AddTripEdge(const AttributesController& controller,
   // Set the signs (if the directed edge has sign information) and if requested
   if (directededge->sign()) {
     // Add the edge signs
-    std::unordered_map<uint32_t, std::pair<uint8_t, std::string>> pronunciations;
-    std::vector<SignInfo> edge_signs = graphtile->GetSigns(idx, pronunciations);
+    std::unordered_map<uint8_t, std::tuple<uint8_t, uint8_t, std::string>> linguistics;
+    std::vector<SignInfo> edge_signs = graphtile->GetSigns(idx, linguistics);
     if (!edge_signs.empty()) {
       valhalla::TripSign* sign = trip_edge->mutable_sign();
-      AddSignInfo(controller, edge_signs, pronunciations, sign);
+      AddSignInfo(controller, edge_signs, linguistics, sign);
     }
   }
 
   // Process the named junctions at nodes
   if (has_junction_name && start_tile) {
     // Add the node signs
-    std::unordered_map<uint32_t, std::pair<uint8_t, std::string>> pronunciations;
-    std::vector<SignInfo> node_signs = start_tile->GetSigns(start_node_idx, pronunciations, true);
+    std::unordered_map<uint8_t, std::tuple<uint8_t, uint8_t, std::string>> linguistics;
+    std::vector<SignInfo> node_signs = start_tile->GetSigns(start_node_idx, linguistics, true);
     if (!node_signs.empty()) {
       valhalla::TripSign* trip_sign = trip_edge->mutable_sign();
       uint32_t sign_index = 0;
@@ -896,7 +908,7 @@ TripLeg_Edge* AddTripEdge(const AttributesController& controller,
         switch (sign.type()) {
           case valhalla::baldr::Sign::Type::kJunctionName: {
             if (controller.attributes.at(kEdgeSignJunctionName)) {
-              PopulateSignElement(sign_index, sign, pronunciations,
+              PopulateSignElement(sign_index, sign, linguistics,
                                   trip_sign->mutable_junction_names()->Add());
             }
             break;
