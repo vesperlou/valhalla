@@ -970,6 +970,22 @@ struct OSMWay {
   }
 
   /**
+   * Sets the index for destination ref lang.
+   * @param  idx  Index for the destination:ref:lang.
+   */
+  void set_destination_ref_lang_index(const uint32_t idx) {
+    destination_ref_lang_index_ = idx;
+  }
+
+  /**
+   * Get the destination_ref_lang index.
+   * @return  Returns the index for the destination:ref:lang.
+   */
+  uint32_t destination_ref_lang_index() const {
+    return destination_ref_lang_index_;
+  }
+
+  /**
    * Sets the index for destination ref to.
    * @param  idx  Index for the destination ref to.
    */
@@ -983,6 +999,22 @@ struct OSMWay {
    */
   uint32_t destination_ref_to_index() const {
     return destination_ref_to_index_;
+  }
+
+  /**
+   * Sets the index for destination:ref:to:lang
+   * @param  idx  Index for the destination:ref:to:lang
+   */
+  void set_destination_ref_to_lang_index(const uint32_t idx) {
+    destination_ref_to_lang_index_ = idx;
+  }
+
+  /**
+   * Get the destination:ref:to:lang index.
+   * @return  Returns the index for destination:ref:to:lang.
+   */
+  uint32_t destination_ref_to_lang_index() const {
+    return destination_ref_to_lang_index_;
   }
 
   /**
@@ -1002,6 +1034,22 @@ struct OSMWay {
   }
 
   /**
+   * Sets the index for destination:street:lang
+   * @param  idx  Index for the destination:street:lang
+   */
+  void set_destination_street_lang_index(const uint32_t idx) {
+    destination_street_lang_index_ = idx;
+  }
+
+  /**
+   * Get the destination:street:lang index.
+   * @return  Returns the index for destination:street:lang.
+   */
+  uint32_t destination_street_lang_index() const {
+    return destination_street_lang_index_;
+  }
+
+  /**
    * Sets the index for destination street to.
    * @param  idx  Index for the destination street to.
    */
@@ -1018,6 +1066,22 @@ struct OSMWay {
   }
 
   /**
+   * Sets the index for destination:street:to:lang
+   * @param  idx  Index for the destination:street:to:lang
+   */
+  void set_destination_street_to_lang_index(const uint32_t idx) {
+    destination_street_to_lang_index_ = idx;
+  }
+
+  /**
+   * Get the destination:street:to:lang index.
+   * @return  Returns the index for destination:street:to:lang.
+   */
+  uint32_t destination_street_to_lang_index() const {
+    return destination_street_to_lang_index_;
+  }
+
+  /**
    * Sets the index for junction ref pronunciation.
    * @param  idx  Index for the junction ref pronunciation.
    */
@@ -1031,6 +1095,22 @@ struct OSMWay {
    */
   uint32_t junction_ref_index() const {
     return junction_ref_index_;
+  }
+
+  /**
+   * Sets the index for junction ref lang.
+   * @param  idx  Index for the junction:ref:lang.
+   */
+  void set_junction_ref_lang_index(const uint32_t idx) {
+    junction_ref_lang_index_ = idx;
+  }
+
+  /**
+   * Get the junction_ref_lang index.
+   * @return  Returns the index for the junction:ref:lang.
+   */
+  uint32_t junction_ref_lang_index() const {
+    return junction_ref_lang_index_;
   }
 
   /**
@@ -2182,13 +2262,13 @@ struct OSMWay {
     return layer_;
   }
 
-  void ProcessNames(const UniqueNames& name_offset_map,
-                    const std::vector<std::pair<std::string, bool>>& default_languages,
-                    const uint32_t name_index,
-                    const uint32_t name_lang_index,
-                    std::vector<std::string>& tokens,
-                    std::vector<baldr::Language>& token_langs,
-                    bool diff_names) const;
+  static void ProcessNames(const UniqueNames& name_offset_map,
+                           const std::vector<std::pair<std::string, bool>>& default_languages,
+                           const uint32_t name_index,
+                           const uint32_t name_lang_index,
+                           std::vector<std::string>& tokens,
+                           std::vector<baldr::Language>& token_langs,
+                           bool diff_names);
 
   /**
    * Get the names for the edge info based on the road class.
@@ -2296,10 +2376,15 @@ struct OSMWay {
   uint32_t destination_forward_lang_index_;
   uint32_t destination_backward_lang_index_;
   uint32_t destination_ref_index_;
+  uint32_t destination_ref_lang_index_;
   uint32_t destination_ref_to_index_;
+  uint32_t destination_ref_to_lang_index_;
   uint32_t destination_street_index_;
+  uint32_t destination_street_lang_index_;
   uint32_t destination_street_to_index_;
+  uint32_t destination_street_to_lang_index_;
   uint32_t junction_ref_index_;
+  uint32_t junction_ref_lang_index_;
 
   // Bike network information. TODO - these are not yet used.
   //  uint32_t bike_national_ref_index_;
