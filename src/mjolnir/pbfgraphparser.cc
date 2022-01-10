@@ -1137,31 +1137,31 @@ public:
     };
     tag_handlers_["destination:ref"] = [this]() {
       if (!tag_.second.empty()) {
-        way_.set_destination_ref_index(osmdata_.name_offset_map.index(tag_.second));
+        destination_ref_ = tag_.second;
         way_.set_exit(true);
       }
     };
     tag_handlers_["destination:ref:to"] = [this]() {
       if (!tag_.second.empty()) {
-        way_.set_destination_ref_to_index(osmdata_.name_offset_map.index(tag_.second));
+        destination_ref_to_ = tag_.second;
         way_.set_exit(true);
       }
     };
     tag_handlers_["destination:street"] = [this]() {
       if (!tag_.second.empty()) {
-        way_.set_destination_street_index(osmdata_.name_offset_map.index(tag_.second));
+        destination_street_ = tag_.second;
         way_.set_exit(true);
       }
     };
     tag_handlers_["destination:street:to"] = [this]() {
       if (!tag_.second.empty()) {
-        way_.set_destination_street_to_index(osmdata_.name_offset_map.index(tag_.second));
+        destination_street_to_ = tag_.second;
         way_.set_exit(true);
       }
     };
     tag_handlers_["junction:ref"] = [this]() {
       if (!tag_.second.empty()) {
-        way_.set_junction_ref_index(osmdata_.name_offset_map.index(tag_.second));
+        junction_ref_ = tag_.second;
         way_.set_exit(true);
       }
     };
@@ -1552,8 +1552,10 @@ public:
     if (is_highway_junction) {
       n.set_type(NodeType::kMotorWayJunction);
     }
+    ref_ = ref_language_ = ref_w_lang_ = name_ = language_ = name_w_lang_ = {};
 
     for (const auto& tag : *results) {
+      tag_ = tag;
       // TODO: instead of checking this, we should delete these tag/values completely in lua
       // and save our CPUs the wasted time of iterating over them again for nothing
       auto hasTag = !tag.second.empty();
@@ -1597,11 +1599,11 @@ public:
         ++osmdata_.node_exit_to_count;
       } else if (tag.first == "ref" && is_highway_junction && hasTag) {
         // Add the name to the unique node names list and store its index in the OSM node
-        n.set_ref_index(osmdata_.node_names.index(tag.second));
+        ref_ = tag.second;
         ++osmdata_.node_ref_count;
       } else if (tag.first == "name" && (is_highway_junction || maybe_named_junction) && hasTag) {
         // Add the name to the unique node names list and store its index in the OSM node
-        n.set_name_index(osmdata_.node_names.index(tag.second));
+        name_ = tag.second;
         ++osmdata_.node_name_count;
         named_junction = maybe_named_junction;
       } else if (tag.first == "name:pronunciation") {
@@ -1655,8 +1657,28 @@ public:
         n.set_tagged_access(std::stoi(tag.second));
       } else if (tag.first == "private") {
         n.set_private_access(tag.second == "true");
+      } else if (tag.first.substr(0, 5) == "name:" && (is_highway_junction || maybe_named_junction) &&
+                 hasTag) {
+        ProcessNameTag(tag_, name_w_lang_, language_);
+        ++osmdata_.node_name_count;
+        named_junction = maybe_named_junction;
+      } else if (tag_.first.substr(0, 4) == "ref:") {
+        ProcessNameTag(tag_, ref_w_lang_, ref_language_);
+        ++osmdata_.node_ref_count;
       }
     }
+
+    // begin name logic
+    std::string l = language_;
+    ProcessName(name_w_lang_, name_, language_);
+    n.set_name_index(osmdata_.node_names.index(name_));
+    n.set_name_lang_index(osmdata_.node_names.index(language_));
+
+    // begin ref logic
+    l = ref_language_;
+    ProcessName(ref_w_lang_, ref_, ref_language_);
+    n.set_ref_index(osmdata_.node_names.index(ref_));
+    n.set_ref_lang_index(osmdata_.node_names.index(ref_language_));
 
     // If we ended up storing a name for a regular junction flag that
     n.set_named_intersection(named_junction);
@@ -1807,6 +1829,12 @@ public:
         destination_forward_language_ = destination_forward_w_lang_ = destination_backward_ =
             destination_backward_language_ = destination_backward_w_lang_ = {};
 
+    destination_ref_ = destination_ref_language_ = destination_ref_w_lang_ = destination_ref_to_ =
+        destination_ref_to_language_ = destination_ref_to_w_lang_ = destination_street_ =
+            destination_street_language_ = destination_street_w_lang_ = destination_street_to_ =
+                destination_street_to_language_ = destination_street_to_w_lang_ = junction_ref_ =
+                    junction_ref_language_ = junction_ref_w_lang_;
+
     // Process tags
     way_ = OSMWay{osmid_};
     way_.set_node_count(nodes.size());
@@ -1886,8 +1914,18 @@ public:
         ProcessNameTag(tag_, destination_backward_w_lang_, destination_backward_language_);
       } else if (tag_.first.substr(0, 20) == "destination:forward:") {
         ProcessNameTag(tag_, destination_forward_w_lang_, destination_forward_language_);
+      } else if (tag_.first.substr(0, 19) == "destination:ref:to:") {
+        ProcessNameTag(tag_, destination_ref_to_w_lang_, destination_ref_to_language_);
+      } else if (tag_.first.substr(0, 16) == "destination:ref:") {
+        ProcessNameTag(tag_, destination_ref_w_lang_, destination_ref_language_);
+      } else if (tag_.first.substr(0, 22) == "destination:street:to:") {
+        ProcessNameTag(tag_, destination_street_to_w_lang_, destination_street_to_language_);
+      } else if (tag_.first.substr(0, 19) == "destination:street:") {
+        ProcessNameTag(tag_, destination_street_w_lang_, destination_street_language_);
       } else if (tag_.first.substr(0, 12) == "destination:") {
         ProcessNameTag(tag_, destination_w_lang_, destination_language_);
+      } else if (tag_.first.substr(0, 13) == "junction:ref:") {
+        ProcessNameTag(tag_, junction_ref_w_lang_, junction_ref_language_);
       }
       // motor_vehicle:conditional=no @ (16:30-07:00)
       else if (tag_.first.substr(0, 20) == "motorcar:conditional" ||
@@ -2351,6 +2389,35 @@ public:
     way_.set_destination_backward_index(osmdata_.name_offset_map.index(destination_backward_));
     way_.set_destination_backward_lang_index(
         osmdata_.name_offset_map.index(destination_backward_language_));
+
+    l = junction_ref_language_;
+    ProcessName(junction_ref_w_lang_, junction_ref_, junction_ref_language_);
+    way_.set_junction_ref_index(osmdata_.name_offset_map.index(junction_ref_));
+    way_.set_junction_ref_lang_index(osmdata_.name_offset_map.index(junction_ref_language_));
+
+    l = destination_ref_language_;
+    ProcessName(destination_ref_w_lang_, destination_ref_, destination_ref_language_);
+    way_.set_destination_ref_index(osmdata_.name_offset_map.index(destination_ref_));
+    way_.set_destination_ref_lang_index(osmdata_.name_offset_map.index(destination_ref_language_));
+
+    l = destination_ref_to_language_;
+    ProcessName(destination_ref_to_w_lang_, destination_ref_to_, destination_ref_to_language_);
+    way_.set_destination_ref_to_index(osmdata_.name_offset_map.index(destination_ref_to_));
+    way_.set_destination_ref_to_lang_index(
+        osmdata_.name_offset_map.index(destination_ref_to_language_));
+
+    l = destination_street_to_language_;
+    ProcessName(destination_street_to_w_lang_, destination_street_to_,
+                destination_street_to_language_);
+    way_.set_destination_street_to_index(osmdata_.name_offset_map.index(destination_street_to_));
+    way_.set_destination_street_to_lang_index(
+        osmdata_.name_offset_map.index(destination_street_to_language_));
+
+    l = destination_street_language_;
+    ProcessName(destination_street_w_lang_, destination_street_, destination_street_language_);
+    way_.set_destination_street_index(osmdata_.name_offset_map.index(destination_street_));
+    way_.set_destination_street_lang_index(
+        osmdata_.name_offset_map.index(destination_street_language_));
 
     // Infer cul-de-sac if a road edge is a loop and is low classification.
     if (!way_.roundabout() && loop_nodes_.size() != nodes.size() && way_.use() == Use::kRoad &&
@@ -2842,10 +2909,16 @@ public:
   void ProcessNameTag(const std::pair<std::string, std::string> tag,
                       std::string& name_w_lang,
                       std::string& language) {
+
     std::string t = tag.first;
     if (tag.first.substr(0, 12) == "tunnel:name:")
       t = tag.first.substr(7);
-
+    else {
+      std::size_t found = t.find(":lang:");
+      if (found != std::string::npos) {
+        t = tag.first.substr(found + 1);
+      }
+    }
     std::vector<std::string> tokens = GetTagTokens(t, ':');
     if (tokens.size() == 2) {
 
@@ -3235,6 +3308,12 @@ public:
   std::string destination_, destination_language_, destination_w_lang_, destination_forward_,
       destination_forward_language_, destination_forward_w_lang_, destination_backward_,
       destination_backward_language_, destination_backward_w_lang_;
+
+  std::string destination_ref_, destination_ref_language_, destination_ref_w_lang_,
+      destination_ref_to_, destination_ref_to_language_, destination_ref_to_w_lang_,
+      destination_street_, destination_street_language_, destination_street_w_lang_,
+      destination_street_to_, destination_street_to_language_, destination_street_to_w_lang_,
+      junction_ref_, junction_ref_language_, junction_ref_w_lang_;
 
   // Configuration option to include driveways
   bool include_driveways_;
