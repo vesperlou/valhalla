@@ -57,11 +57,13 @@ struct OSMNode {
   uint32_t cash_only_toll_ : 1;
   uint32_t spare1_ : 5;
 
-  // pronunciations
+  // pronunciations / langs
+  uint32_t name_lang_index_;
   uint32_t name_pronunciation_ipa_index_;
   uint32_t name_pronunciation_nt_sampa_index_;
   uint32_t name_pronunciation_katakana_index_;
   uint32_t name_pronunciation_jeita_index_;
+  uint32_t ref_lang_index_;
   uint32_t ref_pronunciation_ipa_index_;
   uint32_t ref_pronunciation_nt_sampa_index_;
   uint32_t ref_pronunciation_katakana_index_;
@@ -144,6 +146,22 @@ struct OSMNode {
   }
 
   /**
+   * Sets the index for name:<lang>
+   * @param  idx  Index for the languages.
+   */
+  void set_name_lang_index(const uint32_t idx) {
+    name_lang_index_ = idx;
+  }
+
+  /**
+   * Get the name:<lang> index.
+   * @return  Returns the index for the languages.
+   */
+  uint32_t name_lang_index() const {
+    return name_lang_index_;
+  }
+
+  /**
    * Does the node have a name. Check if name_index is non-zero
    */
   bool has_name() const {
@@ -167,6 +185,22 @@ struct OSMNode {
    */
   uint32_t ref_index() const {
     return ref_index_;
+  }
+
+  /**
+   * Sets the index for ref:<lang>
+   * @param  idx  Index for the languages.
+   */
+  void set_ref_lang_index(const uint32_t idx) {
+    ref_lang_index_ = idx;
+  }
+
+  /**
+   * Get the ref:<lang> index.
+   * @return  Returns the index for the languages.
+   */
+  uint32_t ref_lang_index() const {
+    return ref_lang_index_;
   }
 
   /**
