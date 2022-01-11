@@ -413,7 +413,8 @@ TEST(Standalone, PhonemesWithAltandDirection) {
 
     uint32_t sign_index = 0;
     ASSERT_EQ(signs.size(), 4);
-    ASSERT_EQ(index_linguistic_map.size(), 1);
+    ASSERT_EQ(index_linguistic_map.size(), 4);
+
     for (const auto& sign : signs) {
 
       std::unordered_map<uint8_t, std::tuple<uint8_t, uint8_t, std::string>>::const_iterator iter =
@@ -430,9 +431,17 @@ TEST(Standalone, PhonemesWithAltandDirection) {
           EXPECT_EQ(static_cast<int>(
                         std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(iter->second)),
                     static_cast<int>(baldr::PronunciationAlphabet::kXKatakana));
-        } else
-          FAIL() << std::get<kLinguisticMapTuplePronunciationIndex>(iter->second)
-                 << " Extra key. This should not happen.";
+        } else {
+          if (static_cast<valhalla::baldr::PronunciationAlphabet>(
+                  std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(iter->second)) ==
+              PronunciationAlphabet::kNone)
+            EXPECT_EQ(to_string(static_cast<Language>(
+                          std::get<kLinguisticMapTupleLanguageIndex>(iter->second))),
+                      "nl");
+          else
+            FAIL() << std::get<kLinguisticMapTuplePronunciationIndex>(iter->second)
+                   << " Extra key. This should not happen.";
+        }
       }
       ++sign_index;
     }
@@ -482,7 +491,7 @@ TEST(Standalone, PhonemesWithAltandDirection) {
 
     uint32_t sign_index = 0;
     ASSERT_EQ(signs.size(), 3);
-    ASSERT_EQ(index_linguistic_map.size(), 1);
+    ASSERT_EQ(index_linguistic_map.size(), 3);
     for (const auto& sign : signs) {
 
       std::unordered_map<uint8_t, std::tuple<uint8_t, uint8_t, std::string>>::const_iterator iter =
@@ -501,7 +510,13 @@ TEST(Standalone, PhonemesWithAltandDirection) {
         EXPECT_EQ(signs.at(sign_index).text(), "destination3");
         EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(iter->second)),
                   static_cast<int>(baldr::PronunciationAlphabet::kIpa));
-      } else
+      } else if (static_cast<valhalla::baldr::PronunciationAlphabet>(
+                     std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(iter->second)) ==
+                 PronunciationAlphabet::kNone)
+        EXPECT_EQ(to_string(static_cast<Language>(
+                      std::get<kLinguisticMapTupleLanguageIndex>(iter->second))),
+                  "nl");
+      else
         FAIL() << std::get<kLinguisticMapTuplePronunciationIndex>(iter->second)
                << " Extra key. This should not happen.";
       ++sign_index;
@@ -551,7 +566,7 @@ TEST(Standalone, PhonemesWithAltandDirection) {
 
     uint32_t sign_index = 0;
     ASSERT_EQ(signs.size(), 3);
-    ASSERT_EQ(index_linguistic_map.size(), 1);
+    ASSERT_EQ(index_linguistic_map.size(), 3);
     for (const auto& sign : signs) {
 
       std::unordered_map<uint8_t, std::tuple<uint8_t, uint8_t, std::string>>::const_iterator iter =
@@ -571,9 +586,17 @@ TEST(Standalone, PhonemesWithAltandDirection) {
         EXPECT_EQ(signs.at(sign_index).text(), "destination2");
         EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(iter->second)),
                   static_cast<int>(baldr::PronunciationAlphabet::kIpa));
-      } else
-        FAIL() << std::get<kLinguisticMapTuplePronunciationIndex>(iter->second)
-               << " Extra key. This should not happen.";
+      } else {
+        if (static_cast<valhalla::baldr::PronunciationAlphabet>(
+                std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(iter->second)) ==
+            PronunciationAlphabet::kNone)
+          EXPECT_EQ(to_string(static_cast<Language>(
+                        std::get<kLinguisticMapTupleLanguageIndex>(iter->second))),
+                    "nl");
+        else
+          FAIL() << std::get<kLinguisticMapTuplePronunciationIndex>(iter->second)
+                 << " Extra key. This should not happen.";
+      }
       ++sign_index;
     }
 
@@ -623,7 +646,7 @@ TEST(Standalone, PhonemesWithAltandDirection) {
 
     uint32_t sign_index = 0;
     ASSERT_EQ(signs.size(), 3);
-    ASSERT_EQ(index_linguistic_map.size(), 2);
+    ASSERT_EQ(index_linguistic_map.size(), 3);
 
     for (const auto& sign : signs) {
 
@@ -648,9 +671,17 @@ TEST(Standalone, PhonemesWithAltandDirection) {
         EXPECT_EQ(signs.at(sign_index).text(), "destination3");
         EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(iter->second)),
                   static_cast<int>(baldr::PronunciationAlphabet::kIpa));
-      } else
-        FAIL() << std::get<kLinguisticMapTuplePronunciationIndex>(iter->second)
-               << " Extra key. This should not happen.";
+      } else {
+        if (static_cast<valhalla::baldr::PronunciationAlphabet>(
+                std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(iter->second)) ==
+            PronunciationAlphabet::kNone)
+          EXPECT_EQ(to_string(static_cast<Language>(
+                        std::get<kLinguisticMapTupleLanguageIndex>(iter->second))),
+                    "nl");
+        else
+          FAIL() << std::get<kLinguisticMapTuplePronunciationIndex>(iter->second)
+                 << " Extra key. This should not happen.";
+      }
       ++sign_index;
     }
 
@@ -702,7 +733,7 @@ TEST(Standalone, PhonemesWithAltandDirection) {
 
     uint32_t sign_index = 0;
     ASSERT_EQ(signs.size(), 3);
-    ASSERT_EQ(index_linguistic_map.size(), 2);
+    ASSERT_EQ(index_linguistic_map.size(), 3);
     for (const auto& sign : signs) {
 
       std::unordered_map<uint8_t, std::tuple<uint8_t, uint8_t, std::string>>::const_iterator iter =
@@ -726,9 +757,17 @@ TEST(Standalone, PhonemesWithAltandDirection) {
         EXPECT_EQ(signs.at(sign_index).text(), "destination3");
         EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(iter->second)),
                   static_cast<int>(baldr::PronunciationAlphabet::kIpa));
-      } else
-        FAIL() << std::get<kLinguisticMapTuplePronunciationIndex>(iter->second)
-               << " Extra key. This should not happen.";
+      } else {
+        if (static_cast<valhalla::baldr::PronunciationAlphabet>(
+                std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(iter->second)) ==
+            PronunciationAlphabet::kNone)
+          EXPECT_EQ(to_string(static_cast<Language>(
+                        std::get<kLinguisticMapTupleLanguageIndex>(iter->second))),
+                    "nl");
+        else
+          FAIL() << std::get<kLinguisticMapTuplePronunciationIndex>(iter->second)
+                 << " Extra key. This should not happen.";
+      }
       ++sign_index;
     }
 
@@ -778,7 +817,7 @@ TEST(Standalone, PhonemesWithAltandDirection) {
 
     uint32_t sign_index = 0;
     ASSERT_EQ(signs.size(), 3);
-    ASSERT_EQ(index_linguistic_map.size(), 2);
+    ASSERT_EQ(index_linguistic_map.size(), 3);
     for (const auto& sign : signs) {
 
       std::unordered_map<uint8_t, std::tuple<uint8_t, uint8_t, std::string>>::const_iterator iter =
@@ -802,9 +841,17 @@ TEST(Standalone, PhonemesWithAltandDirection) {
         EXPECT_EQ(signs.at(sign_index).text(), "destination2");
         EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(iter->second)),
                   static_cast<int>(baldr::PronunciationAlphabet::kIpa));
-      } else
-        FAIL() << std::get<kLinguisticMapTuplePronunciationIndex>(iter->second)
-               << " Extra key. This should not happen.";
+      } else {
+        if (static_cast<valhalla::baldr::PronunciationAlphabet>(
+                std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(iter->second)) ==
+            PronunciationAlphabet::kNone)
+          EXPECT_EQ(to_string(static_cast<Language>(
+                        std::get<kLinguisticMapTupleLanguageIndex>(iter->second))),
+                    "nl");
+        else
+          FAIL() << std::get<kLinguisticMapTuplePronunciationIndex>(iter->second)
+                 << " Extra key. This should not happen.";
+      }
       ++sign_index;
     }
   }
@@ -821,7 +868,7 @@ TEST(Standalone, PhonemesWithAltandDirection) {
 
     uint32_t sign_index = 0;
     ASSERT_EQ(signs.size(), 3);
-    ASSERT_EQ(index_linguistic_map.size(), 1);
+    ASSERT_EQ(index_linguistic_map.size(), 3);
     for (const auto& sign : signs) {
 
       std::unordered_map<uint8_t, std::tuple<uint8_t, uint8_t, std::string>>::const_iterator iter =
@@ -841,9 +888,17 @@ TEST(Standalone, PhonemesWithAltandDirection) {
         EXPECT_EQ(signs.at(sign_index).text(), "destination1");
         EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(iter->second)),
                   static_cast<int>(baldr::PronunciationAlphabet::kIpa));
-      } else
-        FAIL() << std::get<kLinguisticMapTuplePronunciationIndex>(iter->second)
-               << " Extra key. This should not happen.";
+      } else {
+        if (static_cast<valhalla::baldr::PronunciationAlphabet>(
+                std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(iter->second)) ==
+            PronunciationAlphabet::kNone)
+          EXPECT_EQ(to_string(static_cast<Language>(
+                        std::get<kLinguisticMapTupleLanguageIndex>(iter->second))),
+                    "nl");
+        else
+          FAIL() << std::get<kLinguisticMapTuplePronunciationIndex>(iter->second)
+                 << " Extra key. This should not happen.";
+      }
       ++sign_index;
     }
   }
@@ -860,7 +915,7 @@ TEST(Standalone, PhonemesWithAltandDirection) {
 
     uint32_t sign_index = 0;
     ASSERT_EQ(signs.size(), 3);
-    ASSERT_EQ(index_linguistic_map.size(), 1);
+    ASSERT_EQ(index_linguistic_map.size(), 3);
     for (const auto& sign : signs) {
 
       std::unordered_map<uint8_t, std::tuple<uint8_t, uint8_t, std::string>>::const_iterator iter =
@@ -880,9 +935,17 @@ TEST(Standalone, PhonemesWithAltandDirection) {
         EXPECT_EQ(signs.at(sign_index).text(), "destination2");
         EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(iter->second)),
                   static_cast<int>(baldr::PronunciationAlphabet::kXJeita));
-      } else
-        FAIL() << std::get<kLinguisticMapTuplePronunciationIndex>(iter->second)
-               << " Extra key. This should not happen.";
+      } else {
+        if (static_cast<valhalla::baldr::PronunciationAlphabet>(
+                std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(iter->second)) ==
+            PronunciationAlphabet::kNone)
+          EXPECT_EQ(to_string(static_cast<Language>(
+                        std::get<kLinguisticMapTupleLanguageIndex>(iter->second))),
+                    "nl");
+        else
+          FAIL() << std::get<kLinguisticMapTuplePronunciationIndex>(iter->second)
+                 << " Extra key. This should not happen.";
+      }
       ++sign_index;
     }
   }
@@ -899,7 +962,7 @@ TEST(Standalone, PhonemesWithAltandDirection) {
 
     uint32_t sign_index = 0;
     ASSERT_EQ(signs.size(), 3);
-    ASSERT_EQ(index_linguistic_map.size(), 2);
+    ASSERT_EQ(index_linguistic_map.size(), 3);
     for (const auto& sign : signs) {
 
       std::unordered_map<uint8_t, std::tuple<uint8_t, uint8_t, std::string>>::const_iterator iter =
@@ -923,9 +986,17 @@ TEST(Standalone, PhonemesWithAltandDirection) {
         EXPECT_EQ(signs.at(sign_index).text(), "destination2");
         EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(iter->second)),
                   static_cast<int>(baldr::PronunciationAlphabet::kXJeita));
-      } else
-        FAIL() << std::get<kLinguisticMapTuplePronunciationIndex>(iter->second)
-               << " Extra key. This should not happen.";
+      } else {
+        if (static_cast<valhalla::baldr::PronunciationAlphabet>(
+                std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(iter->second)) ==
+            PronunciationAlphabet::kNone)
+          EXPECT_EQ(to_string(static_cast<Language>(
+                        std::get<kLinguisticMapTupleLanguageIndex>(iter->second))),
+                    "nl");
+        else
+          FAIL() << std::get<kLinguisticMapTuplePronunciationIndex>(iter->second)
+                 << " Extra key. This should not happen.";
+      }
       ++sign_index;
     }
   }
