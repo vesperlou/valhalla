@@ -1114,7 +1114,7 @@ void BuildTileSet(const std::string& ways_file,
           std::vector<std::string> node_names;
           std::vector<valhalla::baldr::Language> node_langs;
 
-          OSMWay::ProcessNames(osmdata.name_offset_map, default_languages, node.name_index(),
+          OSMWay::ProcessNames(osmdata.node_names, default_languages, node.name_index(),
                                node.name_lang_index(), node_names, node_langs, false);
 
           std::vector<SignInfo> signs;
@@ -1584,8 +1584,8 @@ bool GraphBuilder::CreateSignInfoList(
                                      ipa_tokens, nt_sampa_tokens, katakana_tokens, jeita_tokens,
                                      add_ipa, add_nt_sampa, add_katakana, add_jeita);
   } else if (node.has_ref() && !fork && ramp) {
-    way.ProcessNames(osmdata.name_offset_map, default_languages, node.ref_index(),
-                     node.ref_lang_index(), sign_names, sign_langs, false);
+    way.ProcessNames(osmdata.node_names, default_languages, node.ref_index(), node.ref_lang_index(),
+                     sign_names, sign_langs, false);
 
     has_phoneme = get_pronunciations(osmdata, sign_names.size(), node.ref_pronunciation_ipa_index(),
                                      node.ref_pronunciation_nt_sampa_index(),
@@ -1823,15 +1823,17 @@ bool GraphBuilder::CreateSignInfoList(
   if (node.has_name() && !node.named_intersection() && !fork && ramp) {
     sign_type = Sign::Type::kExitName;
     // Get the name from OSMData using the name index
-    sign_names = GetTagTokens(osmdata.node_names.name(node.name_index()));
-  }
 
-  has_phoneme = get_pronunciations(osmdata, sign_names.size(), node.name_pronunciation_ipa_index(),
-                                   node.name_pronunciation_nt_sampa_index(),
-                                   node.name_pronunciation_katakana_index(),
-                                   node.name_pronunciation_jeita_index(), ipa_tokens, nt_sampa_tokens,
-                                   katakana_tokens, jeita_tokens, add_ipa, add_nt_sampa, add_katakana,
-                                   add_jeita, true);
+    way.ProcessNames(osmdata.node_names, default_languages, node.name_index(), node.name_lang_index(),
+                     sign_names, sign_langs, false);
+
+    has_phoneme = get_pronunciations(osmdata, sign_names.size(), node.name_pronunciation_ipa_index(),
+                                     node.name_pronunciation_nt_sampa_index(),
+                                     node.name_pronunciation_katakana_index(),
+                                     node.name_pronunciation_jeita_index(), ipa_tokens,
+                                     nt_sampa_tokens, katakana_tokens, jeita_tokens, add_ipa,
+                                     add_nt_sampa, add_katakana, add_jeita, true);
+  }
 
   add_sign_info(sign_names, sign_langs, sign_type, false /* is_route_number */, has_phoneme);
   sign_names.clear();
