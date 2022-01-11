@@ -22,7 +22,7 @@ class TestBuildExtract(unittest.TestCase):
         tile_count = valhalla_build_extract.get_tile_count(TILE_PATH)
 
         # test that the index has the right offsets/sizes
-        exp_tuples = ((2560, 25568, 296368), (300544, 410441, 674672), (976896, 6549282, 6129320))
+        exp_tuples = ((2560, 25568, 300872), (305152, 410441, 674888), (982016, 6549282, 6129320))
         self.check_tar(EXTRACT_PATH, exp_tuples, tile_count * INDEX_BIN_SIZE)
         # same for traffic.tar
         exp_tuples = ((1536, 25568, 26272), (28672, 410441, 65184), (94720, 6549282, 603808))
