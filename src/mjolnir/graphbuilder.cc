@@ -1136,23 +1136,23 @@ void BuildTileSet(const std::string& ways_file,
           std::vector<std::string> languages;
 
           for (size_t i = 0; i < node_names.size(); ++i) {
+            uint32_t phoneme_count = 0;
+            size_t phoneme_start_index = 0;
+
             if (add_ipa || add_nt_sampa || add_katakana || add_jeita) {
-              uint32_t phoneme_count = 0;
-              const size_t phoneme_start_index = pronunciations.size();
+              phoneme_start_index = pronunciations.size();
               GraphBuilder::BuildPronunciations(ipa_tokens, nt_sampa_tokens, katakana_tokens,
                                                 jeita_tokens, i, pronunciations, add_ipa,
                                                 add_nt_sampa, add_katakana, add_jeita, phoneme_count);
+            }
 
-              size_t languages_start_index = languages.size();
-              uint32_t language_count = 0;
-              GraphBuilder::AddLanguages(node_langs, i, languages, language_count);
+            size_t languages_start_index = languages.size();
+            uint32_t language_count = 0;
+            GraphBuilder::AddLanguages(node_langs, i, languages, language_count);
 
-              signs.emplace_back(Sign::Type::kJunctionName, false, false, (phoneme_count != 0),
-                                 (language_count != 0), phoneme_start_index, phoneme_count,
-                                 languages_start_index, language_count, node_names[i]);
-            } else
-              signs.emplace_back(Sign::Type::kJunctionName, false, false, false, false, 0, 0, 0, 0,
-                                 node_names[i]);
+            signs.emplace_back(Sign::Type::kJunctionName, false, false, (phoneme_count != 0),
+                               (language_count != 0), phoneme_start_index, phoneme_count,
+                               languages_start_index, language_count, node_names[i]);
           }
 
           if (signs.size()) {
