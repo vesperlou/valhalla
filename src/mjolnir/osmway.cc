@@ -318,7 +318,7 @@ void OSMWay::ProcessNames(const UniqueNames& name_offset_map,
     bool multi_names = (multilingual_names_found.size());
     bool allowed_names = (supported_names.size() != 0);
 
-    if (multi_names || allowed_names) { // || default_names || ) {
+    if (multi_names || allowed_names) {
 
       // did we find a name with a language in the name/destination key?  if so we need to redo the
       // sort order for the keys
