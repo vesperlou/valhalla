@@ -71,12 +71,15 @@ GetMultiPolyIndexes(const std::vector<std::tuple<std::string, multi_polygon_type
                     const PointLL& ll) {
 
   auto process_languages = [](const std::vector<std::string>& langs, bool is_default,
-                              std::map<std::string, bool>& languages) {
+      std::vector<std::pair<std::string, bool>>& languages) {
     for (const auto& l : langs) {
       if (stringLanguage(l) != Language::kNone) {
-        auto it = languages.find(l);
+        std::vector<std::pair<std::string, bool>>::iterator it =
+            std::find_if(languages.begin(), languages.end(),
+                              [&l](const std::pair<std::string, bool>& p) {
+                                return p.first == l;});
         if (it == languages.end()) {
-          languages.emplace(l, false);
+          languages.emplace_back(l, false);
         } else if (is_default) { // fr - nl or fr;en in default lang column
           it->second = false;
         }
@@ -84,17 +87,23 @@ GetMultiPolyIndexes(const std::vector<std::tuple<std::string, multi_polygon_type
     }
   };
 
-  std::map<std::string, bool> languages;
-  std::map<std::string, bool>::iterator it;
+  std::vector<std::pair<std::string, bool>> languages;
+  std::vector<std::pair<std::string, bool>>::iterator it;
+  std::string lang;
 
   // first entry is blank for the default name
-  languages.emplace("", false);
+  languages.emplace_back("", false);
 
   point_type p(ll.lng(), ll.lat());
+
   for (const auto& poly : polys) {
-    if (boost::geometry::covered_by(p, std::get<1>(poly)) ||
-        (boost::geometry::distance(p, std::get<1>(poly), haversine) * 1000) <= kMaxPolyDistance) {
-      it = languages.find(std::get<0>(poly));
+
+    if (boost::geometry::covered_by(p, std::get<1>(poly))) {
+      lang = std::get<0>(poly);
+      it = std::find_if(languages.begin(), languages.end(),
+                        [&lang](const std::pair<std::string, bool>& p) {
+                          return p.first == lang;});
+
       if (it == languages.end()) {
         std::vector<std::string> langs = GetTagTokens(std::get<0>(poly), " - ");
         if (langs.size() >= 2) {
@@ -104,18 +113,14 @@ GetMultiPolyIndexes(const std::vector<std::tuple<std::string, multi_polygon_type
           if (langs.size() >= 2) {
             process_languages(langs, std::get<2>(poly), languages);
           } else {
-            languages.emplace(std::get<0>(poly), std::get<2>(poly));
+            languages.emplace_back(std::get<0>(poly), std::get<2>(poly));
           }
         }
       }
     }
   }
 
-  std::vector<std::pair<std::string, bool>> vec;
-  vec.resize(languages.size());
-  std::copy(languages.begin(), languages.end(), vec.begin());
-
-  return vec;
+  return languages;
 }
 
 // Get the timezone polys from the db
@@ -360,6 +365,7 @@ GetAdminInfo(sqlite3* db_handle,
   sql += std::to_string(aabb.maxy()) + ")) order by name;";
   GetData(db_handle, stmt, sql, tilebuilder, polys, drive_on_right, allow_intersection_names,
           language_ploys);
+
 
   if (stmt) { // just in case something bad happened.
     sqlite3_finalize(stmt);
