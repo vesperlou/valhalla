@@ -25,8 +25,6 @@ namespace mjolnir {
 typedef boost::geometry::model::d2::point_xy<double> point_type;
 typedef boost::geometry::model::polygon<point_type> polygon_type;
 typedef boost::geometry::model::multi_polygon<polygon_type> multi_polygon_type;
-static const boost::geometry::strategy::distance::haversine<float> haversine(6372795.0f);
-constexpr float kMaxPolyDistance = 5.0f; // 5 meters
 
 /**
  * Get the dbhandle of a sqlite db.  Used for timezones and admins DBs.
