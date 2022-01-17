@@ -71,13 +71,12 @@ GetMultiPolyIndexes(const std::vector<std::tuple<std::string, multi_polygon_type
                     const PointLL& ll) {
 
   auto process_languages = [](const std::vector<std::string>& langs, bool is_default,
-      std::vector<std::pair<std::string, bool>>& languages) {
+                              std::vector<std::pair<std::string, bool>>& languages) {
     for (const auto& l : langs) {
       if (stringLanguage(l) != Language::kNone) {
         std::vector<std::pair<std::string, bool>>::iterator it =
             std::find_if(languages.begin(), languages.end(),
-                              [&l](const std::pair<std::string, bool>& p) {
-                                return p.first == l;});
+                         [&l](const std::pair<std::string, bool>& p) { return p.first == l; });
         if (it == languages.end()) {
           languages.emplace_back(l, false);
         } else if (is_default) { // fr - nl or fr;en in default lang column
@@ -101,8 +100,7 @@ GetMultiPolyIndexes(const std::vector<std::tuple<std::string, multi_polygon_type
     if (boost::geometry::covered_by(p, std::get<1>(poly))) {
       lang = std::get<0>(poly);
       it = std::find_if(languages.begin(), languages.end(),
-                        [&lang](const std::pair<std::string, bool>& p) {
-                          return p.first == lang;});
+                        [&lang](const std::pair<std::string, bool>& p) { return p.first == lang; });
 
       if (it == languages.end()) {
         std::vector<std::string> langs = GetTagTokens(std::get<0>(poly), " - ");
@@ -365,7 +363,6 @@ GetAdminInfo(sqlite3* db_handle,
   sql += std::to_string(aabb.maxy()) + ")) order by name;";
   GetData(db_handle, stmt, sql, tilebuilder, polys, drive_on_right, allow_intersection_names,
           language_ploys);
-
 
   if (stmt) { // just in case something bad happened.
     sqlite3_finalize(stmt);
