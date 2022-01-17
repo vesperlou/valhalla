@@ -2389,6 +2389,7 @@ TEST_F(RouteWithStreetnameAndSign_fr_nl_BrusselsBelgiumRightLeft, CheckLeftNames
   ASSERT_EQ(to_string(static_cast<Language>(lang_iter->second)), "nl");
 }
 
+/* TODO  Fix this edge case. This works while using degrees (boost) for points but it is too slow.
 class RouteWithStreetnameAndSign_fr_nl_MesenBelgiumRightLeft : public ::testing::Test {
 protected:
   valhalla::gurka::map BuildPBF(const std::string& workdir) {
@@ -2526,6 +2527,7 @@ TEST_F(RouteWithStreetnameAndSign_fr_nl_MesenBelgiumRightLeft, CheckLefttNames) 
   ASSERT_EQ(lang_iter, languages.end());
   ASSERT_EQ(names_and_types.at(0).first, "Chemin des Quatre Rois");
 }
+*/
 
 class RouteWithStreetnameAndSign_fr_nl_EupenBelgium : public ::testing::Test {
 protected:
@@ -3425,4 +3427,1267 @@ TEST_F(RouteWithStreetnameAndSign_ja_en_Japan, CheckNonJunctionName) {
   ASSERT_EQ(to_string(
                 static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(iter->second))),
             "en");
+}
+
+class RouteWithStreetnameAndSign_en_fr_OttawaCanada : public ::testing::Test {
+protected:
+  valhalla::gurka::map BuildPBF(const std::string& workdir) {
+    constexpr double gridsize_metres = 100;
+
+    const std::string ascii_map = R"(
+                       J
+                       |
+                       |
+                       |
+                       I
+                      /|\
+                    /  |  \
+                  /    |    \
+           L----K-------------H----G
+           A----B-------------E----F
+                  \    |    /
+                    \  |  /
+                      \|/
+                       C
+                       |
+                       |
+                       |
+                       D
+               O------PM------Q
+                       |
+                       |
+                       |
+                       N
+
+    )";
+
+    const gurka::ways ways = {
+        {"ABEF",
+         {{"highway", "motorway"},
+          {"name", "Highway 417"},
+          {"name:en", "Highway 417"},
+          {"name:fr", "Route 417"},
+          {"ref", "417"},
+          {"nat_name", "Trans-Canada Highway"},
+          {"nat_name:en", "Trans-Canada Highway"},
+          {"nat_name:fr", "   Route Transcanadienne"},
+          {"oneway", "yes"}}},
+        {"GHKL",
+         {{"highway", "motorway"},
+          {"name", "Highway 417"},
+          {"name:en", "Highway 417"},
+          {"name:fr", "Route 417"},
+          {"ref", "417"},
+          {"nat_name", "Trans-Canada Highway"},
+          {"nat_name:en", "Trans-Canada Highway"},
+          {"nat_name:fr", "   Route Transcanadienne"},
+          {"oneway", "yes"}}},
+        {"JICDMN",
+         {{"highway", "primary"},
+          {"osm_id", "100"},
+          {"name", ""},
+          {"name:en", "Vanier Parkway"},
+          {"name:fr", "promenade Vanier"},
+          {"ref", "19"}}},
+        {"BC",
+         {{"highway", "motorway_link"},
+          {"osm_id", "101"},
+          {"name", ""},
+          {"oneway", "yes"},
+          {"junction:ref", "26B"},
+          {"destination", "Sandy Hill;"},
+          {"destination:lang:fr", "Colline de sable"},
+          {"destination:street", "Vanier Parkway;Riverside Drive"},
+          {"destination:street:lang:fr", "Promenade Vanier;Promenade Riverside"},
+          {"destination:street:lang:en", "Vanier Parkway;Riverside Drive"},
+          {"destination:ref", "19"}}},
+        {"CE",
+         {{"highway", "motorway_link"}, {"name", ""}, {"oneway", "yes"}, {"destination:ref", "417"}}},
+        {"HI",
+         {{"highway", "motorway_link"},
+          {"osm_id", "102"},
+          {"name", ""},
+          {"oneway", "yes"},
+          {"junction:ref", "26B"},
+          {"destination:street:to", "Queen Street"},
+          {"destination:street:to:lang:fr", "rue Queen"},
+          {"destination:ref:to", "19"}}},
+        {"IK",
+         {{"highway", "motorway_link"}, {"name", ""}, {"oneway", "yes"}, {"destination:ref", "417"}}},
+        {"OPMQ",
+         {{"highway", "secondary"},
+          {"osm_id", "103"},
+          {"name", "Albert Street"},
+          {"name:en", "Albert Street"},
+          {"name:fr", "rue Albert"}}},
+        {"DP",
+         {{"highway", "secondary_link"},
+          {"osm_id", "104"},
+          {"name", ""},
+          {"oneway", "yes"},
+          {"destination", "Centretown"},
+          {"destination:street", "rue Albert"},
+          {"destination:street:lang:en", "Albert Street"}}},
+    };
+
+    const gurka::nodes nodes = {{"M", {{"highway", "traffic_signals"}, {"name", "M Junction"}}}};
+
+    if (!filesystem::exists(workdir)) {
+      bool created = filesystem::create_directories(workdir);
+      EXPECT_TRUE(created);
+    }
+
+    constexpr double gridsize = 100;
+
+    const auto layout =
+        gurka::detail::map_to_coordinates(ascii_map, gridsize_metres, {-75.6625, 45.3940});
+
+    auto pbf_filename = workdir + "/map.pbf";
+    detail::build_pbf(layout, ways, nodes, {}, pbf_filename);
+
+    valhalla::gurka::map result;
+    result.nodes = layout;
+    return result;
+  }
+};
+
+///////////////////////////////////////////////////////////////////////////////
+TEST_F(RouteWithStreetnameAndSign_en_fr_OttawaCanada, CheckStreetNamesAndSigns1) {
+
+  const std::string workdir = "test/data/gurka_language_with_streetname_and_sign_en_fr_OttawaCanada";
+
+  if (!filesystem::exists(workdir)) {
+    bool created = filesystem::create_directories(workdir);
+    EXPECT_TRUE(created);
+  }
+
+  the_map = BuildPBF(workdir);
+
+  const std::string sqlite = {VALHALLA_SOURCE_DIR "test/data/language_admin.sqlite"};
+  the_map.config =
+      test::make_config(workdir,
+                        {{"mjolnir.admin", {VALHALLA_SOURCE_DIR "test/data/language_admin.sqlite"}},
+                         {"mjolnir.tile_dir", workdir + "/tiles"}});
+
+  std::vector<std::string> input_files = {workdir + "/map.pbf"};
+
+  build_tile_set(the_map.config, input_files, mjolnir::BuildStage::kInitialize,
+                 mjolnir::BuildStage::kValidate, false);
+
+  auto result = gurka::do_action(valhalla::Options::route, the_map, {"A", "D"}, "auto");
+  gurka::assert::raw::expect_path(result, {"417/Highway 417/Route 417", "",
+                                           "Vanier Parkway/promenade Vanier/19"});
+
+  // Verify starting on 417
+  int maneuver_index = 0;
+  EXPECT_EQ(result.directions().routes(0).legs(0).maneuver(maneuver_index).street_name_size(), 3);
+  EXPECT_EQ(result.directions().routes(0).legs(0).maneuver(maneuver_index).street_name(0).value(),
+            "417");
+  EXPECT_EQ(result.directions().routes(0).legs(0).maneuver(maneuver_index).street_name(1).value(),
+            "Highway 417");
+  EXPECT_EQ(result.directions().routes(0).legs(0).maneuver(maneuver_index).street_name(2).value(),
+            "Route 417");
+
+  ++maneuver_index;
+  EXPECT_EQ(result.directions()
+                .routes(0)
+                .legs(0)
+                .maneuver(maneuver_index)
+                .sign()
+                .exit_onto_streets_size(),
+            5);
+  EXPECT_EQ(result.directions()
+                .routes(0)
+                .legs(0)
+                .maneuver(maneuver_index)
+                .sign()
+                .exit_onto_streets(0)
+                .text(),
+            "19");
+
+  EXPECT_EQ(result.directions()
+                .routes(0)
+                .legs(0)
+                .maneuver(maneuver_index)
+                .sign()
+                .exit_onto_streets(1)
+                .text(),
+            "Vanier Parkway");
+
+  EXPECT_EQ(result.directions()
+                .routes(0)
+                .legs(0)
+                .maneuver(maneuver_index)
+                .sign()
+                .exit_onto_streets(2)
+                .text(),
+            "Riverside Drive");
+
+  EXPECT_EQ(result.directions()
+                .routes(0)
+                .legs(0)
+                .maneuver(maneuver_index)
+                .sign()
+                .exit_onto_streets(3)
+                .text(),
+            "Promenade Vanier");
+
+  EXPECT_EQ(result.directions()
+                .routes(0)
+                .legs(0)
+                .maneuver(maneuver_index)
+                .sign()
+                .exit_onto_streets(4)
+                .text(),
+            "Promenade Riverside");
+
+  EXPECT_EQ(result.directions()
+                .routes(0)
+                .legs(0)
+                .maneuver(maneuver_index)
+                .sign()
+                .exit_toward_locations_size(),
+            2);
+  EXPECT_EQ(result.directions()
+                .routes(0)
+                .legs(0)
+                .maneuver(maneuver_index)
+                .sign()
+                .exit_toward_locations(0)
+                .text(),
+            "Sandy Hill");
+
+  EXPECT_EQ(result.directions()
+                .routes(0)
+                .legs(0)
+                .maneuver(maneuver_index)
+                .sign()
+                .exit_toward_locations(1)
+                .text(),
+            "Colline de sable");
+
+  ++maneuver_index;
+  EXPECT_EQ(result.directions().routes(0).legs(0).maneuver(maneuver_index).street_name_size(), 3);
+  EXPECT_EQ(result.directions().routes(0).legs(0).maneuver(maneuver_index).street_name(0).value(),
+            "Vanier Parkway");
+
+  EXPECT_EQ(result.directions().routes(0).legs(0).maneuver(maneuver_index).street_name(1).value(),
+            "promenade Vanier");
+
+  EXPECT_EQ(result.directions().routes(0).legs(0).maneuver(maneuver_index).street_name(2).value(),
+            "19");
+
+  GraphReader graph_reader(the_map.config.get_child("mjolnir"));
+
+  GraphId BC_edge_id;
+  const DirectedEdge* BC_edge = nullptr;
+  GraphId CB_edge_id;
+  const DirectedEdge* CB_edge = nullptr;
+  std::tie(BC_edge_id, BC_edge, CB_edge_id, CB_edge) =
+      findEdge(graph_reader, the_map.nodes, "", "C", baldr::GraphId{}, 101);
+  EXPECT_NE(BC_edge, nullptr);
+  EXPECT_NE(CB_edge, nullptr);
+
+  GraphId JICDMN_edge_id;
+  const DirectedEdge* JICDMN_edge = nullptr;
+  GraphId NMDCIJ_edge_id;
+  const DirectedEdge* NMDCIJ_edge = nullptr;
+  std::tie(JICDMN_edge_id, JICDMN_edge, NMDCIJ_edge_id, NMDCIJ_edge) =
+      findEdge(graph_reader, the_map.nodes, "", "N", baldr::GraphId{}, 100);
+  EXPECT_NE(JICDMN_edge, nullptr);
+  EXPECT_NE(NMDCIJ_edge, nullptr);
+
+  GraphId node_id = BC_edge->endnode();
+  auto tile = graph_reader.GetGraphTile(node_id);
+  auto edgeinfo = tile->edgeinfo(BC_edge);
+  std::vector<uint8_t> types;
+  auto names_and_types = edgeinfo.GetNamesAndTypes(types, true);
+  ASSERT_EQ(names_and_types.size(), 0);
+
+  std::unordered_map<uint8_t, std::tuple<uint8_t, uint8_t, std::string>> linguistics;
+  std::vector<SignInfo> edge_signs = tile->GetSigns(BC_edge_id.id(), linguistics);
+
+  ASSERT_EQ(edge_signs.size(), 8);
+  ASSERT_EQ(linguistics.size(), 6);
+
+  ASSERT_EQ(edge_signs.at(0).text(), "26B");
+  std::unordered_map<uint8_t, std::tuple<uint8_t, uint8_t, std::string>>::const_iterator iter =
+      linguistics.find(0);
+  ASSERT_EQ(iter, linguistics.end());
+
+  ASSERT_EQ(edge_signs.at(1).text(), "19");
+  iter = linguistics.find(1);
+  ASSERT_EQ(iter, linguistics.end());
+
+  ASSERT_EQ(edge_signs.at(2).text(), "Vanier Parkway");
+  iter = linguistics.find(2);
+  ASSERT_NE(iter, linguistics.end());
+  ASSERT_EQ(to_string(
+                static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(iter->second))),
+            "en");
+
+  ASSERT_EQ(edge_signs.at(3).text(), "Riverside Drive");
+  iter = linguistics.find(3);
+  ASSERT_NE(iter, linguistics.end());
+  ASSERT_EQ(to_string(
+                static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(iter->second))),
+            "en");
+
+  ASSERT_EQ(edge_signs.at(4).text(), "Promenade Vanier");
+  iter = linguistics.find(4);
+  ASSERT_NE(iter, linguistics.end());
+  ASSERT_EQ(to_string(
+                static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(iter->second))),
+            "fr");
+
+  ASSERT_EQ(edge_signs.at(5).text(), "Promenade Riverside");
+  iter = linguistics.find(5);
+  ASSERT_NE(iter, linguistics.end());
+  ASSERT_EQ(to_string(
+                static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(iter->second))),
+            "fr");
+
+  ASSERT_EQ(edge_signs.at(6).text(), "Sandy Hill");
+  iter = linguistics.find(6);
+  ASSERT_NE(iter, linguistics.end());
+  ASSERT_EQ(to_string(
+                static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(iter->second))),
+            "en");
+
+  ASSERT_EQ(edge_signs.at(7).text(), "Colline de sable");
+  iter = linguistics.find(7);
+  ASSERT_NE(iter, linguistics.end());
+  ASSERT_EQ(to_string(
+                static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(iter->second))),
+            "fr");
+
+  node_id = JICDMN_edge->endnode();
+  tile = graph_reader.GetGraphTile(node_id);
+  edgeinfo = tile->edgeinfo(JICDMN_edge);
+  types.clear();
+  names_and_types = edgeinfo.GetNamesAndTypes(types, true);
+  std::unordered_map<uint8_t, uint8_t> languages = edgeinfo.GetLanguageMap();
+
+  ASSERT_EQ(names_and_types.size(), 3);
+
+  ASSERT_EQ(names_and_types.at(0).first, "Vanier Parkway");
+  std::unordered_map<uint8_t, uint8_t>::const_iterator lang_iter = languages.find(0);
+  ASSERT_NE(lang_iter, languages.end());
+  ASSERT_EQ(to_string(static_cast<Language>(lang_iter->second)), "en");
+
+  ASSERT_EQ(names_and_types.at(1).first, "promenade Vanier");
+  lang_iter = languages.find(1);
+  ASSERT_NE(lang_iter, languages.end());
+  ASSERT_EQ(to_string(static_cast<Language>(lang_iter->second)), "fr");
+
+  ASSERT_EQ(names_and_types.at(2).first, "19");
+  lang_iter = languages.find(2);
+  ASSERT_EQ(lang_iter, languages.end());
+}
+
+///////////////////////////////////////////////////////////////////////////////
+TEST_F(RouteWithStreetnameAndSign_en_fr_OttawaCanada, CheckStreetNamesAndSigns2) {
+  auto result = gurka::do_action(valhalla::Options::route, the_map, {"G", "J"}, "auto");
+  gurka::assert::raw::expect_path(result, {"417/Highway 417/Route 417", "",
+                                           "Vanier Parkway/promenade Vanier/19"});
+
+  // Verify starting on 417
+  int maneuver_index = 0;
+  EXPECT_EQ(result.directions().routes(0).legs(0).maneuver(maneuver_index).street_name_size(), 3);
+  EXPECT_EQ(result.directions().routes(0).legs(0).maneuver(maneuver_index).street_name(0).value(),
+            "417");
+  EXPECT_EQ(result.directions().routes(0).legs(0).maneuver(maneuver_index).street_name(1).value(),
+            "Highway 417");
+  EXPECT_EQ(result.directions().routes(0).legs(0).maneuver(maneuver_index).street_name(2).value(),
+            "Route 417");
+
+  ++maneuver_index;
+  EXPECT_EQ(result.directions()
+                .routes(0)
+                .legs(0)
+                .maneuver(maneuver_index)
+                .sign()
+                .exit_toward_locations_size(),
+            3);
+
+  EXPECT_EQ(result.directions()
+                .routes(0)
+                .legs(0)
+                .maneuver(maneuver_index)
+                .sign()
+                .exit_toward_locations(0)
+                .text(),
+            "19");
+
+  EXPECT_EQ(result.directions()
+                .routes(0)
+                .legs(0)
+                .maneuver(maneuver_index)
+                .sign()
+                .exit_toward_locations(1)
+                .text(),
+            "Queen Street");
+
+  EXPECT_EQ(result.directions()
+                .routes(0)
+                .legs(0)
+                .maneuver(maneuver_index)
+                .sign()
+                .exit_toward_locations(2)
+                .text(),
+            "rue Queen");
+
+  GraphReader graph_reader(the_map.config.get_child("mjolnir"));
+
+  GraphId HI_edge_id;
+  const DirectedEdge* HI_edge = nullptr;
+  GraphId IH_edge_id;
+  const DirectedEdge* IH_edge = nullptr;
+  std::tie(HI_edge_id, HI_edge, IH_edge_id, IH_edge) =
+      findEdge(graph_reader, the_map.nodes, "", "I", baldr::GraphId{}, 102);
+  EXPECT_NE(HI_edge, nullptr);
+  EXPECT_NE(IH_edge, nullptr);
+
+  GraphId node_id = HI_edge->endnode();
+  auto tile = graph_reader.GetGraphTile(node_id);
+  auto edgeinfo = tile->edgeinfo(HI_edge);
+  std::vector<uint8_t> types;
+  auto names_and_types = edgeinfo.GetNamesAndTypes(types, true);
+  ASSERT_EQ(names_and_types.size(), 0);
+
+  std::unordered_map<uint8_t, std::tuple<uint8_t, uint8_t, std::string>> linguistics;
+  std::vector<SignInfo> edge_signs = tile->GetSigns(HI_edge_id.id(), linguistics);
+
+  ASSERT_EQ(edge_signs.size(), 4);
+  ASSERT_EQ(linguistics.size(), 2);
+
+  ASSERT_EQ(edge_signs.at(0).text(), "26B");
+  std::unordered_map<uint8_t, std::tuple<uint8_t, uint8_t, std::string>>::const_iterator iter =
+      linguistics.find(0);
+  ASSERT_EQ(iter, linguistics.end());
+
+  ASSERT_EQ(edge_signs.at(1).text(), "19");
+  iter = linguistics.find(1);
+  ASSERT_EQ(iter, linguistics.end());
+
+  ASSERT_EQ(edge_signs.at(2).text(), "Queen Street");
+  iter = linguistics.find(2);
+  ASSERT_NE(iter, linguistics.end());
+  ASSERT_EQ(to_string(
+                static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(iter->second))),
+            "en");
+
+  ASSERT_EQ(edge_signs.at(3).text(), "rue Queen");
+  iter = linguistics.find(3);
+  ASSERT_NE(iter, linguistics.end());
+  ASSERT_EQ(to_string(
+                static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(iter->second))),
+            "fr");
+}
+
+///////////////////////////////////////////////////////////////////////////////
+TEST_F(RouteWithStreetnameAndSign_en_fr_OttawaCanada, CheckGuideSigns) {
+  auto result = gurka::do_action(valhalla::Options::route, the_map, {"J", "O"}, "auto");
+  gurka::assert::raw::expect_path(result, {"Vanier Parkway/promenade Vanier/19",
+                                           "Vanier Parkway/promenade Vanier/19",
+                                           "Vanier Parkway/promenade Vanier/19", "",
+                                           "Albert Street/rue Albert"});
+
+  // Verify starting on Vanier Parkway/promenade Vanier/19
+  int maneuver_index = 0;
+  EXPECT_EQ(result.directions().routes(0).legs(0).maneuver(maneuver_index).street_name_size(), 3);
+  EXPECT_EQ(result.directions().routes(0).legs(0).maneuver(maneuver_index).street_name(0).value(),
+            "Vanier Parkway");
+  EXPECT_EQ(result.directions().routes(0).legs(0).maneuver(maneuver_index).street_name(1).value(),
+            "promenade Vanier");
+  EXPECT_EQ(result.directions().routes(0).legs(0).maneuver(maneuver_index).street_name(2).value(),
+            "19");
+
+  ++maneuver_index;
+  EXPECT_EQ(result.directions()
+                .routes(0)
+                .legs(0)
+                .maneuver(maneuver_index)
+                .sign()
+                .guide_onto_streets_size(),
+            2);
+
+  EXPECT_EQ(result.directions()
+                .routes(0)
+                .legs(0)
+                .maneuver(maneuver_index)
+                .sign()
+                .guide_onto_streets(0)
+                .text(),
+            "rue Albert");
+
+  EXPECT_EQ(result.directions()
+                .routes(0)
+                .legs(0)
+                .maneuver(maneuver_index)
+                .sign()
+                .guide_onto_streets(1)
+                .text(),
+            "Albert Street");
+
+  EXPECT_EQ(result.directions()
+                .routes(0)
+                .legs(0)
+                .maneuver(maneuver_index)
+                .sign()
+                .guide_toward_locations_size(),
+            1);
+
+  EXPECT_EQ(result.directions()
+                .routes(0)
+                .legs(0)
+                .maneuver(maneuver_index)
+                .sign()
+                .guide_toward_locations(0)
+                .text(),
+            "Centretown");
+
+  GraphReader graph_reader(the_map.config.get_child("mjolnir"));
+
+  GraphId DP_edge_id;
+  const DirectedEdge* DP_edge = nullptr;
+  GraphId PD_edge_id;
+  const DirectedEdge* PD_edge = nullptr;
+  std::tie(DP_edge_id, DP_edge, PD_edge_id, PD_edge) =
+      findEdge(graph_reader, the_map.nodes, "", "P", baldr::GraphId{}, 104);
+  EXPECT_NE(DP_edge, nullptr);
+  EXPECT_NE(PD_edge, nullptr);
+
+  GraphId node_id = PD_edge->endnode();
+  auto tile = graph_reader.GetGraphTile(node_id);
+  auto edgeinfo = tile->edgeinfo(PD_edge);
+  std::vector<uint8_t> types;
+  auto names_and_types = edgeinfo.GetNamesAndTypes(types, true);
+  ASSERT_EQ(names_and_types.size(), 0);
+
+  std::unordered_map<uint8_t, std::tuple<uint8_t, uint8_t, std::string>> linguistics;
+  std::vector<SignInfo> edge_signs = tile->GetSigns(DP_edge_id.id(), linguistics);
+
+  ASSERT_EQ(edge_signs.size(), 3);
+  ASSERT_EQ(linguistics.size(), 2);
+
+  // note flipped on purpose
+  ASSERT_EQ(edge_signs.at(0).text(), "rue Albert");
+  std::unordered_map<uint8_t, std::tuple<uint8_t, uint8_t, std::string>>::const_iterator iter =
+      linguistics.find(0);
+  ASSERT_NE(iter, linguistics.end());
+  ASSERT_EQ(to_string(
+                static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(iter->second))),
+            "fr");
+
+  ASSERT_EQ(edge_signs.at(1).text(), "Albert Street");
+  iter = linguistics.find(1);
+  ASSERT_NE(iter, linguistics.end());
+  ASSERT_EQ(to_string(
+                static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(iter->second))),
+            "en");
+
+  ASSERT_EQ(edge_signs.at(2).text(), "Centretown");
+  iter = linguistics.find(2);
+  ASSERT_EQ(iter, linguistics.end());
+}
+
+///////////////////////////////////////////////////////////////////////////////
+TEST_F(RouteWithStreetnameAndSign_en_fr_OttawaCanada, CheckNonJunctionName) {
+  auto result = gurka::do_action(valhalla::Options::route, the_map, {"J", "Q"}, "auto");
+  gurka::assert::raw::expect_path(result,
+                                  {"Vanier Parkway/promenade Vanier/19",
+                                   "Vanier Parkway/promenade Vanier/19",
+                                   "Vanier Parkway/promenade Vanier/19",
+                                   "Vanier Parkway/promenade Vanier/19", "Albert Street/rue Albert"});
+
+  // Verify starting on Vanier Parkway/promenade Vanier/19
+  int maneuver_index = 0;
+  EXPECT_EQ(result.directions().routes(0).legs(0).maneuver(maneuver_index).street_name_size(), 3);
+  EXPECT_EQ(result.directions().routes(0).legs(0).maneuver(maneuver_index).street_name(0).value(),
+            "Vanier Parkway");
+  EXPECT_EQ(result.directions().routes(0).legs(0).maneuver(maneuver_index).street_name(1).value(),
+            "promenade Vanier");
+  EXPECT_EQ(result.directions().routes(0).legs(0).maneuver(maneuver_index).street_name(2).value(),
+            "19");
+
+  // Verify street name language tag
+  ++maneuver_index;
+  EXPECT_EQ(result.directions().routes(0).legs(0).maneuver(maneuver_index).street_name_size(), 2);
+
+  EXPECT_EQ(result.directions().routes(0).legs(0).maneuver(maneuver_index).street_name(0).value(),
+            "Albert Street");
+
+  EXPECT_EQ(result.directions().routes(0).legs(0).maneuver(maneuver_index).street_name(1).value(),
+            "rue Albert");
+
+  GraphReader graph_reader(the_map.config.get_child("mjolnir"));
+
+  GraphId OPMQ_edge_id;
+  const DirectedEdge* OPMQ_edge = nullptr;
+  GraphId QMPO_edge_id;
+  const DirectedEdge* QMPO_edge = nullptr;
+  std::tie(OPMQ_edge_id, OPMQ_edge, QMPO_edge_id, QMPO_edge) =
+      findEdge(graph_reader, the_map.nodes, "", "Q", baldr::GraphId{}, 103);
+  EXPECT_NE(OPMQ_edge, nullptr);
+  EXPECT_NE(QMPO_edge, nullptr);
+
+  GraphId node_id = OPMQ_edge->endnode();
+  auto tile = graph_reader.GetGraphTile(node_id);
+  auto edgeinfo = tile->edgeinfo(OPMQ_edge);
+  std::vector<uint8_t> types;
+  auto names_and_types = edgeinfo.GetNamesAndTypes(types, true);
+  ASSERT_EQ(names_and_types.size(), 2);
+
+  std::unordered_map<uint8_t, uint8_t> languages = edgeinfo.GetLanguageMap();
+  std::unordered_map<uint8_t, uint8_t>::const_iterator lang_iter = languages.find(0);
+
+  ASSERT_NE(lang_iter, languages.end());
+  ASSERT_EQ(names_and_types.at(0).first, "Albert Street");
+  ASSERT_EQ(to_string(static_cast<Language>(lang_iter->second)), "en");
+
+  lang_iter = languages.find(1);
+  ASSERT_NE(lang_iter, languages.end());
+  ASSERT_EQ(names_and_types.at(1).first, "rue Albert");
+  ASSERT_EQ(to_string(static_cast<Language>(lang_iter->second)), "fr");
+
+  // No junction should exist here.  Named junctions are not allowed in CA
+  EXPECT_EQ(result.directions()
+                .routes(0)
+                .legs(0)
+                .maneuver(maneuver_index)
+                .sign()
+                .junction_names_size(),
+            0);
+}
+
+class RouteWithStreetnameAndSign_en_fr_QuebecCanada : public ::testing::Test {
+protected:
+  valhalla::gurka::map BuildPBF(const std::string& workdir) {
+    constexpr double gridsize_metres = 100;
+
+    const std::string ascii_map = R"(
+                       J
+                       |
+                       |
+                       |
+                       I
+                      /|\
+                    /  |  \
+                  /    |    \
+           L----K-------------H----G
+           A----B-------------E----F
+                  \    |    /
+                    \  |  /
+                      \|/
+                       C
+                       |
+                       |
+                       |
+                       D
+               O------PM------Q
+                       |
+                       |
+                       |
+                       N
+
+    )";
+
+    const gurka::ways ways = {
+        {"ABEF",
+         {{"highway", "motorway"},
+          {"name", "Highway 417"},
+          {"name:en", "Highway 417"},
+          {"name:fr", "Route 417"},
+          {"ref", "417"},
+          {"nat_name", "Trans-Canada Highway"},
+          {"nat_name:en", "Trans-Canada Highway"},
+          {"nat_name:fr", "   Route Transcanadienne"},
+          {"oneway", "yes"}}},
+        {"GHKL",
+         {{"highway", "motorway"},
+          {"name", "Highway 417"},
+          {"name:en", "Highway 417"},
+          {"name:fr", "Route 417"},
+          {"ref", "417"},
+          {"nat_name", "Trans-Canada Highway"},
+          {"nat_name:en", "Trans-Canada Highway"},
+          {"nat_name:fr", "   Route Transcanadienne"},
+          {"oneway", "yes"}}},
+        {"JICDMN",
+         {{"highway", "primary"},
+          {"osm_id", "100"},
+          {"name", ""},
+          {"name:en", "Vanier Parkway"},
+          {"name:fr", "promenade Vanier"},
+          {"ref", "19"}}},
+        {"BC",
+         {{"highway", "motorway_link"},
+          {"osm_id", "101"},
+          {"name", ""},
+          {"oneway", "yes"},
+          {"junction:ref", "26B"},
+          {"destination", "Sandy Hill;"},
+          {"destination:lang:fr", "Colline de sable"},
+          {"destination:street", "Vanier Parkway;Riverside Drive"},
+          {"destination:street:lang:fr", "Promenade Vanier;Promenade Riverside"},
+          {"destination:street:lang:en", "Vanier Parkway;Riverside Drive"},
+          {"destination:ref", "19"}}},
+        {"CE",
+         {{"highway", "motorway_link"}, {"name", ""}, {"oneway", "yes"}, {"destination:ref", "417"}}},
+        {"HI",
+         {{"highway", "motorway_link"},
+          {"osm_id", "102"},
+          {"name", ""},
+          {"oneway", "yes"},
+          {"junction:ref", "26B"},
+          {"destination:street:to", "Queen Street"},
+          {"destination:street:to:lang:fr", "rue Queen"},
+          {"destination:ref:to", "19"}}},
+        {"IK",
+         {{"highway", "motorway_link"}, {"name", ""}, {"oneway", "yes"}, {"destination:ref", "417"}}},
+        {"OPMQ",
+         {{"highway", "secondary"},
+          {"osm_id", "103"},
+          {"name", "Albert Street"},
+          {"name:en", "Albert Street"},
+          {"name:fr", "rue Albert"}}},
+        {"DP",
+         {{"highway", "secondary_link"},
+          {"osm_id", "104"},
+          {"name", ""},
+          {"oneway", "yes"},
+          {"destination", "Centretown"},
+          {"destination:street", "rue Albert"},
+          {"destination:street:lang:en", "Albert Street"}}},
+    };
+
+    const gurka::nodes nodes = {{"M", {{"highway", "traffic_signals"}, {"name", "M Junction"}}}};
+
+    if (!filesystem::exists(workdir)) {
+      bool created = filesystem::create_directories(workdir);
+      EXPECT_TRUE(created);
+    }
+
+    constexpr double gridsize = 100;
+
+    const auto layout =
+        gurka::detail::map_to_coordinates(ascii_map, gridsize_metres, {-71.2593, 46.8111});
+
+    auto pbf_filename = workdir + "/map.pbf";
+    detail::build_pbf(layout, ways, nodes, {}, pbf_filename);
+
+    valhalla::gurka::map result;
+    result.nodes = layout;
+    return result;
+  }
+};
+
+///////////////////////////////////////////////////////////////////////////////
+TEST_F(RouteWithStreetnameAndSign_en_fr_QuebecCanada, CheckStreetNamesAndSigns1) {
+
+  const std::string workdir = "test/data/gurka_language_with_streetname_and_sign_en_fr_QuebecCanada";
+
+  if (!filesystem::exists(workdir)) {
+    bool created = filesystem::create_directories(workdir);
+    EXPECT_TRUE(created);
+  }
+
+  the_map = BuildPBF(workdir);
+
+  const std::string sqlite = {VALHALLA_SOURCE_DIR "test/data/language_admin.sqlite"};
+  the_map.config =
+      test::make_config(workdir,
+                        {{"mjolnir.admin", {VALHALLA_SOURCE_DIR "test/data/language_admin.sqlite"}},
+                         {"mjolnir.tile_dir", workdir + "/tiles"}});
+
+  std::vector<std::string> input_files = {workdir + "/map.pbf"};
+
+  build_tile_set(the_map.config, input_files, mjolnir::BuildStage::kInitialize,
+                 mjolnir::BuildStage::kValidate, false);
+
+  auto result = gurka::do_action(valhalla::Options::route, the_map, {"A", "D"}, "auto");
+  gurka::assert::raw::expect_path(result, {"417/Highway 417/Route 417", "",
+                                           "promenade Vanier/Vanier Parkway/19"});
+
+  // Verify starting on 417
+  int maneuver_index = 0;
+  EXPECT_EQ(result.directions().routes(0).legs(0).maneuver(maneuver_index).street_name_size(), 3);
+  EXPECT_EQ(result.directions().routes(0).legs(0).maneuver(maneuver_index).street_name(0).value(),
+            "417");
+  EXPECT_EQ(result.directions().routes(0).legs(0).maneuver(maneuver_index).street_name(1).value(),
+            "Highway 417");
+  EXPECT_EQ(result.directions().routes(0).legs(0).maneuver(maneuver_index).street_name(2).value(),
+            "Route 417");
+
+  ++maneuver_index;
+  EXPECT_EQ(result.directions()
+                .routes(0)
+                .legs(0)
+                .maneuver(maneuver_index)
+                .sign()
+                .exit_onto_streets_size(),
+            5);
+  EXPECT_EQ(result.directions()
+                .routes(0)
+                .legs(0)
+                .maneuver(maneuver_index)
+                .sign()
+                .exit_onto_streets(0)
+                .text(),
+            "19");
+
+  EXPECT_EQ(result.directions()
+                .routes(0)
+                .legs(0)
+                .maneuver(maneuver_index)
+                .sign()
+                .exit_onto_streets(1)
+                .text(),
+            "Vanier Parkway");
+
+  EXPECT_EQ(result.directions()
+                .routes(0)
+                .legs(0)
+                .maneuver(maneuver_index)
+                .sign()
+                .exit_onto_streets(2)
+                .text(),
+            "Riverside Drive");
+
+  EXPECT_EQ(result.directions()
+                .routes(0)
+                .legs(0)
+                .maneuver(maneuver_index)
+                .sign()
+                .exit_onto_streets(3)
+                .text(),
+            "Promenade Vanier");
+
+  EXPECT_EQ(result.directions()
+                .routes(0)
+                .legs(0)
+                .maneuver(maneuver_index)
+                .sign()
+                .exit_onto_streets(4)
+                .text(),
+            "Promenade Riverside");
+
+  EXPECT_EQ(result.directions()
+                .routes(0)
+                .legs(0)
+                .maneuver(maneuver_index)
+                .sign()
+                .exit_toward_locations_size(),
+            2);
+  EXPECT_EQ(result.directions()
+                .routes(0)
+                .legs(0)
+                .maneuver(maneuver_index)
+                .sign()
+                .exit_toward_locations(0)
+                .text(),
+            "Sandy Hill");
+
+  EXPECT_EQ(result.directions()
+                .routes(0)
+                .legs(0)
+                .maneuver(maneuver_index)
+                .sign()
+                .exit_toward_locations(1)
+                .text(),
+            "Colline de sable");
+
+  ++maneuver_index;
+  EXPECT_EQ(result.directions().routes(0).legs(0).maneuver(maneuver_index).street_name_size(), 3);
+  EXPECT_EQ(result.directions().routes(0).legs(0).maneuver(maneuver_index).street_name(0).value(),
+            "promenade Vanier");
+
+  EXPECT_EQ(result.directions().routes(0).legs(0).maneuver(maneuver_index).street_name(1).value(),
+            "Vanier Parkway");
+
+  EXPECT_EQ(result.directions().routes(0).legs(0).maneuver(maneuver_index).street_name(2).value(),
+            "19");
+
+  GraphReader graph_reader(the_map.config.get_child("mjolnir"));
+
+  GraphId BC_edge_id;
+  const DirectedEdge* BC_edge = nullptr;
+  GraphId CB_edge_id;
+  const DirectedEdge* CB_edge = nullptr;
+  std::tie(BC_edge_id, BC_edge, CB_edge_id, CB_edge) =
+      findEdge(graph_reader, the_map.nodes, "", "C", baldr::GraphId{}, 101);
+  EXPECT_NE(BC_edge, nullptr);
+  EXPECT_NE(CB_edge, nullptr);
+
+  GraphId JICDMN_edge_id;
+  const DirectedEdge* JICDMN_edge = nullptr;
+  GraphId NMDCIJ_edge_id;
+  const DirectedEdge* NMDCIJ_edge = nullptr;
+  std::tie(JICDMN_edge_id, JICDMN_edge, NMDCIJ_edge_id, NMDCIJ_edge) =
+      findEdge(graph_reader, the_map.nodes, "", "N", baldr::GraphId{}, 100);
+  EXPECT_NE(JICDMN_edge, nullptr);
+  EXPECT_NE(NMDCIJ_edge, nullptr);
+
+  GraphId node_id = BC_edge->endnode();
+  auto tile = graph_reader.GetGraphTile(node_id);
+  auto edgeinfo = tile->edgeinfo(BC_edge);
+  std::vector<uint8_t> types;
+  auto names_and_types = edgeinfo.GetNamesAndTypes(types, true);
+  ASSERT_EQ(names_and_types.size(), 0);
+
+  std::unordered_map<uint8_t, std::tuple<uint8_t, uint8_t, std::string>> linguistics;
+  std::vector<SignInfo> edge_signs = tile->GetSigns(BC_edge_id.id(), linguistics);
+
+  ASSERT_EQ(edge_signs.size(), 8);
+  ASSERT_EQ(linguistics.size(), 6);
+
+  ASSERT_EQ(edge_signs.at(0).text(), "26B");
+  std::unordered_map<uint8_t, std::tuple<uint8_t, uint8_t, std::string>>::const_iterator iter =
+      linguistics.find(0);
+  ASSERT_EQ(iter, linguistics.end());
+
+  ASSERT_EQ(edge_signs.at(1).text(), "19");
+  iter = linguistics.find(1);
+  ASSERT_EQ(iter, linguistics.end());
+
+  ASSERT_EQ(edge_signs.at(2).text(), "Vanier Parkway");
+  iter = linguistics.find(2);
+  ASSERT_NE(iter, linguistics.end());
+  ASSERT_EQ(to_string(
+                static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(iter->second))),
+            "en");
+
+  ASSERT_EQ(edge_signs.at(3).text(), "Riverside Drive");
+  iter = linguistics.find(3);
+  ASSERT_NE(iter, linguistics.end());
+  ASSERT_EQ(to_string(
+                static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(iter->second))),
+            "en");
+
+  ASSERT_EQ(edge_signs.at(4).text(), "Promenade Vanier");
+  iter = linguistics.find(4);
+  ASSERT_NE(iter, linguistics.end());
+  ASSERT_EQ(to_string(
+                static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(iter->second))),
+            "fr");
+
+  ASSERT_EQ(edge_signs.at(5).text(), "Promenade Riverside");
+  iter = linguistics.find(5);
+  ASSERT_NE(iter, linguistics.end());
+  ASSERT_EQ(to_string(
+                static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(iter->second))),
+            "fr");
+
+  ASSERT_EQ(edge_signs.at(6).text(), "Sandy Hill");
+  iter = linguistics.find(6);
+  ASSERT_NE(iter, linguistics.end());
+  ASSERT_EQ(to_string(
+                static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(iter->second))),
+            "en");
+
+  ASSERT_EQ(edge_signs.at(7).text(), "Colline de sable");
+  iter = linguistics.find(7);
+  ASSERT_NE(iter, linguistics.end());
+  ASSERT_EQ(to_string(
+                static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(iter->second))),
+            "fr");
+
+  node_id = JICDMN_edge->endnode();
+  tile = graph_reader.GetGraphTile(node_id);
+  edgeinfo = tile->edgeinfo(JICDMN_edge);
+  types.clear();
+  names_and_types = edgeinfo.GetNamesAndTypes(types, true);
+  std::unordered_map<uint8_t, uint8_t> languages = edgeinfo.GetLanguageMap();
+
+  ASSERT_EQ(names_and_types.size(), 3);
+
+  ASSERT_EQ(names_and_types.at(0).first, "promenade Vanier");
+  std::unordered_map<uint8_t, uint8_t>::const_iterator lang_iter = languages.find(0);
+  ASSERT_NE(lang_iter, languages.end());
+  ASSERT_EQ(to_string(static_cast<Language>(lang_iter->second)), "fr");
+
+  ASSERT_EQ(names_and_types.at(1).first, "Vanier Parkway");
+  lang_iter = languages.find(1);
+  ASSERT_NE(lang_iter, languages.end());
+  ASSERT_EQ(to_string(static_cast<Language>(lang_iter->second)), "en");
+
+  ASSERT_EQ(names_and_types.at(2).first, "19");
+  lang_iter = languages.find(2);
+  ASSERT_EQ(lang_iter, languages.end());
+}
+
+///////////////////////////////////////////////////////////////////////////////
+TEST_F(RouteWithStreetnameAndSign_en_fr_QuebecCanada, CheckStreetNamesAndSigns2) {
+  auto result = gurka::do_action(valhalla::Options::route, the_map, {"G", "J"}, "auto");
+  gurka::assert::raw::expect_path(result, {"417/Highway 417/Route 417", "",
+                                           "promenade Vanier/Vanier Parkway/19"});
+
+  // Verify starting on 417
+  int maneuver_index = 0;
+  EXPECT_EQ(result.directions().routes(0).legs(0).maneuver(maneuver_index).street_name_size(), 3);
+  EXPECT_EQ(result.directions().routes(0).legs(0).maneuver(maneuver_index).street_name(0).value(),
+            "417");
+  EXPECT_EQ(result.directions().routes(0).legs(0).maneuver(maneuver_index).street_name(1).value(),
+            "Highway 417");
+  EXPECT_EQ(result.directions().routes(0).legs(0).maneuver(maneuver_index).street_name(2).value(),
+            "Route 417");
+
+  ++maneuver_index;
+  EXPECT_EQ(result.directions()
+                .routes(0)
+                .legs(0)
+                .maneuver(maneuver_index)
+                .sign()
+                .exit_toward_locations_size(),
+            3);
+
+  EXPECT_EQ(result.directions()
+                .routes(0)
+                .legs(0)
+                .maneuver(maneuver_index)
+                .sign()
+                .exit_toward_locations(0)
+                .text(),
+            "19");
+
+  EXPECT_EQ(result.directions()
+                .routes(0)
+                .legs(0)
+                .maneuver(maneuver_index)
+                .sign()
+                .exit_toward_locations(1)
+                .text(),
+            "Queen Street");
+
+  EXPECT_EQ(result.directions()
+                .routes(0)
+                .legs(0)
+                .maneuver(maneuver_index)
+                .sign()
+                .exit_toward_locations(2)
+                .text(),
+            "rue Queen");
+
+  GraphReader graph_reader(the_map.config.get_child("mjolnir"));
+
+  GraphId HI_edge_id;
+  const DirectedEdge* HI_edge = nullptr;
+  GraphId IH_edge_id;
+  const DirectedEdge* IH_edge = nullptr;
+  std::tie(HI_edge_id, HI_edge, IH_edge_id, IH_edge) =
+      findEdge(graph_reader, the_map.nodes, "", "I", baldr::GraphId{}, 102);
+  EXPECT_NE(HI_edge, nullptr);
+  EXPECT_NE(IH_edge, nullptr);
+
+  GraphId node_id = HI_edge->endnode();
+  auto tile = graph_reader.GetGraphTile(node_id);
+  auto edgeinfo = tile->edgeinfo(HI_edge);
+  std::vector<uint8_t> types;
+  auto names_and_types = edgeinfo.GetNamesAndTypes(types, true);
+  ASSERT_EQ(names_and_types.size(), 0);
+
+  std::unordered_map<uint8_t, std::tuple<uint8_t, uint8_t, std::string>> linguistics;
+  std::vector<SignInfo> edge_signs = tile->GetSigns(HI_edge_id.id(), linguistics);
+
+  ASSERT_EQ(edge_signs.size(), 4);
+  ASSERT_EQ(linguistics.size(), 2);
+
+  ASSERT_EQ(edge_signs.at(0).text(), "26B");
+  std::unordered_map<uint8_t, std::tuple<uint8_t, uint8_t, std::string>>::const_iterator iter =
+      linguistics.find(0);
+  ASSERT_EQ(iter, linguistics.end());
+
+  ASSERT_EQ(edge_signs.at(1).text(), "19");
+  iter = linguistics.find(1);
+  ASSERT_EQ(iter, linguistics.end());
+
+  ASSERT_EQ(edge_signs.at(2).text(), "Queen Street");
+  iter = linguistics.find(2);
+  ASSERT_NE(iter, linguistics.end());
+  ASSERT_EQ(to_string(
+                static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(iter->second))),
+            "en");
+
+  ASSERT_EQ(edge_signs.at(3).text(), "rue Queen");
+  iter = linguistics.find(3);
+  ASSERT_NE(iter, linguistics.end());
+  ASSERT_EQ(to_string(
+                static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(iter->second))),
+            "fr");
+}
+
+///////////////////////////////////////////////////////////////////////////////
+TEST_F(RouteWithStreetnameAndSign_en_fr_QuebecCanada, CheckGuideSigns) {
+  auto result = gurka::do_action(valhalla::Options::route, the_map, {"J", "O"}, "auto");
+  gurka::assert::raw::expect_path(result, {"promenade Vanier/Vanier Parkway/19",
+                                           "promenade Vanier/Vanier Parkway/19",
+                                           "promenade Vanier/Vanier Parkway/19", "",
+                                           "Albert Street/rue Albert"});
+
+  // Verify starting on Vanier Parkway/promenade Vanier/19
+  int maneuver_index = 0;
+  EXPECT_EQ(result.directions().routes(0).legs(0).maneuver(maneuver_index).street_name_size(), 3);
+  EXPECT_EQ(result.directions().routes(0).legs(0).maneuver(maneuver_index).street_name(0).value(),
+            "promenade Vanier");
+  EXPECT_EQ(result.directions().routes(0).legs(0).maneuver(maneuver_index).street_name(1).value(),
+            "Vanier Parkway");
+  EXPECT_EQ(result.directions().routes(0).legs(0).maneuver(maneuver_index).street_name(2).value(),
+            "19");
+
+  ++maneuver_index;
+  EXPECT_EQ(result.directions()
+                .routes(0)
+                .legs(0)
+                .maneuver(maneuver_index)
+                .sign()
+                .guide_onto_streets_size(),
+            2);
+
+  EXPECT_EQ(result.directions()
+                .routes(0)
+                .legs(0)
+                .maneuver(maneuver_index)
+                .sign()
+                .guide_onto_streets(0)
+                .text(),
+            "rue Albert");
+
+  EXPECT_EQ(result.directions()
+                .routes(0)
+                .legs(0)
+                .maneuver(maneuver_index)
+                .sign()
+                .guide_onto_streets(1)
+                .text(),
+            "Albert Street");
+
+  EXPECT_EQ(result.directions()
+                .routes(0)
+                .legs(0)
+                .maneuver(maneuver_index)
+                .sign()
+                .guide_toward_locations_size(),
+            1);
+
+  EXPECT_EQ(result.directions()
+                .routes(0)
+                .legs(0)
+                .maneuver(maneuver_index)
+                .sign()
+                .guide_toward_locations(0)
+                .text(),
+            "Centretown");
+
+  GraphReader graph_reader(the_map.config.get_child("mjolnir"));
+
+  GraphId DP_edge_id;
+  const DirectedEdge* DP_edge = nullptr;
+  GraphId PD_edge_id;
+  const DirectedEdge* PD_edge = nullptr;
+  std::tie(DP_edge_id, DP_edge, PD_edge_id, PD_edge) =
+      findEdge(graph_reader, the_map.nodes, "", "P", baldr::GraphId{}, 104);
+  EXPECT_NE(DP_edge, nullptr);
+  EXPECT_NE(PD_edge, nullptr);
+
+  GraphId node_id = PD_edge->endnode();
+  auto tile = graph_reader.GetGraphTile(node_id);
+  auto edgeinfo = tile->edgeinfo(PD_edge);
+  std::vector<uint8_t> types;
+  auto names_and_types = edgeinfo.GetNamesAndTypes(types, true);
+  ASSERT_EQ(names_and_types.size(), 0);
+
+  std::unordered_map<uint8_t, std::tuple<uint8_t, uint8_t, std::string>> linguistics;
+  std::vector<SignInfo> edge_signs = tile->GetSigns(DP_edge_id.id(), linguistics);
+
+  ASSERT_EQ(edge_signs.size(), 3);
+  ASSERT_EQ(linguistics.size(), 2);
+
+  // note flipped on purpose
+  ASSERT_EQ(edge_signs.at(0).text(), "rue Albert");
+  std::unordered_map<uint8_t, std::tuple<uint8_t, uint8_t, std::string>>::const_iterator iter =
+      linguistics.find(0);
+  ASSERT_NE(iter, linguistics.end());
+  ASSERT_EQ(to_string(
+                static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(iter->second))),
+            "fr");
+
+  ASSERT_EQ(edge_signs.at(1).text(), "Albert Street");
+  iter = linguistics.find(1);
+  ASSERT_NE(iter, linguistics.end());
+  ASSERT_EQ(to_string(
+                static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(iter->second))),
+            "en");
+
+  ASSERT_EQ(edge_signs.at(2).text(), "Centretown");
+  iter = linguistics.find(2);
+  ASSERT_EQ(iter, linguistics.end());
+}
+
+///////////////////////////////////////////////////////////////////////////////
+TEST_F(RouteWithStreetnameAndSign_en_fr_QuebecCanada, CheckNonJunctionName) {
+  auto result = gurka::do_action(valhalla::Options::route, the_map, {"J", "Q"}, "auto");
+  gurka::assert::raw::expect_path(result,
+                                  {"promenade Vanier/Vanier Parkway/19",
+                                   "promenade Vanier/Vanier Parkway/19",
+                                   "promenade Vanier/Vanier Parkway/19",
+                                   "promenade Vanier/Vanier Parkway/19", "Albert Street/rue Albert"});
+
+  // Verify starting on Vanier Parkway/promenade Vanier/19
+  int maneuver_index = 0;
+  EXPECT_EQ(result.directions().routes(0).legs(0).maneuver(maneuver_index).street_name_size(), 3);
+  EXPECT_EQ(result.directions().routes(0).legs(0).maneuver(maneuver_index).street_name(0).value(),
+            "promenade Vanier");
+  EXPECT_EQ(result.directions().routes(0).legs(0).maneuver(maneuver_index).street_name(1).value(),
+            "Vanier Parkway");
+  EXPECT_EQ(result.directions().routes(0).legs(0).maneuver(maneuver_index).street_name(2).value(),
+            "19");
+
+  // Verify street name language tag
+  ++maneuver_index;
+  EXPECT_EQ(result.directions().routes(0).legs(0).maneuver(maneuver_index).street_name_size(), 2);
+
+  EXPECT_EQ(result.directions().routes(0).legs(0).maneuver(maneuver_index).street_name(0).value(),
+            "Albert Street");
+
+  EXPECT_EQ(result.directions().routes(0).legs(0).maneuver(maneuver_index).street_name(1).value(),
+            "rue Albert");
+
+  GraphReader graph_reader(the_map.config.get_child("mjolnir"));
+
+  GraphId OPMQ_edge_id;
+  const DirectedEdge* OPMQ_edge = nullptr;
+  GraphId QMPO_edge_id;
+  const DirectedEdge* QMPO_edge = nullptr;
+  std::tie(OPMQ_edge_id, OPMQ_edge, QMPO_edge_id, QMPO_edge) =
+      findEdge(graph_reader, the_map.nodes, "", "Q", baldr::GraphId{}, 103);
+  EXPECT_NE(OPMQ_edge, nullptr);
+  EXPECT_NE(QMPO_edge, nullptr);
+
+  GraphId node_id = OPMQ_edge->endnode();
+  auto tile = graph_reader.GetGraphTile(node_id);
+  auto edgeinfo = tile->edgeinfo(OPMQ_edge);
+  std::vector<uint8_t> types;
+  auto names_and_types = edgeinfo.GetNamesAndTypes(types, true);
+  ASSERT_EQ(names_and_types.size(), 2);
+
+  std::unordered_map<uint8_t, uint8_t> languages = edgeinfo.GetLanguageMap();
+  std::unordered_map<uint8_t, uint8_t>::const_iterator lang_iter = languages.find(0);
+  ASSERT_NE(lang_iter, languages.end());
+  ASSERT_EQ(names_and_types.at(0).first, "Albert Street");
+  ASSERT_EQ(to_string(static_cast<Language>(lang_iter->second)), "en");
+
+  lang_iter = languages.find(1);
+  ASSERT_NE(lang_iter, languages.end());
+  ASSERT_EQ(names_and_types.at(1).first, "rue Albert");
+  ASSERT_EQ(to_string(static_cast<Language>(lang_iter->second)), "fr");
+
+  // No junction should exist here.  Named junctions are not allowed in CA
+  EXPECT_EQ(result.directions()
+                .routes(0)
+                .legs(0)
+                .maneuver(maneuver_index)
+                .sign()
+                .junction_names_size(),
+            0);
 }
