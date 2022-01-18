@@ -257,7 +257,6 @@ void OSMWay::ProcessNames(const UniqueNames& name_offset_map,
     std::vector<std::string> multilingual_names, multilingual_names_found, names_w_no_lang,
         supported_names;
     std::vector<baldr::Language> multilingual_langs_found, supported_langs;
-    uint32_t names_w_no_lang_count = 0;
 
     for (size_t i = 0; i < updated_token_languages.size(); ++i) {
 
@@ -267,13 +266,17 @@ void OSMWay::ProcessNames(const UniqueNames& name_offset_map,
         // multilingual name
         // name = Place Saint-Pierre - Sint-Pietersplein
         std::vector<std::string> temp_names = GetTagTokens(updated_token_languages[i].first, " - ");
-        if (temp_names.size() >= 2)
+        if (temp_names.size() >= 2) {
           multilingual_names.insert(multilingual_names.end(), temp_names.begin(), temp_names.end());
-        else {
+          if (!diff_names)
+            names_w_no_lang.insert(names_w_no_lang.end(), temp_names.begin(), temp_names.end());
+        } else {
           temp_names = GetTagTokens(updated_token_languages[i].first, " / ");
-          if (temp_names.size() >= 2)
+          if (temp_names.size() >= 2) {
             multilingual_names.insert(multilingual_names.end(), temp_names.begin(), temp_names.end());
-          else {
+            if (!diff_names)
+              names_w_no_lang.insert(names_w_no_lang.end(), temp_names.begin(), temp_names.end());
+          } else {
             const auto& current_token = updated_token_languages[i].first;
             const auto& it =
                 std::find_if(tokens_w_langs.begin(), tokens_w_langs.end(),
@@ -293,6 +296,10 @@ void OSMWay::ProcessNames(const UniqueNames& name_offset_map,
         found_languages.erase(std::remove(found_languages.begin(), found_languages.end(),
                                           current_lang),
                               found_languages.end());
+        if (!diff_names)
+          names_w_no_lang.erase(std::remove(names_w_no_lang.begin(), names_w_no_lang.end(),
+                                            updated_token_languages[i].first),
+                                names_w_no_lang.end());
 
       } else if (std::find_if(default_languages.begin(), default_languages.end(),
                               [&current_lang](const std::pair<std::string, bool>& p) {
@@ -309,10 +316,6 @@ void OSMWay::ProcessNames(const UniqueNames& name_offset_map,
         found_languages.erase(std::remove(found_languages.begin(), found_languages.end(),
                                           current_lang),
                               found_languages.end());
-
-      } else if (std::find(names_w_no_lang.begin(), names_w_no_lang.end(),
-                           updated_token_languages[i].first) != names_w_no_lang.end()) {
-        names_w_no_lang_count++;
       }
     }
     bool multi_names = (multilingual_names_found.size());
@@ -339,9 +342,32 @@ void OSMWay::ProcessNames(const UniqueNames& name_offset_map,
 
       tokens.clear();
       if (multi_names) {
-        tokens.insert(tokens.end(), multilingual_names_found.begin(), multilingual_names_found.end());
-        token_langs.insert(token_langs.end(), multilingual_langs_found.begin(),
-                           multilingual_langs_found.end());
+
+        if (!diff_names && names_w_no_lang.size() >= 1 && found_languages.size() == 1) {
+
+          std::vector<std::pair<std::string, std::string>> temp_token_languages;
+          for (size_t i = 0; i < names_w_no_lang.size(); ++i) {
+            temp_token_languages.emplace_back(names_w_no_lang[i], found_languages.at(0));
+          }
+
+          for (size_t i = 0; i < multilingual_names_found.size(); ++i) {
+            temp_token_languages.emplace_back(multilingual_names_found[i],
+                                              to_string(multilingual_langs_found[i]));
+          }
+
+          std::sort(temp_token_languages.begin(), temp_token_languages.end(), cmp);
+
+          for (size_t i = 0; i < temp_token_languages.size(); ++i) {
+            tokens.emplace_back(temp_token_languages[i].first);
+            token_langs.emplace_back(stringLanguage(temp_token_languages[i].second));
+          }
+
+        } else {
+          tokens.insert(tokens.end(), multilingual_names_found.begin(),
+                        multilingual_names_found.end());
+          token_langs.insert(token_langs.end(), multilingual_langs_found.begin(),
+                             multilingual_langs_found.end());
+        }
       }
       if (allowed_names) {
         // assume the lang.
