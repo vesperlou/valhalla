@@ -254,6 +254,8 @@ void OSMWay::ProcessNames(const UniqueNames& name_offset_map,
     };
 
     std::sort(updated_token_languages.begin(), updated_token_languages.end(), cmp);
+    std::sort(tokens_w_langs.begin(), tokens_w_langs.end(), cmp);
+
     std::vector<std::string> multilingual_names, multilingual_names_found, names_w_no_lang,
         supported_names;
     std::vector<baldr::Language> multilingual_langs_found, supported_langs;
@@ -341,6 +343,7 @@ void OSMWay::ProcessNames(const UniqueNames& name_offset_map,
       }
 
       tokens.clear();
+      token_langs.clear();
       if (multi_names) {
 
         if (!diff_names && names_w_no_lang.size() >= 1 && found_languages.size() == 1) {
@@ -403,6 +406,7 @@ void OSMWay::ProcessNames(const UniqueNames& name_offset_map,
       }
     } else { // bail
       tokens.clear();
+      token_langs.clear();
       if ((updated_token_languages.size() > 1 && !all_blank && name_lang_index != 0) ||
           (default_languages.size() > 2 && all_blank && name_lang_index == 0))
         all_default = false;
