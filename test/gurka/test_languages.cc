@@ -2389,6 +2389,246 @@ TEST_F(RouteWithStreetnameAndSign_fr_nl_BrusselsBelgiumRightLeft, CheckLeftNames
   ASSERT_EQ(to_string(static_cast<Language>(lang_iter->second)), "nl");
 }
 
+class RouteWithStreetnameAndSign_en_USForwardBackwardWithName : public ::testing::Test {
+protected:
+  valhalla::gurka::map BuildPBF(const std::string& workdir) {
+    constexpr double gridsize_metres = 100;
+
+    const std::string ascii_map = R"(
+               O------PM------Q
+    )";
+
+    const gurka::ways ways = {
+        {"OPMQ",
+         {{"highway", "secondary"},
+          {"osm_id", "103"},
+          {"name", "Waltonville Road"},
+          {"name:forward", "Waltonville Road"},
+          {"name:backward", "Quarry Road"}}},
+    };
+
+    if (!filesystem::exists(workdir)) {
+      bool created = filesystem::create_directories(workdir);
+      EXPECT_TRUE(created);
+    }
+
+    constexpr double gridsize = 100;
+
+    const auto layout =
+        gurka::detail::map_to_coordinates(ascii_map, gridsize_metres, {-76.69980, 40.25882});
+
+    auto pbf_filename = workdir + "/map.pbf";
+    detail::build_pbf(layout, ways, {}, {}, pbf_filename);
+
+    valhalla::gurka::map result;
+    result.nodes = layout;
+    return result;
+  }
+};
+
+///////////////////////////////////////////////////////////////////////////////
+TEST_F(RouteWithStreetnameAndSign_en_USForwardBackwardWithName, CheckForwardNames) {
+
+  const std::string workdir =
+      "test/data/gurka_language_with_streetname_and_sign_en_USForwardBackwardwithName";
+
+  if (!filesystem::exists(workdir)) {
+    bool created = filesystem::create_directories(workdir);
+    EXPECT_TRUE(created);
+  }
+
+  the_map = BuildPBF(workdir);
+
+  const std::string sqlite = {VALHALLA_SOURCE_DIR "test/data/language_admin.sqlite"};
+  the_map.config =
+      test::make_config(workdir,
+                        {{"mjolnir.admin", {VALHALLA_SOURCE_DIR "test/data/language_admin.sqlite"}},
+                         {"mjolnir.tile_dir", workdir + "/tiles"}});
+
+  std::vector<std::string> input_files = {workdir + "/map.pbf"};
+
+  build_tile_set(the_map.config, input_files, mjolnir::BuildStage::kInitialize,
+                 mjolnir::BuildStage::kValidate, false);
+
+  auto result = gurka::do_action(valhalla::Options::route, the_map, {"O", "Q"}, "auto");
+  gurka::assert::raw::expect_path(result, {"Waltonville Road"});
+
+  GraphReader graph_reader(the_map.config.get_child("mjolnir"));
+
+  GraphId OPMQ_edge_id;
+  const DirectedEdge* OPMQ_edge = nullptr;
+  GraphId QMPO_edge_id;
+  const DirectedEdge* QMPO_edge = nullptr;
+  std::tie(OPMQ_edge_id, OPMQ_edge, QMPO_edge_id, QMPO_edge) =
+      findEdge(graph_reader, the_map.nodes, "", "Q", baldr::GraphId{}, 103);
+  EXPECT_NE(OPMQ_edge, nullptr);
+  EXPECT_NE(QMPO_edge, nullptr);
+
+  GraphId node_id = OPMQ_edge->endnode();
+  auto tile = graph_reader.GetGraphTile(node_id);
+  auto edgeinfo = tile->edgeinfo(OPMQ_edge);
+  std::vector<uint8_t> types;
+  auto names_and_types = edgeinfo.GetNamesAndTypes(types, true);
+  ASSERT_EQ(names_and_types.size(), 1);
+
+  std::unordered_map<uint8_t, uint8_t> languages = edgeinfo.GetLanguageMap();
+  std::unordered_map<uint8_t, uint8_t>::const_iterator lang_iter = languages.find(0);
+  ASSERT_NE(lang_iter, languages.end());
+  ASSERT_EQ(names_and_types.at(0).first, "Waltonville Road");
+  ASSERT_EQ(to_string(static_cast<Language>(lang_iter->second)), "en");
+}
+
+///////////////////////////////////////////////////////////////////////////////
+TEST_F(RouteWithStreetnameAndSign_en_USForwardBackwardWithName, CheckBackwardNames) {
+
+  auto result = gurka::do_action(valhalla::Options::route, the_map, {"Q", "O"}, "auto");
+  gurka::assert::raw::expect_path(result, {"Quarry Road"});
+
+  GraphReader graph_reader(the_map.config.get_child("mjolnir"));
+
+  GraphId OPMQ_edge_id;
+  const DirectedEdge* OPMQ_edge = nullptr;
+  GraphId QMPO_edge_id;
+  const DirectedEdge* QMPO_edge = nullptr;
+  std::tie(OPMQ_edge_id, OPMQ_edge, QMPO_edge_id, QMPO_edge) =
+      findEdge(graph_reader, the_map.nodes, "", "Q", baldr::GraphId{}, 103);
+  EXPECT_NE(OPMQ_edge, nullptr);
+  EXPECT_NE(QMPO_edge, nullptr);
+
+  GraphId node_id = QMPO_edge->endnode();
+  auto tile = graph_reader.GetGraphTile(node_id);
+  auto edgeinfo = tile->edgeinfo(QMPO_edge);
+  std::vector<uint8_t> types;
+  auto names_and_types = edgeinfo.GetNamesAndTypes(types, true);
+  ASSERT_EQ(names_and_types.size(), 1);
+
+  std::unordered_map<uint8_t, uint8_t> languages = edgeinfo.GetLanguageMap();
+  std::unordered_map<uint8_t, uint8_t>::const_iterator lang_iter = languages.find(0);
+  ASSERT_NE(lang_iter, languages.end());
+  ASSERT_EQ(names_and_types.at(0).first, "Quarry Road");
+  ASSERT_EQ(to_string(static_cast<Language>(lang_iter->second)), "en");
+}
+
+class RouteWithStreetnameAndSign_en_USForwardBackwardNoName : public ::testing::Test {
+protected:
+  valhalla::gurka::map BuildPBF(const std::string& workdir) {
+    constexpr double gridsize_metres = 100;
+
+    const std::string ascii_map = R"(
+               O------PM------Q
+    )";
+
+    const gurka::ways ways = {
+        {"OPMQ",
+         {{"highway", "secondary"},
+          {"osm_id", "103"},
+          {"name", ""},
+          {"name:forward", "Waltonville Road"},
+          {"name:backward", "Quarry Road"}}},
+    };
+
+    if (!filesystem::exists(workdir)) {
+      bool created = filesystem::create_directories(workdir);
+      EXPECT_TRUE(created);
+    }
+
+    constexpr double gridsize = 100;
+
+    const auto layout =
+        gurka::detail::map_to_coordinates(ascii_map, gridsize_metres, {-76.69980, 40.25882});
+
+    auto pbf_filename = workdir + "/map.pbf";
+    detail::build_pbf(layout, ways, {}, {}, pbf_filename);
+
+    valhalla::gurka::map result;
+    result.nodes = layout;
+    return result;
+  }
+};
+
+///////////////////////////////////////////////////////////////////////////////
+TEST_F(RouteWithStreetnameAndSign_en_USForwardBackwardNoName, CheckForwardNames) {
+
+  const std::string workdir =
+      "test/data/gurka_language_with_streetname_and_sign_en_USForwardBackwardwithName";
+
+  if (!filesystem::exists(workdir)) {
+    bool created = filesystem::create_directories(workdir);
+    EXPECT_TRUE(created);
+  }
+
+  the_map = BuildPBF(workdir);
+
+  const std::string sqlite = {VALHALLA_SOURCE_DIR "test/data/language_admin.sqlite"};
+  the_map.config =
+      test::make_config(workdir,
+                        {{"mjolnir.admin", {VALHALLA_SOURCE_DIR "test/data/language_admin.sqlite"}},
+                         {"mjolnir.tile_dir", workdir + "/tiles"}});
+
+  std::vector<std::string> input_files = {workdir + "/map.pbf"};
+
+  build_tile_set(the_map.config, input_files, mjolnir::BuildStage::kInitialize,
+                 mjolnir::BuildStage::kValidate, false);
+
+  auto result = gurka::do_action(valhalla::Options::route, the_map, {"O", "Q"}, "auto");
+  gurka::assert::raw::expect_path(result, {"Waltonville Road"});
+
+  GraphReader graph_reader(the_map.config.get_child("mjolnir"));
+
+  GraphId OPMQ_edge_id;
+  const DirectedEdge* OPMQ_edge = nullptr;
+  GraphId QMPO_edge_id;
+  const DirectedEdge* QMPO_edge = nullptr;
+  std::tie(OPMQ_edge_id, OPMQ_edge, QMPO_edge_id, QMPO_edge) =
+      findEdge(graph_reader, the_map.nodes, "", "Q", baldr::GraphId{}, 103);
+  EXPECT_NE(OPMQ_edge, nullptr);
+  EXPECT_NE(QMPO_edge, nullptr);
+
+  GraphId node_id = OPMQ_edge->endnode();
+  auto tile = graph_reader.GetGraphTile(node_id);
+  auto edgeinfo = tile->edgeinfo(OPMQ_edge);
+  std::vector<uint8_t> types;
+  auto names_and_types = edgeinfo.GetNamesAndTypes(types, true);
+  ASSERT_EQ(names_and_types.size(), 1);
+
+  std::unordered_map<uint8_t, uint8_t> languages = edgeinfo.GetLanguageMap();
+  std::unordered_map<uint8_t, uint8_t>::const_iterator lang_iter = languages.find(0);
+  ASSERT_NE(lang_iter, languages.end());
+  ASSERT_EQ(names_and_types.at(0).first, "Waltonville Road");
+  ASSERT_EQ(to_string(static_cast<Language>(lang_iter->second)), "en");
+}
+
+///////////////////////////////////////////////////////////////////////////////
+TEST_F(RouteWithStreetnameAndSign_en_USForwardBackwardNoName, CheckBackwardNames) {
+
+  auto result = gurka::do_action(valhalla::Options::route, the_map, {"Q", "O"}, "auto");
+  gurka::assert::raw::expect_path(result, {"Quarry Road"});
+
+  GraphReader graph_reader(the_map.config.get_child("mjolnir"));
+
+  GraphId OPMQ_edge_id;
+  const DirectedEdge* OPMQ_edge = nullptr;
+  GraphId QMPO_edge_id;
+  const DirectedEdge* QMPO_edge = nullptr;
+  std::tie(OPMQ_edge_id, OPMQ_edge, QMPO_edge_id, QMPO_edge) =
+      findEdge(graph_reader, the_map.nodes, "", "Q", baldr::GraphId{}, 103);
+  EXPECT_NE(OPMQ_edge, nullptr);
+  EXPECT_NE(QMPO_edge, nullptr);
+
+  GraphId node_id = QMPO_edge->endnode();
+  auto tile = graph_reader.GetGraphTile(node_id);
+  auto edgeinfo = tile->edgeinfo(QMPO_edge);
+  std::vector<uint8_t> types;
+  auto names_and_types = edgeinfo.GetNamesAndTypes(types, true);
+  ASSERT_EQ(names_and_types.size(), 1);
+
+  std::unordered_map<uint8_t, uint8_t> languages = edgeinfo.GetLanguageMap();
+  std::unordered_map<uint8_t, uint8_t>::const_iterator lang_iter = languages.find(0);
+  ASSERT_NE(lang_iter, languages.end());
+  ASSERT_EQ(names_and_types.at(0).first, "Quarry Road");
+  ASSERT_EQ(to_string(static_cast<Language>(lang_iter->second)), "en");
+}
+
 /* TODO  Fix this edge case. This works while using degrees (boost) for points but it is too slow.
 class RouteWithStreetnameAndSign_fr_nl_MesenBelgiumRightLeft : public ::testing::Test {
 protected:
@@ -2493,7 +2733,7 @@ TEST_F(RouteWithStreetnameAndSign_fr_nl_MesenBelgiumRightLeft, CheckRightNames) 
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-TEST_F(RouteWithStreetnameAndSign_fr_nl_MesenBelgiumRightLeft, CheckLefttNames) {
+TEST_F(RouteWithStreetnameAndSign_fr_nl_MesenBelgiumRightLeft, CheckLeftNames) {
 
   auto result = gurka::do_action(valhalla::Options::route, the_map, {"O", "Q"}, "auto");
   gurka::assert::raw::expect_path(result, {"Chemin des Quatre Rois"});
@@ -2650,6 +2890,254 @@ TEST_F(RouteWithStreetnameAndSign_fr_de_FribourgSwitzerlandMulti, CheckBackwardN
   lang_iter = languages.find(1);
   ASSERT_EQ(to_string(static_cast<Language>(lang_iter->second)), "de");
   ASSERT_EQ(names_and_types.at(1).first, "Alpenstrasse");
+}
+
+class RouteWithStreetnameAndSign_rm_de_BivioSwitzerland : public ::testing::Test {
+protected:
+  valhalla::gurka::map BuildPBF(const std::string& workdir) {
+    constexpr double gridsize_metres = 100;
+
+    const std::string ascii_map = R"(
+               O------PM------Q
+    )";
+
+    const gurka::ways ways = {
+        {"OPMQ",
+         {{"highway", "secondary"},
+          {"osm_id", "103"},
+          {"name", "Vea del Giulia"},
+          {"name:it", "Vea del Giulia"},
+          {"name:de", "Julierstrasse"},
+          {"name:rm", "Via digl Gelgia"}}},
+    };
+
+    if (!filesystem::exists(workdir)) {
+      bool created = filesystem::create_directories(workdir);
+      EXPECT_TRUE(created);
+    }
+
+    constexpr double gridsize = 100;
+
+    const auto layout =
+        gurka::detail::map_to_coordinates(ascii_map, gridsize_metres, {9.65035, 46.46977});
+
+    auto pbf_filename = workdir + "/map.pbf";
+    detail::build_pbf(layout, ways, {}, {}, pbf_filename);
+
+    valhalla::gurka::map result;
+    result.nodes = layout;
+    return result;
+  }
+};
+
+///////////////////////////////////////////////////////////////////////////////
+TEST_F(RouteWithStreetnameAndSign_rm_de_BivioSwitzerland, CheckForwardNames) {
+
+  // language IT should be dropped, but since in name tag we don't toss.
+  // Lingustic polys/default languages in this area is rm and de.
+  // actual hotel address:
+  // Hotel Post, Julierstrasse 64 CH-7457 Bivio
+  const std::string workdir =
+      "test/data/gurka_language_with_streetname_and_sign_rm_de_BivioSwitzerland";
+
+  if (!filesystem::exists(workdir)) {
+    bool created = filesystem::create_directories(workdir);
+    EXPECT_TRUE(created);
+  }
+
+  the_map = BuildPBF(workdir);
+
+  const std::string sqlite = {VALHALLA_SOURCE_DIR "test/data/language_admin.sqlite"};
+  the_map.config =
+      test::make_config(workdir,
+                        {{"mjolnir.admin", {VALHALLA_SOURCE_DIR "test/data/language_admin.sqlite"}},
+                         {"mjolnir.tile_dir", workdir + "/tiles"}});
+
+  std::vector<std::string> input_files = {workdir + "/map.pbf"};
+
+  build_tile_set(the_map.config, input_files, mjolnir::BuildStage::kInitialize,
+                 mjolnir::BuildStage::kValidate, false);
+
+  auto result = gurka::do_action(valhalla::Options::route, the_map, {"O", "Q"}, "auto");
+  gurka::assert::raw::expect_path(result, {"Vea del Giulia/Via digl Gelgia/Julierstrasse"});
+  GraphReader graph_reader(the_map.config.get_child("mjolnir"));
+
+  GraphId OPMQ_edge_id;
+  const DirectedEdge* OPMQ_edge = nullptr;
+  GraphId QMPO_edge_id;
+  const DirectedEdge* QMPO_edge = nullptr;
+  std::tie(OPMQ_edge_id, OPMQ_edge, QMPO_edge_id, QMPO_edge) =
+      findEdge(graph_reader, the_map.nodes, "", "Q", baldr::GraphId{}, 103);
+  EXPECT_NE(OPMQ_edge, nullptr);
+  EXPECT_NE(QMPO_edge, nullptr);
+
+  GraphId node_id = OPMQ_edge->endnode();
+  auto tile = graph_reader.GetGraphTile(node_id);
+  auto edgeinfo = tile->edgeinfo(OPMQ_edge);
+  std::vector<uint8_t> types;
+  auto names_and_types = edgeinfo.GetNamesAndTypes(types, true);
+  ASSERT_EQ(names_and_types.size(), 3);
+
+  std::unordered_map<uint8_t, uint8_t> languages = edgeinfo.GetLanguageMap();
+  std::unordered_map<uint8_t, uint8_t>::const_iterator lang_iter = languages.find(0);
+  ASSERT_EQ(lang_iter, languages.end());
+  ASSERT_EQ(names_and_types.at(0).first, "Vea del Giulia");
+
+  lang_iter = languages.find(1);
+  ASSERT_EQ(to_string(static_cast<Language>(lang_iter->second)), "rm");
+  ASSERT_EQ(names_and_types.at(1).first, "Via digl Gelgia");
+
+  lang_iter = languages.find(2);
+  ASSERT_EQ(to_string(static_cast<Language>(lang_iter->second)), "de");
+  ASSERT_EQ(names_and_types.at(2).first, "Julierstrasse");
+}
+
+///////////////////////////////////////////////////////////////////////////////
+TEST_F(RouteWithStreetnameAndSign_rm_de_BivioSwitzerland, CheckBackwardNames) {
+
+  auto result = gurka::do_action(valhalla::Options::route, the_map, {"Q", "O"}, "auto");
+  gurka::assert::raw::expect_path(result, {"Vea del Giulia/Via digl Gelgia/Julierstrasse"});
+  GraphReader graph_reader(the_map.config.get_child("mjolnir"));
+
+  GraphId OPMQ_edge_id;
+  const DirectedEdge* OPMQ_edge = nullptr;
+  GraphId QMPO_edge_id;
+  const DirectedEdge* QMPO_edge = nullptr;
+  std::tie(OPMQ_edge_id, OPMQ_edge, QMPO_edge_id, QMPO_edge) =
+      findEdge(graph_reader, the_map.nodes, "", "Q", baldr::GraphId{}, 103);
+  EXPECT_NE(OPMQ_edge, nullptr);
+  EXPECT_NE(QMPO_edge, nullptr);
+
+  GraphId node_id = QMPO_edge->endnode();
+  auto tile = graph_reader.GetGraphTile(node_id);
+  auto edgeinfo = tile->edgeinfo(QMPO_edge);
+  std::vector<uint8_t> types;
+  auto names_and_types = edgeinfo.GetNamesAndTypes(types, true);
+  ASSERT_EQ(names_and_types.size(), 3);
+
+  std::unordered_map<uint8_t, uint8_t> languages = edgeinfo.GetLanguageMap();
+  std::unordered_map<uint8_t, uint8_t>::const_iterator lang_iter = languages.find(0);
+  ASSERT_EQ(lang_iter, languages.end());
+  ASSERT_EQ(names_and_types.at(0).first, "Vea del Giulia");
+
+  lang_iter = languages.find(1);
+  ASSERT_EQ(to_string(static_cast<Language>(lang_iter->second)), "rm");
+  ASSERT_EQ(names_and_types.at(1).first, "Via digl Gelgia");
+
+  lang_iter = languages.find(2);
+  ASSERT_EQ(to_string(static_cast<Language>(lang_iter->second)), "de");
+  ASSERT_EQ(names_and_types.at(2).first, "Julierstrasse");
+}
+
+class RouteWithStreetnameAndSign_de_ZurichSwitzerland : public ::testing::Test {
+protected:
+  valhalla::gurka::map BuildPBF(const std::string& workdir) {
+    constexpr double gridsize_metres = 100;
+
+    const std::string ascii_map = R"(
+               O------PM------Q
+    )";
+
+    const gurka::ways ways = {
+        {"OPMQ", {{"highway", "secondary"}, {"osm_id", "103"}, {"name", "Werdstrasse"}}},
+    };
+
+    if (!filesystem::exists(workdir)) {
+      bool created = filesystem::create_directories(workdir);
+      EXPECT_TRUE(created);
+    }
+
+    constexpr double gridsize = 100;
+
+    const auto layout =
+        gurka::detail::map_to_coordinates(ascii_map, gridsize_metres, {8.5355, 47.3726});
+
+    auto pbf_filename = workdir + "/map.pbf";
+    detail::build_pbf(layout, ways, {}, {}, pbf_filename);
+
+    valhalla::gurka::map result;
+    result.nodes = layout;
+    return result;
+  }
+};
+
+///////////////////////////////////////////////////////////////////////////////
+TEST_F(RouteWithStreetnameAndSign_de_ZurichSwitzerland, CheckForwardNames) {
+
+  const std::string workdir =
+      "test/data/gurka_language_with_streetname_and_sign_de_ZurichSwitzerland";
+
+  if (!filesystem::exists(workdir)) {
+    bool created = filesystem::create_directories(workdir);
+    EXPECT_TRUE(created);
+  }
+
+  the_map = BuildPBF(workdir);
+
+  const std::string sqlite = {VALHALLA_SOURCE_DIR "test/data/language_admin.sqlite"};
+  the_map.config =
+      test::make_config(workdir,
+                        {{"mjolnir.admin", {VALHALLA_SOURCE_DIR "test/data/language_admin.sqlite"}},
+                         {"mjolnir.tile_dir", workdir + "/tiles"}});
+
+  std::vector<std::string> input_files = {workdir + "/map.pbf"};
+
+  build_tile_set(the_map.config, input_files, mjolnir::BuildStage::kInitialize,
+                 mjolnir::BuildStage::kValidate, false);
+
+  auto result = gurka::do_action(valhalla::Options::route, the_map, {"O", "Q"}, "auto");
+  gurka::assert::raw::expect_path(result, {"Werdstrasse"});
+  GraphReader graph_reader(the_map.config.get_child("mjolnir"));
+
+  GraphId OPMQ_edge_id;
+  const DirectedEdge* OPMQ_edge = nullptr;
+  GraphId QMPO_edge_id;
+  const DirectedEdge* QMPO_edge = nullptr;
+  std::tie(OPMQ_edge_id, OPMQ_edge, QMPO_edge_id, QMPO_edge) =
+      findEdge(graph_reader, the_map.nodes, "", "Q", baldr::GraphId{}, 103);
+  EXPECT_NE(OPMQ_edge, nullptr);
+  EXPECT_NE(QMPO_edge, nullptr);
+
+  GraphId node_id = OPMQ_edge->endnode();
+  auto tile = graph_reader.GetGraphTile(node_id);
+  auto edgeinfo = tile->edgeinfo(OPMQ_edge);
+  std::vector<uint8_t> types;
+  auto names_and_types = edgeinfo.GetNamesAndTypes(types, true);
+  ASSERT_EQ(names_and_types.size(), 1);
+
+  std::unordered_map<uint8_t, uint8_t> languages = edgeinfo.GetLanguageMap();
+  std::unordered_map<uint8_t, uint8_t>::const_iterator lang_iter = languages.find(0);
+  ASSERT_EQ(to_string(static_cast<Language>(lang_iter->second)), "de");
+  ASSERT_EQ(names_and_types.at(0).first, "Werdstrasse");
+}
+
+///////////////////////////////////////////////////////////////////////////////
+TEST_F(RouteWithStreetnameAndSign_de_ZurichSwitzerland, CheckBackwardNames) {
+
+  auto result = gurka::do_action(valhalla::Options::route, the_map, {"Q", "O"}, "auto");
+  gurka::assert::raw::expect_path(result, {"Werdstrasse"});
+  GraphReader graph_reader(the_map.config.get_child("mjolnir"));
+
+  GraphId OPMQ_edge_id;
+  const DirectedEdge* OPMQ_edge = nullptr;
+  GraphId QMPO_edge_id;
+  const DirectedEdge* QMPO_edge = nullptr;
+  std::tie(OPMQ_edge_id, OPMQ_edge, QMPO_edge_id, QMPO_edge) =
+      findEdge(graph_reader, the_map.nodes, "", "Q", baldr::GraphId{}, 103);
+  EXPECT_NE(OPMQ_edge, nullptr);
+  EXPECT_NE(QMPO_edge, nullptr);
+
+  GraphId node_id = QMPO_edge->endnode();
+  auto tile = graph_reader.GetGraphTile(node_id);
+  auto edgeinfo = tile->edgeinfo(QMPO_edge);
+  std::vector<uint8_t> types;
+  auto names_and_types = edgeinfo.GetNamesAndTypes(types, true);
+  ASSERT_EQ(names_and_types.size(), 1);
+
+  std::unordered_map<uint8_t, uint8_t> languages = edgeinfo.GetLanguageMap();
+  std::unordered_map<uint8_t, uint8_t>::const_iterator lang_iter = languages.find(0);
+  ASSERT_EQ(to_string(static_cast<Language>(lang_iter->second)), "de");
+  ASSERT_EQ(names_and_types.at(0).first, "Werdstrasse");
 }
 
 class RouteWithStreetnameAndSign_fr_nl_EupenBelgium : public ::testing::Test {
@@ -4813,4 +5301,145 @@ TEST_F(RouteWithStreetnameAndSign_en_fr_QuebecCanada, CheckNonJunctionName) {
                 .sign()
                 .junction_names_size(),
             0);
+}
+
+class RouteWithStreetnameAndSign_en_ms_ta_zh_Singapore : public ::testing::Test {
+protected:
+  valhalla::gurka::map BuildPBF(const std::string& workdir) {
+    constexpr double gridsize_metres = 100;
+
+    const std::string ascii_map = R"(
+               O------PM------Q
+    )";
+    const gurka::ways ways = {
+        {"OPMQ",
+         {{"highway", "secondary"},
+          {"osm_id", "103"},
+          {"name", "Rochor"},
+          {"name:en", "Rochor"},
+          {"name:ms", "Rochor"},
+          {"name:ta", "ரோச்சோர்"},
+          {"name:zh", "梧槽"}}},
+    };
+
+    if (!filesystem::exists(workdir)) {
+      bool created = filesystem::create_directories(workdir);
+      EXPECT_TRUE(created);
+    }
+
+    constexpr double gridsize = 100;
+
+    const auto layout =
+        gurka::detail::map_to_coordinates(ascii_map, gridsize_metres, {103.87149, 1.32510});
+
+    auto pbf_filename = workdir + "/map.pbf";
+    detail::build_pbf(layout, ways, {}, {}, pbf_filename);
+
+    valhalla::gurka::map result;
+    result.nodes = layout;
+    return result;
+  }
+};
+
+///////////////////////////////////////////////////////////////////////////////
+TEST_F(RouteWithStreetnameAndSign_en_ms_ta_zh_Singapore, CheckForwardNames) {
+
+  const std::string workdir =
+      "test/data/gurka_language_with_streetname_and_sign_en_ms_ta_zh_Singapore";
+
+  if (!filesystem::exists(workdir)) {
+    bool created = filesystem::create_directories(workdir);
+    EXPECT_TRUE(created);
+  }
+
+  the_map = BuildPBF(workdir);
+
+  const std::string sqlite = {VALHALLA_SOURCE_DIR "test/data/language_admin.sqlite"};
+  the_map.config =
+      test::make_config(workdir,
+                        {{"mjolnir.admin", {VALHALLA_SOURCE_DIR "test/data/language_admin.sqlite"}},
+                         {"mjolnir.tile_dir", workdir + "/tiles"}});
+
+  std::vector<std::string> input_files = {workdir + "/map.pbf"};
+
+  build_tile_set(the_map.config, input_files, mjolnir::BuildStage::kInitialize,
+                 mjolnir::BuildStage::kValidate, false);
+
+  auto result = gurka::do_action(valhalla::Options::route, the_map, {"O", "Q"}, "auto");
+  gurka::assert::raw::expect_path(result, {"Rochor/梧槽/Rochor/ரோச்சோர்"});
+  GraphReader graph_reader(the_map.config.get_child("mjolnir"));
+
+  GraphId OPMQ_edge_id;
+  const DirectedEdge* OPMQ_edge = nullptr;
+  GraphId QMPO_edge_id;
+  const DirectedEdge* QMPO_edge = nullptr;
+  std::tie(OPMQ_edge_id, OPMQ_edge, QMPO_edge_id, QMPO_edge) =
+      findEdge(graph_reader, the_map.nodes, "", "Q", baldr::GraphId{}, 103);
+  EXPECT_NE(OPMQ_edge, nullptr);
+  EXPECT_NE(QMPO_edge, nullptr);
+
+  GraphId node_id = OPMQ_edge->endnode();
+  auto tile = graph_reader.GetGraphTile(node_id);
+  auto edgeinfo = tile->edgeinfo(OPMQ_edge);
+  std::vector<uint8_t> types;
+  auto names_and_types = edgeinfo.GetNamesAndTypes(types, true);
+  ASSERT_EQ(names_and_types.size(), 4);
+
+  std::unordered_map<uint8_t, uint8_t> languages = edgeinfo.GetLanguageMap();
+  std::unordered_map<uint8_t, uint8_t>::const_iterator lang_iter = languages.find(0);
+  ASSERT_EQ(to_string(static_cast<Language>(lang_iter->second)), "en");
+  ASSERT_EQ(names_and_types.at(0).first, "Rochor");
+
+  lang_iter = languages.find(1);
+  ASSERT_EQ(to_string(static_cast<Language>(lang_iter->second)), "zh");
+  ASSERT_EQ(names_and_types.at(1).first, "梧槽");
+
+  lang_iter = languages.find(2);
+  ASSERT_EQ(to_string(static_cast<Language>(lang_iter->second)), "ms");
+  ASSERT_EQ(names_and_types.at(2).first, "Rochor");
+
+  lang_iter = languages.find(3);
+  ASSERT_EQ(to_string(static_cast<Language>(lang_iter->second)), "ta");
+  ASSERT_EQ(names_and_types.at(3).first, "ரோச்சோர்");
+}
+
+///////////////////////////////////////////////////////////////////////////////
+TEST_F(RouteWithStreetnameAndSign_en_ms_ta_zh_Singapore, CheckBackwardNames) {
+
+  auto result = gurka::do_action(valhalla::Options::route, the_map, {"Q", "O"}, "auto");
+  gurka::assert::raw::expect_path(result, {"Rochor/梧槽/Rochor/ரோச்சோர்"});
+  GraphReader graph_reader(the_map.config.get_child("mjolnir"));
+
+  GraphId OPMQ_edge_id;
+  const DirectedEdge* OPMQ_edge = nullptr;
+  GraphId QMPO_edge_id;
+  const DirectedEdge* QMPO_edge = nullptr;
+  std::tie(OPMQ_edge_id, OPMQ_edge, QMPO_edge_id, QMPO_edge) =
+      findEdge(graph_reader, the_map.nodes, "", "Q", baldr::GraphId{}, 103);
+  EXPECT_NE(OPMQ_edge, nullptr);
+  EXPECT_NE(QMPO_edge, nullptr);
+
+  GraphId node_id = QMPO_edge->endnode();
+  auto tile = graph_reader.GetGraphTile(node_id);
+  auto edgeinfo = tile->edgeinfo(QMPO_edge);
+  std::vector<uint8_t> types;
+  auto names_and_types = edgeinfo.GetNamesAndTypes(types, true);
+  ASSERT_EQ(names_and_types.size(), 4);
+
+  std::unordered_map<uint8_t, uint8_t> languages = edgeinfo.GetLanguageMap();
+  std::unordered_map<uint8_t, uint8_t>::const_iterator lang_iter = languages.find(0);
+  ASSERT_EQ(to_string(static_cast<Language>(lang_iter->second)), "en");
+  ASSERT_EQ(names_and_types.at(0).first, "Rochor");
+
+  lang_iter = languages.find(1);
+  ASSERT_EQ(to_string(static_cast<Language>(lang_iter->second)), "zh");
+  ASSERT_EQ(names_and_types.at(1).first, "梧槽");
+
+  lang_iter = languages.find(2);
+  ASSERT_EQ(to_string(static_cast<Language>(lang_iter->second)), "ms");
+  ASSERT_EQ(names_and_types.at(2).first, "Rochor");
+
+  lang_iter = languages.find(3);
+  ASSERT_EQ(to_string(static_cast<Language>(lang_iter->second)), "ta");
+  ASSERT_EQ(names_and_types.at(3).first, "ரோச்சோர்");
 }
