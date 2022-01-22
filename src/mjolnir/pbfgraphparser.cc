@@ -2909,12 +2909,17 @@ public:
   void ProcessNameTag(const std::pair<std::string, std::string> tag,
                       std::string& name_w_lang,
                       std::string& language) {
-
     std::string t = tag.first;
-    if (tag.first.substr(0, 12) == "tunnel:name:")
+
+    // for now do not process pronunciation tags with languages
+    std::size_t found = t.find(":pronunciation");
+    if (found != std::string::npos)
+      return;
+
+    if (t.substr(0, 12) == "tunnel:name:")
       t = tag.first.substr(7);
     else {
-      std::size_t found = t.find(":lang:");
+      found = t.find(":lang:");
       if (found != std::string::npos) {
         t = tag.first.substr(found + 1);
       }
@@ -2946,7 +2951,14 @@ public:
   void ProcessLeftRightNameTag(const std::pair<std::string, std::string> tag,
                                std::string& name_left_right_w_lang,
                                std::string& lang_left_right) {
-    std::vector<std::string> tokens = GetTagTokens(tag_.first, ':');
+
+    std::string t = tag.first;
+    // for now do not process pronunciation tags with languages
+    std::size_t found = t.find(":pronunciation");
+    if (found != std::string::npos)
+      return;
+
+    std::vector<std::string> tokens = GetTagTokens(t, ':');
     if (tokens.size() == 3) {
 
       std::string lang = tokens.at(2);
