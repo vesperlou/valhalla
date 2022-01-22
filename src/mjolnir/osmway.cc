@@ -203,6 +203,9 @@ void OSMWay::ProcessNames(const UniqueNames& name_offset_map,
   tokens = GetTagTokens(name_offset_map.name(name_index));
   token_languages = GetTagTokens(name_offset_map.name(name_lang_index));
 
+  if (default_languages.size() == 0)
+    return;
+
   bool all_default = false, all_blank = true;
 
   // todo move this out to builder?
