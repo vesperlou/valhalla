@@ -5319,7 +5319,10 @@ protected:
           {"name:en", "Rochor"},
           {"name:ms", "Rochor"},
           {"name:ta", "ரோச்சோர்"},
-          {"name:zh", "梧槽"}}},
+          {"name:zh", "梧槽"},
+          {"name:en:pronunciation:nt-sampa", "English Language pronunciation"},
+          {"name:zh:pronunciation:nt-sampa", "Native zh Language pronunciation"},
+          {"name:pronunciation:nt-sampa", "Native Language pronunciation"}}},
     };
 
     if (!filesystem::exists(workdir)) {
@@ -5401,6 +5404,10 @@ TEST_F(RouteWithStreetnameAndSign_en_ms_ta_zh_Singapore, CheckForwardNames) {
   lang_iter = languages.find(3);
   ASSERT_EQ(to_string(static_cast<Language>(lang_iter->second)), "ta");
   ASSERT_EQ(names_and_types.at(3).first, "ரோச்சோர்");
+
+  std::unordered_map<uint8_t, std::pair<uint8_t, std::string>> pronunciations =
+      edgeinfo.GetPronunciationsMap();
+  ASSERT_EQ(pronunciations.size(), 0);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -5442,4 +5449,8 @@ TEST_F(RouteWithStreetnameAndSign_en_ms_ta_zh_Singapore, CheckBackwardNames) {
   lang_iter = languages.find(3);
   ASSERT_EQ(to_string(static_cast<Language>(lang_iter->second)), "ta");
   ASSERT_EQ(names_and_types.at(3).first, "ரோச்சோர்");
+
+  std::unordered_map<uint8_t, std::pair<uint8_t, std::string>> pronunciations =
+      edgeinfo.GetPronunciationsMap();
+  ASSERT_EQ(pronunciations.size(), 0);
 }
