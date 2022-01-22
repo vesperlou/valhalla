@@ -522,18 +522,18 @@ void BuildTileSet(const std::string& ways_file,
         // Get the admin index
         uint32_t admin_index = 0;
         bool dor = false;
+        std::vector<std::pair<std::string, bool>> default_languages;
 
         if (use_admin_db) {
           admin_index = (tile_within_one_admin) ? admin_polys.begin()->first
                                                 : GetMultiPolyId(admin_polys, node_ll, graphtile);
           dor = drive_on_right[admin_index];
+          default_languages = GetMultiPolyIndexes(language_ploys, node_ll);
+
         } else {
           admin_index = graphtile.AddAdmin("", "", osmdata.node_names.name(node.country_iso_index()),
                                            osmdata.node_names.name(node.state_iso_index()));
         }
-        std::vector<std::pair<std::string, bool>> default_languages =
-            GetMultiPolyIndexes(language_ploys, node_ll);
-
         // Look for potential duplicates
         // CheckForDuplicates(nodeid, node, edgelengths, nodes, edges, osmdata.ways, stats);
 
