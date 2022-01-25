@@ -2255,9 +2255,9 @@ public:
     }
 
     // Delete the name from from name field if it exists in the ref.
-    if (!name_.empty() && way_.ref_index()) {
+    if (!name_.empty() && !ref_.empty()) {
       std::vector<std::string> names = GetTagTokens(name_);
-      std::vector<std::string> refs = GetTagTokens(osmdata_.name_offset_map.name(way_.ref_index()));
+      std::vector<std::string> refs = GetTagTokens(ref_);
       bool bFound = false;
 
       std::string tmp;
@@ -2279,6 +2279,41 @@ public:
       }
       if (!tmp.empty()) {
         name_ = tmp;
+      } else
+        name_ = "";
+    }
+
+    // edge case.  name = name:<lg> and we contain a -  or /
+    // see https://www.openstreetmap.org/way/816515178#map=16/42.7888/-1.6391
+    if (name_ == name_w_lang_ && !name_.empty() && GetTagTokens(language_).size() == 1) {
+      bool process = false;
+      std::vector<std::string> names;
+
+      if (name_w_lang_.find(" - ") != std::string::npos) {
+        names = GetTagTokens(name_w_lang_, " - ");
+        process = true;
+      } else if (name_w_lang_.find(" / ") != std::string::npos) {
+        names = GetTagTokens(name_w_lang_, " / ");
+        process = true;
+      }
+
+      if (process) {
+        std::string tmp;
+        std::string l;
+
+        for (auto& name : names) {
+          if (!tmp.empty()) {
+            tmp += ";";
+            l += ";";
+          }
+          tmp += name;
+          l += language_;
+        }
+        if (!tmp.empty()) {
+          name_ = tmp;
+          name_w_lang_ = tmp;
+          language_ = l;
+        }
       }
     }
 
