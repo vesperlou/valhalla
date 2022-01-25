@@ -5454,3 +5454,634 @@ TEST_F(RouteWithStreetnameAndSign_en_ms_ta_zh_Singapore, CheckBackwardNames) {
       edgeinfo.GetPronunciationsMap();
   ASSERT_EQ(pronunciations.size(), 0);
 }
+
+class RouteWithStreetnameAndSign_ja_en_JapanPronunciations : public ::testing::Test {
+protected:
+  valhalla::gurka::map BuildPBF(const std::string& workdir) {
+    constexpr double gridsize_metres = 100;
+
+    const std::string ascii_map = R"(
+                       J
+                       |
+                       |
+                       |
+                       I
+                      /|\
+                    /  |  \
+                  /    |    \
+           L----K-------------H----G
+           A----B-------------E----F
+                  \    |    /
+                    \  |  /
+                      \|/
+                       C
+                       |
+                       |
+                       |
+                       D
+               O------PM------Q
+                       |
+                       |
+                       |
+                       N
+
+    )";
+
+    const gurka::ways ways = {
+        {"ABEF",
+         {{"highway", "motorway"},
+          {"osm_id", "98"},
+          {"name", "首都高速6号向島線"},
+          {"name:pronunciation", "ja_name_pronunciation"},
+          // TODO:  When multiple languages are supported, make sure pronunciations reference the
+          // correct name in the list.  For now these are tossed.
+          //{"name:en", "Shuto Expressway Route 6 Mukojima Line"},
+          {"name:es", "Ruta 6 Mukojima de la Autopista Shuto"},
+          {"name:ja", "首都高速6号向島線"},
+          {"name:ru", "Шоссе Мукодзима"},
+          {"ref", "6"},
+          {"oneway", "yes"}}},
+        {"GHKL",
+         {{"highway", "motorway"},
+          {"osm_id", "99"},
+          {"name", "首都高速6号向島線"},
+          {"name:pronunciation", "ja_name_pronunciation"},
+          //{"name:en", "Shuto Expressway Route 6 Mukojima Line"},
+          {"name:es", "Ruta 6 Mukojima de la Autopista Shuto"},
+          {"name:ja", "首都高速6号向島線"},
+          {"name:ru", "Шоссе Мукодзима"},
+          {"ref", "6"},
+          {"oneway", "yes"}}},
+        {"JICDMN",
+         {{"highway", "primary"},
+          {"osm_id", "100"},
+          {"name", "常磐道;東北道"},
+          {"name:en", "Joban Expressway;Tohoku Expressway"},
+          {"ref", "E6;E4"}}},
+        {"BC",
+         {{"highway", "motorway_link"},
+          {"osm_id", "103"},
+          {"name", ""},
+          {"oneway", "yes"},
+          {"junction:ref", "26B"},
+          {"destination", "常磐道;東北道"},
+          {"destination:lang:ja", "常磐道;東北道"},
+          // TODO:  For now, pronunciations win over languages.  We need to update the language in
+          // graphbuilder for pronunciations.
+          {"destination:pronunciation",
+           "ja_destination_pronunciation_1;ja_destination_pronunciation_2"},
+          // TODO:  When multiple languages are supported, make sure pronunciations reference the
+          // correct sign in the list.  For now these are tossed.
+          //{"destination:lang:en", "Joban Expressway;Tohoku Expressway"},
+          {"destination:street", "清洲橋通り"},
+          {"destination:street:lang:en", "Kiyosubashi-dori Avenue"},
+          {"destination:street:lang:es", "Calle Kiyosubashi"},
+          {"destination:street:lang:ja", "清洲橋通り"},
+          {"destination:street:lang:ja_rm", "Kiyosubashi Dōri"},
+          {"destination:ref", "E6;E4"}}},
+        {"CE",
+         {{"highway", "motorway_link"},
+          {"name", ""},
+          {"oneway", "yes"},
+          {"destination:ref", "E6;E4"}}},
+        {"HI",
+         {{"highway", "motorway_link"},
+          {"osm_id", "102"},
+          {"name", ""},
+          {"oneway", "yes"},
+          {"junction:ref", "26B"},
+          {"destination:street:to", "清澄通り"},
+          {"destination:street:to:lang:en", "Kiyosumi-dori"},
+          {"destination:street:to:lang:es", "Calle Kiyosumi"},
+          {"destination:street:to:lang:ja_kana", "きよすみどおり"},
+          {"destination:ref:to", "M4"}}},
+        {"IK",
+         {{"highway", "motorway_link"},
+          {"name", ""},
+          {"oneway", "yes"},
+          {"destination:ref", "E6;E4"}}},
+        {"OPMQ",
+         {{"highway", "secondary"},
+          {"osm_id", "103"},
+          {"name", "国技館通り"},
+          {"name:en", "Kokugikan-dori"},
+          {"name:es", "Calle Kokugikan"},
+          {"name:ja_kana", "こくぎかんどおり"},
+          {"name:pronunciation", "ja_name_pronunciation_1;ja_name_pronunciation_2"}}},
+        {"DP",
+         {{"highway", "secondary_link"},
+          {"osm_id", "104"},
+          {"name", ""},
+          {"oneway", "yes"},
+          {"destination", "大和街道"},
+          {"destination:street", "国技館通り"},
+          {"destination:street:lang:en", "Kokugikan-dori"},
+          {"destination:street:lang:es", "Calle Kokugikan"},
+          {"destination:street:lang:ja_kana", "こくぎかんどおり"}}},
+    };
+
+    const gurka::nodes nodes = {
+        {"M",
+         {{"highway", "traffic_signals"}, {"name", "両国二丁目"}, {"name:en", "Ryogoku 2-chome"}}}};
+
+    if (!filesystem::exists(workdir)) {
+      bool created = filesystem::create_directories(workdir);
+      EXPECT_TRUE(created);
+    }
+
+    constexpr double gridsize = 100;
+
+    const auto layout =
+        gurka::detail::map_to_coordinates(ascii_map, gridsize_metres, {139.79079, 35.69194});
+
+    auto pbf_filename = workdir + "/map.pbf";
+    detail::build_pbf(layout, ways, nodes, {}, pbf_filename);
+
+    valhalla::gurka::map result;
+    result.nodes = layout;
+    return result;
+  }
+};
+
+///////////////////////////////////////////////////////////////////////////////
+TEST_F(RouteWithStreetnameAndSign_ja_en_JapanPronunciations, CheckStreetNamesAndSigns1) {
+
+  const std::string workdir =
+      "test/data/gurka_language_with_streetname_and_sign_ja_en_JapanPronunciations";
+
+  if (!filesystem::exists(workdir)) {
+    bool created = filesystem::create_directories(workdir);
+    EXPECT_TRUE(created);
+  }
+
+  the_map = BuildPBF(workdir);
+
+  const std::string sqlite = {VALHALLA_SOURCE_DIR "test/data/language_admin.sqlite"};
+  the_map.config =
+      test::make_config(workdir,
+                        {{"mjolnir.admin", {VALHALLA_SOURCE_DIR "test/data/language_admin.sqlite"}},
+                         {"mjolnir.tile_dir", workdir + "/tiles"}});
+
+  std::vector<std::string> input_files = {workdir + "/map.pbf"};
+
+  build_tile_set(the_map.config, input_files, mjolnir::BuildStage::kInitialize,
+                 mjolnir::BuildStage::kValidate, false);
+
+  auto result = gurka::do_action(valhalla::Options::route, the_map, {"A", "D"}, "auto");
+  gurka::assert::raw::expect_path(result, {"6/首都高速6号向島線", "",
+                                           "常磐道/東北道/Joban Expressway/Tohoku Expressway/E6/E4"});
+
+  GraphReader graph_reader(the_map.config.get_child("mjolnir"));
+
+  GraphId ABEF_edge_id;
+  const DirectedEdge* ABEF_edge = nullptr;
+  GraphId FEBA_edge_id;
+  const DirectedEdge* FEBA_edge = nullptr;
+  std::tie(ABEF_edge_id, ABEF_edge, FEBA_edge_id, FEBA_edge) =
+      findEdge(graph_reader, the_map.nodes, "", "F", baldr::GraphId{}, 98);
+  EXPECT_NE(ABEF_edge, nullptr);
+  EXPECT_NE(FEBA_edge, nullptr);
+
+  GraphId BC_edge_id;
+  const DirectedEdge* BC_edge = nullptr;
+  GraphId CB_edge_id;
+  const DirectedEdge* CB_edge = nullptr;
+  std::tie(BC_edge_id, BC_edge, CB_edge_id, CB_edge) =
+      findEdge(graph_reader, the_map.nodes, "", "C", baldr::GraphId{}, 103);
+  EXPECT_NE(BC_edge, nullptr);
+  EXPECT_NE(CB_edge, nullptr);
+
+  GraphId JICDMN_edge_id;
+  const DirectedEdge* JICDMN_edge = nullptr;
+  GraphId NMDCIJ_edge_id;
+  const DirectedEdge* NMDCIJ_edge = nullptr;
+  std::tie(JICDMN_edge_id, JICDMN_edge, NMDCIJ_edge_id, NMDCIJ_edge) =
+      findEdge(graph_reader, the_map.nodes, "", "N", baldr::GraphId{}, 100);
+  EXPECT_NE(JICDMN_edge, nullptr);
+  EXPECT_NE(NMDCIJ_edge, nullptr);
+
+  GraphId node_id = ABEF_edge->endnode();
+  auto tile = graph_reader.GetGraphTile(node_id);
+  auto edgeinfo = tile->edgeinfo(ABEF_edge);
+  std::vector<uint8_t> types;
+  auto names_and_types = edgeinfo.GetNamesAndTypes(types, true);
+  std::unordered_map<uint8_t, uint8_t> languages = edgeinfo.GetLanguageMap();
+  std::unordered_map<uint8_t, std::pair<uint8_t, std::string>> pronunciations =
+      edgeinfo.GetPronunciationsMap();
+
+  ASSERT_EQ(names_and_types.size(), 2);
+  ASSERT_EQ(languages.size(), 1);
+  ASSERT_EQ(pronunciations.size(), 1);
+
+  ASSERT_EQ(names_and_types.at(0).first, "6");
+  std::unordered_map<uint8_t, std::pair<uint8_t, std::string>>::const_iterator pronunciations_iter =
+      pronunciations.find(0);
+  ASSERT_EQ(pronunciations_iter, pronunciations.end());
+
+  ASSERT_EQ(names_and_types.at(1).first, "首都高速6号向島線");
+  pronunciations_iter = pronunciations.find(1);
+  ASSERT_NE(pronunciations_iter, pronunciations.end());
+  ASSERT_EQ((pronunciations_iter->second).second, "ja_name_pronunciation");
+
+  node_id = BC_edge->endnode();
+  tile = graph_reader.GetGraphTile(node_id);
+  edgeinfo = tile->edgeinfo(BC_edge);
+  types.clear();
+  names_and_types = edgeinfo.GetNamesAndTypes(types, true);
+  ASSERT_EQ(names_and_types.size(), 0);
+
+  std::unordered_map<uint8_t, std::tuple<uint8_t, uint8_t, std::string>> linguistics;
+  std::vector<SignInfo> edge_signs = tile->GetSigns(BC_edge_id.id(), linguistics);
+
+  ASSERT_EQ(edge_signs.size(), 7);
+  ASSERT_EQ(linguistics.size(), 4);
+
+  ASSERT_EQ(edge_signs.at(0).text(), "26B");
+  std::unordered_map<uint8_t, std::tuple<uint8_t, uint8_t, std::string>>::const_iterator iter =
+      linguistics.find(0);
+  ASSERT_EQ(iter, linguistics.end());
+
+  ASSERT_EQ(edge_signs.at(1).text(), "E6");
+  iter = linguistics.find(1);
+  ASSERT_EQ(iter, linguistics.end());
+
+  ASSERT_EQ(edge_signs.at(2).text(), "E4");
+  iter = linguistics.find(2);
+  ASSERT_EQ(iter, linguistics.end());
+
+  ASSERT_EQ(edge_signs.at(3).text(), "清洲橋通り");
+  iter = linguistics.find(3);
+  ASSERT_NE(iter, linguistics.end());
+  ASSERT_EQ(to_string(
+                static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(iter->second))),
+            "ja");
+
+  ASSERT_EQ(edge_signs.at(4).text(), "Kiyosubashi-dori Avenue");
+  iter = linguistics.find(4);
+  ASSERT_NE(iter, linguistics.end());
+  ASSERT_EQ(to_string(
+                static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(iter->second))),
+            "en");
+
+  ASSERT_EQ(edge_signs.at(5).text(), "常磐道");
+  iter = linguistics.find(5);
+  ASSERT_NE(iter, linguistics.end());
+  ASSERT_EQ(to_string(
+                static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(iter->second))),
+            "none");
+  ASSERT_EQ(std::get<kLinguisticMapTuplePronunciationIndex>(iter->second),
+            "ja_destination_pronunciation_1");
+
+  ASSERT_EQ(edge_signs.at(6).text(), "東北道");
+  iter = linguistics.find(6);
+  ASSERT_NE(iter, linguistics.end());
+  ASSERT_EQ(to_string(
+                static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(iter->second))),
+            "none");
+  ASSERT_EQ(std::get<kLinguisticMapTuplePronunciationIndex>(iter->second),
+            "ja_destination_pronunciation_2");
+
+  node_id = JICDMN_edge->endnode();
+  tile = graph_reader.GetGraphTile(node_id);
+  edgeinfo = tile->edgeinfo(JICDMN_edge);
+  types.clear();
+  names_and_types = edgeinfo.GetNamesAndTypes(types, true);
+  languages = edgeinfo.GetLanguageMap();
+
+  ASSERT_EQ(names_and_types.size(), 6);
+
+  ASSERT_EQ(names_and_types.at(0).first, "常磐道");
+  std::unordered_map<uint8_t, uint8_t>::const_iterator lang_iter = languages.find(0);
+  ASSERT_NE(lang_iter, languages.end());
+  ASSERT_EQ(to_string(static_cast<Language>(lang_iter->second)), "ja");
+
+  ASSERT_EQ(names_and_types.at(1).first, "東北道");
+  lang_iter = languages.find(1);
+  ASSERT_NE(lang_iter, languages.end());
+  ASSERT_EQ(to_string(static_cast<Language>(lang_iter->second)), "ja");
+
+  ASSERT_EQ(names_and_types.at(2).first, "Joban Expressway");
+  lang_iter = languages.find(2);
+  ASSERT_NE(lang_iter, languages.end());
+  ASSERT_EQ(to_string(static_cast<Language>(lang_iter->second)), "en");
+
+  ASSERT_EQ(names_and_types.at(3).first, "Tohoku Expressway");
+  lang_iter = languages.find(3);
+  ASSERT_NE(lang_iter, languages.end());
+  ASSERT_EQ(to_string(static_cast<Language>(lang_iter->second)), "en");
+
+  ASSERT_EQ(names_and_types.at(4).first, "E6");
+  lang_iter = languages.find(4);
+  ASSERT_EQ(lang_iter, languages.end());
+
+  ASSERT_EQ(names_and_types.at(5).first, "E4");
+  lang_iter = languages.find(5);
+  ASSERT_EQ(lang_iter, languages.end());
+}
+
+///////////////////////////////////////////////////////////////////////////////
+TEST_F(RouteWithStreetnameAndSign_ja_en_JapanPronunciations, CheckStreetNamesAndSigns2) {
+  auto result = gurka::do_action(valhalla::Options::route, the_map, {"G", "J"}, "auto");
+  gurka::assert::raw::expect_path(result, {"6/首都高速6号向島線", "",
+                                           "常磐道/東北道/Joban Expressway/Tohoku Expressway/E6/E4"});
+
+  GraphReader graph_reader(the_map.config.get_child("mjolnir"));
+
+  GraphId HI_edge_id;
+  const DirectedEdge* HI_edge = nullptr;
+  GraphId IH_edge_id;
+  const DirectedEdge* IH_edge = nullptr;
+  std::tie(HI_edge_id, HI_edge, IH_edge_id, IH_edge) =
+      findEdge(graph_reader, the_map.nodes, "", "I", baldr::GraphId{}, 102);
+  EXPECT_NE(HI_edge, nullptr);
+  EXPECT_NE(IH_edge, nullptr);
+
+  GraphId node_id = HI_edge->endnode();
+  auto tile = graph_reader.GetGraphTile(node_id);
+  auto edgeinfo = tile->edgeinfo(HI_edge);
+  std::vector<uint8_t> types;
+  auto names_and_types = edgeinfo.GetNamesAndTypes(types, true);
+  ASSERT_EQ(names_and_types.size(), 0);
+
+  std::unordered_map<uint8_t, std::tuple<uint8_t, uint8_t, std::string>> linguistics;
+  std::vector<SignInfo> edge_signs = tile->GetSigns(HI_edge_id.id(), linguistics);
+
+  ASSERT_EQ(edge_signs.size(), 4);
+  ASSERT_EQ(linguistics.size(), 2);
+
+  ASSERT_EQ(edge_signs.at(0).text(), "26B");
+  std::unordered_map<uint8_t, std::tuple<uint8_t, uint8_t, std::string>>::const_iterator iter =
+      linguistics.find(0);
+  ASSERT_EQ(iter, linguistics.end());
+
+  ASSERT_EQ(edge_signs.at(1).text(), "M4");
+  iter = linguistics.find(1);
+  ASSERT_EQ(iter, linguistics.end());
+
+  ASSERT_EQ(edge_signs.at(2).text(), "清澄通り");
+  iter = linguistics.find(2);
+  ASSERT_NE(iter, linguistics.end());
+  ASSERT_EQ(to_string(
+                static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(iter->second))),
+            "ja");
+
+  ASSERT_EQ(edge_signs.at(3).text(), "Kiyosumi-dori");
+  iter = linguistics.find(3);
+  ASSERT_NE(iter, linguistics.end());
+  ASSERT_EQ(to_string(
+                static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(iter->second))),
+            "en");
+}
+
+///////////////////////////////////////////////////////////////////////////////
+TEST_F(RouteWithStreetnameAndSign_ja_en_JapanPronunciations, CheckGuideSigns) {
+  auto result = gurka::do_action(valhalla::Options::route, the_map, {"J", "O"}, "auto");
+  gurka::assert::raw::expect_path(result, {"常磐道/東北道/Joban Expressway/Tohoku Expressway/E6/E4",
+                                           "常磐道/東北道/Joban Expressway/Tohoku Expressway/E6/E4",
+                                           "常磐道/東北道/Joban Expressway/Tohoku Expressway/E6/E4",
+                                           "", "国技館通り/Kokugikan-dori"});
+
+  GraphReader graph_reader(the_map.config.get_child("mjolnir"));
+
+  GraphId DP_edge_id;
+  const DirectedEdge* DP_edge = nullptr;
+  GraphId PD_edge_id;
+  const DirectedEdge* PD_edge = nullptr;
+  std::tie(DP_edge_id, DP_edge, PD_edge_id, PD_edge) =
+      findEdge(graph_reader, the_map.nodes, "", "P", baldr::GraphId{}, 104);
+  EXPECT_NE(DP_edge, nullptr);
+  EXPECT_NE(PD_edge, nullptr);
+
+  GraphId node_id = PD_edge->endnode();
+  auto tile = graph_reader.GetGraphTile(node_id);
+  auto edgeinfo = tile->edgeinfo(PD_edge);
+  std::vector<uint8_t> types;
+  auto names_and_types = edgeinfo.GetNamesAndTypes(types, true);
+  ASSERT_EQ(names_and_types.size(), 0);
+
+  std::unordered_map<uint8_t, std::tuple<uint8_t, uint8_t, std::string>> linguistics;
+  std::vector<SignInfo> edge_signs = tile->GetSigns(DP_edge_id.id(), linguistics);
+
+  ASSERT_EQ(edge_signs.size(), 3);
+  ASSERT_EQ(linguistics.size(), 2);
+
+  ASSERT_EQ(edge_signs.at(0).text(), "国技館通り");
+  std::unordered_map<uint8_t, std::tuple<uint8_t, uint8_t, std::string>>::const_iterator iter =
+      linguistics.find(0);
+  ASSERT_NE(iter, linguistics.end());
+  ASSERT_EQ(to_string(
+                static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(iter->second))),
+            "ja");
+
+  ASSERT_EQ(edge_signs.at(1).text(), "Kokugikan-dori");
+  iter = linguistics.find(1);
+  ASSERT_NE(iter, linguistics.end());
+  ASSERT_EQ(to_string(
+                static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(iter->second))),
+            "en");
+
+  ASSERT_EQ(edge_signs.at(2).text(), "大和街道");
+  iter = linguistics.find(2);
+  ASSERT_EQ(iter, linguistics.end());
+}
+
+///////////////////////////////////////////////////////////////////////////////
+TEST_F(RouteWithStreetnameAndSign_ja_en_JapanPronunciations, CheckNonJunctionName) {
+  auto result = gurka::do_action(valhalla::Options::route, the_map, {"J", "Q"}, "auto");
+  gurka::assert::raw::expect_path(result, {"常磐道/東北道/Joban Expressway/Tohoku Expressway/E6/E4",
+                                           "常磐道/東北道/Joban Expressway/Tohoku Expressway/E6/E4",
+                                           "常磐道/東北道/Joban Expressway/Tohoku Expressway/E6/E4",
+                                           "常磐道/東北道/Joban Expressway/Tohoku Expressway/E6/E4",
+                                           "国技館通り/Kokugikan-dori"});
+
+  GraphReader graph_reader(the_map.config.get_child("mjolnir"));
+
+  GraphId OPMQ_edge_id;
+  const DirectedEdge* OPMQ_edge = nullptr;
+  GraphId QMPO_edge_id;
+  const DirectedEdge* QMPO_edge = nullptr;
+  std::tie(OPMQ_edge_id, OPMQ_edge, QMPO_edge_id, QMPO_edge) =
+      findEdge(graph_reader, the_map.nodes, "", "Q", baldr::GraphId{}, 103);
+  EXPECT_NE(OPMQ_edge, nullptr);
+  EXPECT_NE(QMPO_edge, nullptr);
+
+  GraphId node_id = OPMQ_edge->endnode();
+  auto tile = graph_reader.GetGraphTile(node_id);
+  auto edgeinfo = tile->edgeinfo(OPMQ_edge);
+  std::vector<uint8_t> types;
+  auto names_and_types = edgeinfo.GetNamesAndTypes(types, true);
+  ASSERT_EQ(names_and_types.size(), 2);
+
+  std::unordered_map<uint8_t, uint8_t> languages = edgeinfo.GetLanguageMap();
+  std::unordered_map<uint8_t, uint8_t>::const_iterator lang_iter = languages.find(0);
+  ASSERT_NE(lang_iter, languages.end());
+  ASSERT_EQ(names_and_types.at(0).first, "国技館通り");
+  ASSERT_EQ(to_string(static_cast<Language>(lang_iter->second)), "ja");
+
+  lang_iter = languages.find(1);
+  ASSERT_NE(lang_iter, languages.end());
+  ASSERT_EQ(names_and_types.at(1).first, "Kokugikan-dori");
+  ASSERT_EQ(to_string(static_cast<Language>(lang_iter->second)), "en");
+
+  GraphId DM_edge_id;
+  const DirectedEdge* DM_edge = nullptr;
+  GraphId MD_edge_id;
+  const DirectedEdge* MD_edge = nullptr;
+  std::tie(DM_edge_id, DM_edge, MD_edge_id, MD_edge) =
+      findEdge(graph_reader, the_map.nodes, "", "M", baldr::GraphId{}, 100);
+  EXPECT_NE(DM_edge, nullptr);
+  EXPECT_NE(MD_edge, nullptr);
+
+  node_id = DM_edge->endnode();
+  tile = graph_reader.GetGraphTile(node_id);
+
+  std::unordered_map<uint8_t, std::tuple<uint8_t, uint8_t, std::string>> linguistics;
+  std::vector<SignInfo> edge_signs = tile->GetSigns(node_id.id(), linguistics, true);
+
+  ASSERT_EQ(edge_signs.size(), 2);
+  ASSERT_EQ(linguistics.size(), 2);
+
+  ASSERT_EQ(edge_signs.at(0).text(), "両国二丁目");
+  std::unordered_map<uint8_t, std::tuple<uint8_t, uint8_t, std::string>>::const_iterator iter =
+      linguistics.find(0);
+  ASSERT_NE(iter, linguistics.end());
+  ASSERT_EQ(to_string(
+                static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(iter->second))),
+            "ja");
+
+  ASSERT_EQ(edge_signs.at(1).text(), "Ryogoku 2-chome");
+  iter = linguistics.find(1);
+  ASSERT_NE(iter, linguistics.end());
+  ASSERT_EQ(to_string(
+                static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(iter->second))),
+            "en");
+}
+
+class RouteWithStreetnameAndSign_en_USMultiWithNameDash : public ::testing::Test {
+protected:
+  valhalla::gurka::map BuildPBF(const std::string& workdir) {
+    constexpr double gridsize_metres = 100;
+
+    const std::string ascii_map = R"(
+               O------PM------Q
+    )";
+
+    const gurka::ways ways = {
+        {"OPMQ",
+         {{"highway", "secondary"},
+          {"osm_id", "103"},
+          {"name", "Pamplona South - Airport"},
+          {"name:en", "Pamplona South - Airport"}}},
+    };
+
+    if (!filesystem::exists(workdir)) {
+      bool created = filesystem::create_directories(workdir);
+      EXPECT_TRUE(created);
+    }
+
+    constexpr double gridsize = 100;
+
+    const auto layout =
+        gurka::detail::map_to_coordinates(ascii_map, gridsize_metres, {-76.69980, 40.25882});
+
+    auto pbf_filename = workdir + "/map.pbf";
+    detail::build_pbf(layout, ways, {}, {}, pbf_filename);
+
+    valhalla::gurka::map result;
+    result.nodes = layout;
+    return result;
+  }
+};
+
+///////////////////////////////////////////////////////////////////////////////
+TEST_F(RouteWithStreetnameAndSign_en_USMultiWithNameDash, CheckForwardNames) {
+
+  const std::string workdir =
+      "test/data/gurka_language_with_streetname_and_sign_en_USMultiWithNameDash";
+
+  if (!filesystem::exists(workdir)) {
+    bool created = filesystem::create_directories(workdir);
+    EXPECT_TRUE(created);
+  }
+
+  the_map = BuildPBF(workdir);
+
+  const std::string sqlite = {VALHALLA_SOURCE_DIR "test/data/language_admin.sqlite"};
+  the_map.config =
+      test::make_config(workdir,
+                        {{"mjolnir.admin", {VALHALLA_SOURCE_DIR "test/data/language_admin.sqlite"}},
+                         {"mjolnir.tile_dir", workdir + "/tiles"}});
+
+  std::vector<std::string> input_files = {workdir + "/map.pbf"};
+
+  build_tile_set(the_map.config, input_files, mjolnir::BuildStage::kInitialize,
+                 mjolnir::BuildStage::kValidate, false);
+
+  auto result = gurka::do_action(valhalla::Options::route, the_map, {"O", "Q"}, "auto");
+  gurka::assert::raw::expect_path(result, {"Pamplona South/Airport"});
+
+  GraphReader graph_reader(the_map.config.get_child("mjolnir"));
+
+  GraphId OPMQ_edge_id;
+  const DirectedEdge* OPMQ_edge = nullptr;
+  GraphId QMPO_edge_id;
+  const DirectedEdge* QMPO_edge = nullptr;
+  std::tie(OPMQ_edge_id, OPMQ_edge, QMPO_edge_id, QMPO_edge) =
+      findEdge(graph_reader, the_map.nodes, "", "Q", baldr::GraphId{}, 103);
+  EXPECT_NE(OPMQ_edge, nullptr);
+  EXPECT_NE(QMPO_edge, nullptr);
+
+  GraphId node_id = OPMQ_edge->endnode();
+  auto tile = graph_reader.GetGraphTile(node_id);
+  auto edgeinfo = tile->edgeinfo(OPMQ_edge);
+  std::vector<uint8_t> types;
+  auto names_and_types = edgeinfo.GetNamesAndTypes(types, true);
+  ASSERT_EQ(names_and_types.size(), 2);
+
+  std::unordered_map<uint8_t, uint8_t> languages = edgeinfo.GetLanguageMap();
+  std::unordered_map<uint8_t, uint8_t>::const_iterator lang_iter = languages.find(0);
+  ASSERT_NE(lang_iter, languages.end());
+  ASSERT_EQ(names_and_types.at(0).first, "Pamplona South");
+  ASSERT_EQ(to_string(static_cast<Language>(lang_iter->second)), "en");
+
+  lang_iter = languages.find(1);
+  ASSERT_NE(lang_iter, languages.end());
+  ASSERT_EQ(names_and_types.at(1).first, "Airport");
+  ASSERT_EQ(to_string(static_cast<Language>(lang_iter->second)), "en");
+}
+
+///////////////////////////////////////////////////////////////////////////////
+TEST_F(RouteWithStreetnameAndSign_en_USMultiWithNameDash, CheckBackwardNames) {
+
+  auto result = gurka::do_action(valhalla::Options::route, the_map, {"Q", "O"}, "auto");
+  gurka::assert::raw::expect_path(result, {"Pamplona South/Airport"});
+
+  GraphReader graph_reader(the_map.config.get_child("mjolnir"));
+
+  GraphId OPMQ_edge_id;
+  const DirectedEdge* OPMQ_edge = nullptr;
+  GraphId QMPO_edge_id;
+  const DirectedEdge* QMPO_edge = nullptr;
+  std::tie(OPMQ_edge_id, OPMQ_edge, QMPO_edge_id, QMPO_edge) =
+      findEdge(graph_reader, the_map.nodes, "", "Q", baldr::GraphId{}, 103);
+  EXPECT_NE(OPMQ_edge, nullptr);
+  EXPECT_NE(QMPO_edge, nullptr);
+
+  GraphId node_id = QMPO_edge->endnode();
+  auto tile = graph_reader.GetGraphTile(node_id);
+  auto edgeinfo = tile->edgeinfo(QMPO_edge);
+  std::vector<uint8_t> types;
+  auto names_and_types = edgeinfo.GetNamesAndTypes(types, true);
+  ASSERT_EQ(names_and_types.size(), 2);
+
+  std::unordered_map<uint8_t, uint8_t> languages = edgeinfo.GetLanguageMap();
+  std::unordered_map<uint8_t, uint8_t>::const_iterator lang_iter = languages.find(0);
+  ASSERT_NE(lang_iter, languages.end());
+  ASSERT_EQ(names_and_types.at(0).first, "Pamplona South");
+  ASSERT_EQ(to_string(static_cast<Language>(lang_iter->second)), "en");
+
+  lang_iter = languages.find(1);
+  ASSERT_NE(lang_iter, languages.end());
+  ASSERT_EQ(names_and_types.at(1).first, "Airport");
+  ASSERT_EQ(to_string(static_cast<Language>(lang_iter->second)), "en");
+}
