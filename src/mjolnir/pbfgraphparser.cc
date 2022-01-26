@@ -2944,8 +2944,11 @@ public:
   void ProcessNameTag(const std::pair<std::string, std::string> tag,
                       std::string& name_w_lang,
                       std::string& language) {
-    std::string t = tag.first;
 
+    if (!use_admin_db_)
+      return;
+
+    std::string t = tag.first;
     // for now do not process pronunciation tags with languages
     std::size_t found = t.find(":pronunciation");
     if (found != std::string::npos)
@@ -2986,6 +2989,8 @@ public:
   void ProcessLeftRightNameTag(const std::pair<std::string, std::string> tag,
                                std::string& name_left_right_w_lang,
                                std::string& lang_left_right) {
+    if (!use_admin_db_)
+      return;
 
     std::string t = tag.first;
     // for now do not process pronunciation tags with languages
@@ -3011,6 +3016,10 @@ public:
   }
 
   void ProcessName(const std::string& name_w_lang, std::string& name, std::string& language) {
+
+    if (!use_admin_db_)
+      return;
+
     if (!name.empty()) {
       if (name_w_lang.empty())
         return;
@@ -3032,6 +3041,9 @@ public:
                             const std::string& language,
                             std::string& name_left_right,
                             std::string& lang_left_right) {
+    if (!use_admin_db_)
+      return;
+
     if (!name_left_right.empty()) {
 
       if (name_left_right_w_lang.empty())
