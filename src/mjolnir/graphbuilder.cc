@@ -715,7 +715,8 @@ void BuildTileSet(const std::string& ways_file,
           // Get the shape for the edge and compute its length
           uint32_t edge_info_offset;
           auto found = geo_attribute_cache.cend();
-          if (((w.name_left_index() && w.name_right_index()) ||
+          if (((w.ref_left_index() && w.ref_right_index()) ||
+               (w.name_left_index() && w.name_right_index()) ||
                (w.official_name_left_index() && w.official_name_right_index()) ||
                (w.alt_name_left_index() && w.alt_name_right_index())) ||
               dual_refs || (w.name_forward_index() && w.name_backward_index()) ||
@@ -767,6 +768,17 @@ void BuildTileSet(const std::string& ways_file,
               diff_names = true;
             }
 
+            uint32_t ref_index = w.ref_index(), ref_lang_index = w.ref_lang_index();
+            if (w.ref_right_index() && forward) {
+              ref_index = w.ref_right_index();
+              ref_lang_index = w.ref_right_lang_index();
+              diff_names = true;
+            } else if (w.ref_left_index() && !forward) {
+              ref_index = w.ref_left_index();
+              ref_lang_index = w.ref_left_lang_index();
+              diff_names = true;
+            }
+
             uint32_t tunnel_index = w.tunnel_name_index(),
                      tunnel_lang_index = w.tunnel_name_lang_index();
             if (w.tunnel_name_right_index() && forward) {
@@ -780,7 +792,6 @@ void BuildTileSet(const std::string& ways_file,
             }
 
             uint16_t types = 0;
-            uint32_t ref_index = w.ref_index(), ref_lang_index = w.ref_lang_index();
             std::vector<std::string> names, tagged_values, linguistics;
             w.GetNames(ref, osmdata.name_offset_map, p, default_languages, ref_index, ref_lang_index,
                        name_index, name_lang_index, official_name_index, official_name_lang_index,

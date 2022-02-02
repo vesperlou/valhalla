@@ -1598,7 +1598,11 @@ public:
         n.set_exit_to_index(osmdata_.node_names.index(tag.second));
         ++osmdata_.node_exit_to_count;
       } else if (tag.first == "ref" && is_highway_junction && hasTag) {
-        // Add the name to the unique node names list and store its index in the OSM node
+        // Add the name to the unique node names list and store its index in the OSM node.
+
+        // TODO  Need to process ref:right and ref:left and add correctly in graphbuilder.
+        // ref:left means the ref for the left exit and ref:right means the ref for the
+        // right exit at a split
         ref_ = tag.second;
         ++osmdata_.node_ref_count;
       } else if (tag.first == "name" && (is_highway_junction || maybe_named_junction) && hasTag) {
@@ -2368,10 +2372,6 @@ public:
     way_.set_ref_index(osmdata_.name_offset_map.index(ref_));
     way_.set_ref_lang_index(osmdata_.name_offset_map.index(ref_language_));
 
-    // TODO  Need to process ref:right and ref:left and add correctly here in the parser or
-    // graphbuilder. ref:left means the ref for the left exit and ref:right means the ref for the
-    // right exit at a split
-    /*
     ProcessLeftRightName(ref_left_w_lang_, ref_w_lang_, l, ref_left_, ref_lang_left_);
     way_.set_ref_left_index(osmdata_.name_offset_map.index(ref_left_));
     way_.set_ref_left_lang_index(osmdata_.name_offset_map.index(ref_lang_left_));
@@ -2379,7 +2379,6 @@ public:
     ProcessLeftRightName(ref_right_w_lang_, ref_w_lang_, l, ref_right_, ref_lang_right_);
     way_.set_ref_right_index(osmdata_.name_offset_map.index(ref_right_));
     way_.set_ref_right_lang_index(osmdata_.name_offset_map.index(ref_lang_right_));
-     */
 
     // begin int_ref logic
     l = int_ref_language_;
@@ -2387,10 +2386,6 @@ public:
     way_.set_int_ref_index(osmdata_.name_offset_map.index(int_ref_));
     way_.set_int_ref_lang_index(osmdata_.name_offset_map.index(int_ref_language_));
 
-    // TODO  Need to process int_ref:right and int_ref:left and add correctly in graphbuilder.
-    // int_ref:left means the int_ref for the left exit and int_ref:right means the int_ref for the
-    // right exit at a split
-    /*
     ProcessLeftRightName(int_ref_left_w_lang_, int_ref_w_lang_, l, int_ref_left_, int_ref_lang_left_);
     way_.set_int_ref_left_index(osmdata_.name_offset_map.index(int_ref_left_));
     way_.set_int_ref_left_lang_index(osmdata_.name_offset_map.index(int_ref_lang_left_));
@@ -2399,7 +2394,6 @@ public:
                          int_ref_lang_right_);
     way_.set_int_ref_right_index(osmdata_.name_offset_map.index(int_ref_right_));
     way_.set_int_ref_right_lang_index(osmdata_.name_offset_map.index(int_ref_lang_right_));
-    */
 
     // begin tunnel name logic
     l = tunnel_language_;
