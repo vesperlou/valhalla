@@ -2400,11 +2400,16 @@ protected:
 
     const gurka::ways ways = {
         {"OPMQ",
-         {{"highway", "secondary"},
-          {"osm_id", "103"},
-          {"name", "Waltonville Road"},
-          {"name:forward", "Waltonville Road"},
-          {"name:backward", "Quarry Road"}}},
+         {
+             {"highway", "secondary"},
+             {"osm_id", "103"},
+             {"name", "Waltonville Road"},
+             {"name:forward", "Waltonville Road"},
+             {"name:backward", "Quarry Road"},
+             {"ref", "C-1;A"},
+             {"ref:right", "C-1"},
+             {"ref:left", "A"},
+         }},
     };
 
     if (!filesystem::exists(workdir)) {
@@ -2451,7 +2456,7 @@ TEST_F(RouteWithStreetnameAndSign_en_USForwardBackwardWithName, CheckForwardName
                  mjolnir::BuildStage::kValidate, false);
 
   auto result = gurka::do_action(valhalla::Options::route, the_map, {"O", "Q"}, "auto");
-  gurka::assert::raw::expect_path(result, {"Waltonville Road"});
+  gurka::assert::raw::expect_path(result, {"Waltonville Road/C-1"});
 
   GraphReader graph_reader(the_map.config.get_child("mjolnir"));
 
@@ -2469,12 +2474,17 @@ TEST_F(RouteWithStreetnameAndSign_en_USForwardBackwardWithName, CheckForwardName
   auto edgeinfo = tile->edgeinfo(OPMQ_edge);
   std::vector<uint8_t> types;
   auto names_and_types = edgeinfo.GetNamesAndTypes(types, true);
-  ASSERT_EQ(names_and_types.size(), 1);
+  ASSERT_EQ(names_and_types.size(), 2);
 
   std::unordered_map<uint8_t, uint8_t> languages = edgeinfo.GetLanguageMap();
   std::unordered_map<uint8_t, uint8_t>::const_iterator lang_iter = languages.find(0);
   ASSERT_NE(lang_iter, languages.end());
   ASSERT_EQ(names_and_types.at(0).first, "Waltonville Road");
+  ASSERT_EQ(to_string(static_cast<Language>(lang_iter->second)), "en");
+
+  lang_iter = languages.find(1);
+  ASSERT_NE(lang_iter, languages.end());
+  ASSERT_EQ(names_and_types.at(1).first, "C-1");
   ASSERT_EQ(to_string(static_cast<Language>(lang_iter->second)), "en");
 }
 
@@ -2482,7 +2492,7 @@ TEST_F(RouteWithStreetnameAndSign_en_USForwardBackwardWithName, CheckForwardName
 TEST_F(RouteWithStreetnameAndSign_en_USForwardBackwardWithName, CheckBackwardNames) {
 
   auto result = gurka::do_action(valhalla::Options::route, the_map, {"Q", "O"}, "auto");
-  gurka::assert::raw::expect_path(result, {"Quarry Road"});
+  gurka::assert::raw::expect_path(result, {"Quarry Road/A"});
 
   GraphReader graph_reader(the_map.config.get_child("mjolnir"));
 
@@ -2500,12 +2510,17 @@ TEST_F(RouteWithStreetnameAndSign_en_USForwardBackwardWithName, CheckBackwardNam
   auto edgeinfo = tile->edgeinfo(QMPO_edge);
   std::vector<uint8_t> types;
   auto names_and_types = edgeinfo.GetNamesAndTypes(types, true);
-  ASSERT_EQ(names_and_types.size(), 1);
+  ASSERT_EQ(names_and_types.size(), 2);
 
   std::unordered_map<uint8_t, uint8_t> languages = edgeinfo.GetLanguageMap();
   std::unordered_map<uint8_t, uint8_t>::const_iterator lang_iter = languages.find(0);
   ASSERT_NE(lang_iter, languages.end());
   ASSERT_EQ(names_and_types.at(0).first, "Quarry Road");
+  ASSERT_EQ(to_string(static_cast<Language>(lang_iter->second)), "en");
+
+  lang_iter = languages.find(1);
+  ASSERT_NE(lang_iter, languages.end());
+  ASSERT_EQ(names_and_types.at(1).first, "A");
   ASSERT_EQ(to_string(static_cast<Language>(lang_iter->second)), "en");
 }
 
