@@ -489,6 +489,7 @@ void PopulateSignElement(
   sign_element->set_is_route_number(sign.is_route_num());
 
   // Assign pronunciation alphabet and value if they exist
+  // index = {phonetic alphabet, language, phoneme}
   std::unordered_map<uint8_t, std::tuple<uint8_t, uint8_t, std::string>>::const_iterator iter =
       linguistics.find(sign_index);
   if (iter != linguistics.end()) {
@@ -506,6 +507,9 @@ void PopulateSignElement(
           GetTripPronunciationAlphabet(static_cast<valhalla::baldr::PronunciationAlphabet>(
               std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(iter->second))));
       pronunciation->set_value(std::get<kLinguisticMapTuplePronunciationIndex>(iter->second));
+
+      std::cout << "phoneme sign: " << sign.text() << " "
+                << std::get<kLinguisticMapTuplePronunciationIndex>(iter->second) << std::endl;
     }
   }
 }
@@ -828,9 +832,8 @@ TripLeg_Edge* AddTripEdge(const AttributesController& controller,
     std::vector<uint8_t> types;
     auto names_and_types = edgeinfo.GetNamesAndTypes(types, true);
     trip_edge->mutable_name()->Reserve(names_and_types.size());
-    std::unordered_map<uint8_t, std::pair<uint8_t, std::string>> pronunciations =
-        edgeinfo.GetPronunciationsMap();
-    std::unordered_map<uint8_t, uint8_t> languages = edgeinfo.GetLanguageMap();
+    const std::unordered_map<uint8_t, std::tuple<uint8_t, uint8_t, std::string>> linguistics =
+        edgeinfo.GetLinguisticMap();
 
     uint8_t name_index = 0;
     for (const auto& name_and_type : names_and_types) {
@@ -845,26 +848,30 @@ TripLeg_Edge* AddTripEdge(const AttributesController& controller,
       trip_edge_name->set_value(name_and_type.first);
       trip_edge_name->set_is_route_number(name_and_type.second);
 
-      std::unordered_map<uint8_t, std::pair<uint8_t, std::string>>::const_iterator iter =
-          pronunciations.find(name_index);
+      std::unordered_map<uint8_t, std::tuple<uint8_t, uint8_t, std::string>>::const_iterator iter =
+          linguistics.find(name_index);
 
-      // Assign pronunciation alphabet and value if one exists
-      if (iter != pronunciations.end()) {
-        auto* pronunciation = trip_edge_name->mutable_pronunciation();
-        pronunciation->set_alphabet(GetTripPronunciationAlphabet(
-            static_cast<valhalla::baldr::PronunciationAlphabet>((iter->second).first)));
-        pronunciation->set_value((iter->second).second);
+      if (iter != linguistics.end()) {
+
+        if (static_cast<valhalla::baldr::PronunciationAlphabet>(
+                std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(iter->second)) ==
+            PronunciationAlphabet::kNone)
+          std::cout << "name: " << name_and_type.first << " "
+                    << to_string(static_cast<Language>(
+                           std::get<kLinguisticMapTupleLanguageIndex>(iter->second)))
+                    << " " << std::get<kLinguisticMapTuplePronunciationIndex>(iter->second)
+                    << std::endl;
+        else {
+          auto* pronunciation = trip_edge_name->mutable_pronunciation();
+          pronunciation->set_alphabet(
+              GetTripPronunciationAlphabet(static_cast<valhalla::baldr::PronunciationAlphabet>(
+                  std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(iter->second))));
+          pronunciation->set_value(std::get<kLinguisticMapTuplePronunciationIndex>(iter->second));
+
+          std::cout << "phoneme name: " << name_and_type.first << " "
+                    << std::get<kLinguisticMapTuplePronunciationIndex>(iter->second) << std::endl;
+        }
       }
-
-      std::unordered_map<uint8_t, uint8_t>::const_iterator lang_iter = languages.find(name_index);
-
-      // Assign language if one exists
-      if (lang_iter != languages.end()) {
-        std::cout << name_and_type.first
-                  << " language: " << to_string(static_cast<Language>(lang_iter->second))
-                  << std::endl;
-      }
-
       name_index++;
     }
   }

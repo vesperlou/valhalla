@@ -224,9 +224,10 @@ const std::multimap<TaggedValue, std::string>& EdgeInfo::GetTags() const {
   return tag_cache_;
 }
 
-std::unordered_map<uint8_t, std::pair<uint8_t, std::string>> EdgeInfo::GetPronunciationsMap() const {
-  std::unordered_map<uint8_t, std::pair<uint8_t, std::string>> index_pronunciation_map;
-  index_pronunciation_map.reserve(name_count());
+std::unordered_map<uint8_t, std::tuple<uint8_t, uint8_t, std::string>>
+EdgeInfo::GetLinguisticMap() const {
+  std::unordered_map<uint8_t, std::tuple<uint8_t, uint8_t, std::string>> index_linguistic_map;
+  index_linguistic_map.reserve(name_count());
   const NameInfo* ni = name_info_list_;
   for (uint32_t i = 0; i < name_count(); i++, ni++) {
     if (!ni->tagged_)
@@ -240,23 +241,28 @@ std::unordered_map<uint8_t, std::pair<uint8_t, std::string>> EdgeInfo::GetPronun
           name += 1;
           while (*name != '\0') {
             const auto header = midgard::unaligned_read<linguistic_text_header_t>(name);
-            if (static_cast<baldr::PronunciationAlphabet>(header.phonetic_alphabet_) !=
-                PronunciationAlphabet::kNone) {
-              std::unordered_map<uint8_t, std::pair<uint8_t, std::string>>::iterator iter =
-                  index_pronunciation_map.find(header.name_index_);
+            std::tuple<uint8_t, uint8_t, std::string> liguistic_attributes;
 
-              if (iter == index_pronunciation_map.end())
-                index_pronunciation_map.emplace(
-                    std::make_pair(header.name_index_,
-                                   std::make_pair(header.phonetic_alphabet_,
-                                                  std::string((name + 3), header.length_))));
-              else {
-                if (header.phonetic_alphabet_ > (iter->second).first) {
-                  iter->second = std::make_pair(header.phonetic_alphabet_,
-                                                std::string((name + 3), header.length_));
-                }
+            std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(liguistic_attributes) =
+                header.phonetic_alphabet_;
+            std::get<kLinguisticMapTupleLanguageIndex>(liguistic_attributes) = header.language_;
+
+            if (static_cast<valhalla::baldr::PronunciationAlphabet>(header.phonetic_alphabet_) ==
+                PronunciationAlphabet::kNone) {
+              std::get<kLinguisticMapTuplePronunciationIndex>(liguistic_attributes) = "";
+            } else
+              std::get<kLinguisticMapTuplePronunciationIndex>(liguistic_attributes) =
+                  std::string(name + 3, header.length_);
+            auto iter =
+                index_linguistic_map.insert(std::make_pair(header.name_index_, liguistic_attributes));
+
+            if (!iter.second) {
+              if (header.phonetic_alphabet_ >
+                  std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(iter.first->second)) {
+                iter.first->second = liguistic_attributes;
               }
             }
+
             name += header.length_ + 3;
           }
         }
@@ -264,45 +270,11 @@ std::unordered_map<uint8_t, std::pair<uint8_t, std::string>> EdgeInfo::GetPronun
         LOG_DEBUG("invalid_argument thrown for name: " + std::string(name));
       }
     } else {
-      throw std::runtime_error("GetPronunciationsMap: offset exceeds size of text list");
+      throw std::runtime_error("GetLinguisticMap: offset exceeds size of text list");
     }
   }
 
-  return index_pronunciation_map;
-}
-
-std::unordered_map<uint8_t, uint8_t> EdgeInfo::GetLanguageMap() const {
-  std::unordered_map<uint8_t, uint8_t> index_language_map;
-  index_language_map.reserve(name_count());
-  const NameInfo* ni = name_info_list_;
-  for (uint32_t i = 0; i < name_count(); i++, ni++) {
-    if (!ni->tagged_)
-      continue;
-
-    if (ni->name_offset_ < names_list_length_) {
-      const auto* name = names_list_ + ni->name_offset_;
-      try {
-        TaggedValue tv = static_cast<baldr::TaggedValue>(name[0]);
-        if (tv == baldr::TaggedValue::kLinguistic) {
-          name += 1;
-          while (*name != '\0') {
-            const auto header = midgard::unaligned_read<linguistic_text_header_t>(name);
-            if (static_cast<baldr::PronunciationAlphabet>(header.phonetic_alphabet_) ==
-                PronunciationAlphabet::kNone) {
-              index_language_map.emplace(std::make_pair(header.name_index_, header.language_));
-            }
-            name += header.length_ + 3;
-          }
-        }
-      } catch (const std::invalid_argument& arg) {
-        LOG_DEBUG("invalid_argument thrown for name: " + std::string(name));
-      }
-    } else {
-      throw std::runtime_error("GetLanguageMap: offset exceeds size of text list");
-    }
-  }
-
-  return index_language_map;
+  return index_linguistic_map;
 }
 
 // Get the types.  Are these names route numbers or not?

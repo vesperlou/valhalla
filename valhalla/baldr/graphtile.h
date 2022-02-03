@@ -395,8 +395,11 @@ public:
   /**
    * Convenience method to get the signs for an edge given the directed
    * edge index.
-   * @param  idx  Directed edge or node index. Used to lookup list of signs.
-   * @param  signs_on_node Are we looking for signs at the node?  These are the
+   * @param   idx  Directed edge or node index. Used to lookup list of signs.
+   * @param   index_linguistic_map unordered_map in which the key is a index into the vector of
+   * shields and the tuple contains a pronunciation (w/wo a language) or no pronunciation and just a
+   * language
+   * @param   signs_on_node Are we looking for signs at the node?  These are the
    *                       intersection names.
    * @return  Returns a list (vector) of signs.
    */

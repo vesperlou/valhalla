@@ -246,6 +246,9 @@ TEST_F(RouteWithStreetnameAndSign_en_UnitedStates, CheckStreetNamesAndSigns1) {
   ASSERT_EQ(to_string(
                 static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(iter->second))),
             "en");
+  EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(iter->second)),
+            static_cast<int>(PronunciationAlphabet::kNone));
+  EXPECT_EQ(std::get<kLinguisticMapTuplePronunciationIndex>(iter->second), "");
 
   ASSERT_EQ(edge_signs.at(1).text(), "SR 37");
   iter = linguistics.find(1);
@@ -253,6 +256,9 @@ TEST_F(RouteWithStreetnameAndSign_en_UnitedStates, CheckStreetNamesAndSigns1) {
   ASSERT_EQ(to_string(
                 static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(iter->second))),
             "en");
+  EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(iter->second)),
+            static_cast<int>(PronunciationAlphabet::kNone));
+  EXPECT_EQ(std::get<kLinguisticMapTuplePronunciationIndex>(iter->second), "");
 
   ASSERT_EQ(edge_signs.at(2).text(), "6th Avenue");
   iter = linguistics.find(2);
@@ -260,6 +266,9 @@ TEST_F(RouteWithStreetnameAndSign_en_UnitedStates, CheckStreetNamesAndSigns1) {
   ASSERT_EQ(to_string(
                 static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(iter->second))),
             "en");
+  EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(iter->second)),
+            static_cast<int>(PronunciationAlphabet::kNone));
+  EXPECT_EQ(std::get<kLinguisticMapTuplePronunciationIndex>(iter->second), "");
 
   ASSERT_EQ(edge_signs.at(3).text(), "York");
   iter = linguistics.find(3);
@@ -267,6 +276,9 @@ TEST_F(RouteWithStreetnameAndSign_en_UnitedStates, CheckStreetNamesAndSigns1) {
   ASSERT_EQ(to_string(
                 static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(iter->second))),
             "en");
+  EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(iter->second)),
+            static_cast<int>(PronunciationAlphabet::kNone));
+  EXPECT_EQ(std::get<kLinguisticMapTuplePronunciationIndex>(iter->second), "");
 
   ASSERT_EQ(edge_signs.at(4).text(), "Lancaster");
   iter = linguistics.find(4);
@@ -274,6 +286,9 @@ TEST_F(RouteWithStreetnameAndSign_en_UnitedStates, CheckStreetNamesAndSigns1) {
   ASSERT_EQ(to_string(
                 static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(iter->second))),
             "en");
+  EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(iter->second)),
+            static_cast<int>(PronunciationAlphabet::kNone));
+  EXPECT_EQ(std::get<kLinguisticMapTuplePronunciationIndex>(iter->second), "");
 
   ++maneuver_index;
   EXPECT_EQ(result.directions().routes(0).legs(0).maneuver(maneuver_index).street_name_size(), 2);
@@ -287,19 +302,30 @@ TEST_F(RouteWithStreetnameAndSign_en_UnitedStates, CheckStreetNamesAndSigns1) {
   edgeinfo = tile->edgeinfo(JICDMN_edge);
   types.clear();
   names_and_types = edgeinfo.GetNamesAndTypes(types, true);
-  std::unordered_map<uint8_t, uint8_t> languages = edgeinfo.GetLanguageMap();
+  linguistics = edgeinfo.GetLinguisticMap();
 
   ASSERT_EQ(names_and_types.size(), 2);
 
   ASSERT_EQ(names_and_types.at(0).first, "6th Avenue");
-  std::unordered_map<uint8_t, uint8_t>::const_iterator lang_iter = languages.find(0);
-  ASSERT_NE(lang_iter, languages.end());
-  ASSERT_EQ(to_string(static_cast<Language>(lang_iter->second)), "en");
+  std::unordered_map<uint8_t, std::tuple<uint8_t, uint8_t, std::string>>::const_iterator lang_iter =
+      linguistics.find(0);
+  ASSERT_NE(lang_iter, linguistics.end());
+  ASSERT_EQ(to_string(
+                static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(iter->second))),
+            "en");
+  EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(lang_iter->second)),
+            static_cast<int>(PronunciationAlphabet::kNone));
+  EXPECT_EQ(std::get<kLinguisticMapTuplePronunciationIndex>(lang_iter->second), "");
 
   ASSERT_EQ(names_and_types.at(1).first, "SR 37");
-  lang_iter = languages.find(1);
-  ASSERT_NE(lang_iter, languages.end());
-  ASSERT_EQ(to_string(static_cast<Language>(lang_iter->second)), "en");
+  lang_iter = linguistics.find(1);
+  ASSERT_NE(lang_iter, linguistics.end());
+  ASSERT_EQ(to_string(
+                static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(lang_iter->second))),
+            "en");
+  EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(lang_iter->second)),
+            static_cast<int>(PronunciationAlphabet::kNone));
+  EXPECT_EQ(std::get<kLinguisticMapTuplePronunciationIndex>(lang_iter->second), "");
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -371,6 +397,9 @@ TEST_F(RouteWithStreetnameAndSign_en_UnitedStates, CheckStreetNamesAndSigns2) {
   ASSERT_EQ(to_string(
                 static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(iter->second))),
             "en");
+  EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(iter->second)),
+            static_cast<int>(PronunciationAlphabet::kNone));
+  EXPECT_EQ(std::get<kLinguisticMapTuplePronunciationIndex>(iter->second), "");
 
   ASSERT_EQ(edge_signs.at(1).text(), "I 80");
   iter = linguistics.find(1);
@@ -378,6 +407,9 @@ TEST_F(RouteWithStreetnameAndSign_en_UnitedStates, CheckStreetNamesAndSigns2) {
   ASSERT_EQ(to_string(
                 static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(iter->second))),
             "en");
+  EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(iter->second)),
+            static_cast<int>(PronunciationAlphabet::kNone));
+  EXPECT_EQ(std::get<kLinguisticMapTuplePronunciationIndex>(iter->second), "");
 
   ASSERT_EQ(edge_signs.at(2).text(), "Main Street");
   iter = linguistics.find(2);
@@ -385,6 +417,9 @@ TEST_F(RouteWithStreetnameAndSign_en_UnitedStates, CheckStreetNamesAndSigns2) {
   ASSERT_EQ(to_string(
                 static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(iter->second))),
             "en");
+  EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(iter->second)),
+            static_cast<int>(PronunciationAlphabet::kNone));
+  EXPECT_EQ(std::get<kLinguisticMapTuplePronunciationIndex>(iter->second), "");
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -467,6 +502,9 @@ TEST_F(RouteWithStreetnameAndSign_en_UnitedStates, CheckGuideSigns) {
   ASSERT_EQ(to_string(
                 static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(iter->second))),
             "en");
+  EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(iter->second)),
+            static_cast<int>(PronunciationAlphabet::kNone));
+  EXPECT_EQ(std::get<kLinguisticMapTuplePronunciationIndex>(iter->second), "");
 
   ASSERT_EQ(edge_signs.at(1).text(), "York");
   iter = linguistics.find(1);
@@ -475,6 +513,9 @@ TEST_F(RouteWithStreetnameAndSign_en_UnitedStates, CheckGuideSigns) {
   ASSERT_EQ(to_string(
                 static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(iter->second))),
             "en");
+  EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(iter->second)),
+            static_cast<int>(PronunciationAlphabet::kNone));
+  EXPECT_EQ(std::get<kLinguisticMapTuplePronunciationIndex>(iter->second), "");
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -514,11 +555,18 @@ TEST_F(RouteWithStreetnameAndSign_en_UnitedStates, CheckNonJunctionName) {
   auto names_and_types = edgeinfo.GetNamesAndTypes(types, true);
   ASSERT_EQ(names_and_types.size(), 1);
 
-  std::unordered_map<uint8_t, uint8_t> languages = edgeinfo.GetLanguageMap();
-  std::unordered_map<uint8_t, uint8_t>::const_iterator lang_iter = languages.find(0);
-  ASSERT_NE(lang_iter, languages.end());
+  std::unordered_map<uint8_t, std::tuple<uint8_t, uint8_t, std::string>> linguistics =
+      edgeinfo.GetLinguisticMap();
+  std::unordered_map<uint8_t, std::tuple<uint8_t, uint8_t, std::string>>::const_iterator lang_iter =
+      linguistics.find(0);
+  ASSERT_NE(lang_iter, linguistics.end());
   ASSERT_EQ(names_and_types.at(0).first, "West 8th Street");
-  ASSERT_EQ(to_string(static_cast<Language>(lang_iter->second)), "en");
+  ASSERT_EQ(to_string(
+                static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(lang_iter->second))),
+            "en");
+  EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(lang_iter->second)),
+            static_cast<int>(PronunciationAlphabet::kNone));
+  EXPECT_EQ(std::get<kLinguisticMapTuplePronunciationIndex>(lang_iter->second), "");
 
   // No junction should exist here.  Named junctions are not allowed in US
   EXPECT_EQ(result.directions()
@@ -784,6 +832,9 @@ TEST_F(RouteWithStreetnameAndSign_fr_nl_BrusselsBelgium, CheckStreetNamesAndSign
   ASSERT_EQ(to_string(
                 static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(iter->second))),
             "nl");
+  EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(iter->second)),
+            static_cast<int>(PronunciationAlphabet::kNone));
+  EXPECT_EQ(std::get<kLinguisticMapTuplePronunciationIndex>(iter->second), "");
 
   ASSERT_EQ(edge_signs.at(3).text(), "Rue Bodenbroek");
   iter = linguistics.find(3);
@@ -791,6 +842,9 @@ TEST_F(RouteWithStreetnameAndSign_fr_nl_BrusselsBelgium, CheckStreetNamesAndSign
   ASSERT_EQ(to_string(
                 static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(iter->second))),
             "fr");
+  EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(iter->second)),
+            static_cast<int>(PronunciationAlphabet::kNone));
+  EXPECT_EQ(std::get<kLinguisticMapTuplePronunciationIndex>(iter->second), "");
 
   ASSERT_EQ(edge_signs.at(4).text(), "Brussel");
   iter = linguistics.find(4);
@@ -805,23 +859,34 @@ TEST_F(RouteWithStreetnameAndSign_fr_nl_BrusselsBelgium, CheckStreetNamesAndSign
   edgeinfo = tile->edgeinfo(JICDMN_edge);
   types.clear();
   names_and_types = edgeinfo.GetNamesAndTypes(types, true);
-  std::unordered_map<uint8_t, uint8_t> languages = edgeinfo.GetLanguageMap();
+  linguistics = edgeinfo.GetLinguisticMap();
 
   ASSERT_EQ(names_and_types.size(), 3);
 
   ASSERT_EQ(names_and_types.at(0).first, "Rue Bodenbroek");
-  std::unordered_map<uint8_t, uint8_t>::const_iterator lang_iter = languages.find(0);
-  ASSERT_NE(lang_iter, languages.end());
-  ASSERT_EQ(to_string(static_cast<Language>(lang_iter->second)), "fr");
+  std::unordered_map<uint8_t, std::tuple<uint8_t, uint8_t, std::string>>::const_iterator lang_iter =
+      linguistics.find(0);
+  ASSERT_NE(lang_iter, linguistics.end());
+  ASSERT_EQ(to_string(
+                static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(lang_iter->second))),
+            "fr");
+  EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(lang_iter->second)),
+            static_cast<int>(PronunciationAlphabet::kNone));
+  EXPECT_EQ(std::get<kLinguisticMapTuplePronunciationIndex>(lang_iter->second), "");
 
   ASSERT_EQ(names_and_types.at(1).first, "Bodenbroekstraat");
-  lang_iter = languages.find(1);
-  ASSERT_NE(lang_iter, languages.end());
-  ASSERT_EQ(to_string(static_cast<Language>(lang_iter->second)), "nl");
+  lang_iter = linguistics.find(1);
+  ASSERT_NE(lang_iter, linguistics.end());
+  ASSERT_EQ(to_string(
+                static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(lang_iter->second))),
+            "nl");
+  EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(lang_iter->second)),
+            static_cast<int>(PronunciationAlphabet::kNone));
+  EXPECT_EQ(std::get<kLinguisticMapTuplePronunciationIndex>(lang_iter->second), "");
 
   ASSERT_EQ(names_and_types.at(2).first, "N6");
-  lang_iter = languages.find(2);
-  ASSERT_EQ(lang_iter, languages.end());
+  lang_iter = linguistics.find(2);
+  ASSERT_EQ(lang_iter, linguistics.end());
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -910,6 +975,9 @@ TEST_F(RouteWithStreetnameAndSign_fr_nl_BrusselsBelgium, CheckStreetNamesAndSign
   ASSERT_EQ(to_string(
                 static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(iter->second))),
             "nl");
+  EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(iter->second)),
+            static_cast<int>(PronunciationAlphabet::kNone));
+  EXPECT_EQ(std::get<kLinguisticMapTuplePronunciationIndex>(iter->second), "");
 
   ASSERT_EQ(edge_signs.at(3).text(), "Rue Royale");
   iter = linguistics.find(3);
@@ -917,6 +985,9 @@ TEST_F(RouteWithStreetnameAndSign_fr_nl_BrusselsBelgium, CheckStreetNamesAndSign
   ASSERT_EQ(to_string(
                 static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(iter->second))),
             "fr");
+  EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(iter->second)),
+            static_cast<int>(PronunciationAlphabet::kNone));
+  EXPECT_EQ(std::get<kLinguisticMapTuplePronunciationIndex>(iter->second), "");
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1012,6 +1083,9 @@ TEST_F(RouteWithStreetnameAndSign_fr_nl_BrusselsBelgium, CheckGuideSigns) {
   ASSERT_EQ(to_string(
                 static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(iter->second))),
             "nl");
+  EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(iter->second)),
+            static_cast<int>(PronunciationAlphabet::kNone));
+  EXPECT_EQ(std::get<kLinguisticMapTuplePronunciationIndex>(iter->second), "");
 
   ASSERT_EQ(edge_signs.at(1).text(), "Rue Lebeau");
   iter = linguistics.find(1);
@@ -1019,6 +1093,9 @@ TEST_F(RouteWithStreetnameAndSign_fr_nl_BrusselsBelgium, CheckGuideSigns) {
   ASSERT_EQ(to_string(
                 static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(iter->second))),
             "fr");
+  EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(iter->second)),
+            static_cast<int>(PronunciationAlphabet::kNone));
+  EXPECT_EQ(std::get<kLinguisticMapTuplePronunciationIndex>(iter->second), "");
 
   ASSERT_EQ(edge_signs.at(2).text(), "Brussel");
   iter = linguistics.find(2);
@@ -1070,16 +1147,28 @@ TEST_F(RouteWithStreetnameAndSign_fr_nl_BrusselsBelgium, CheckNonJunctionName) {
   auto names_and_types = edgeinfo.GetNamesAndTypes(types, true);
   ASSERT_EQ(names_and_types.size(), 2);
 
-  std::unordered_map<uint8_t, uint8_t> languages = edgeinfo.GetLanguageMap();
-  std::unordered_map<uint8_t, uint8_t>::const_iterator lang_iter = languages.find(0);
-  ASSERT_NE(lang_iter, languages.end());
+  std::unordered_map<uint8_t, std::tuple<uint8_t, uint8_t, std::string>> linguistics =
+      edgeinfo.GetLinguisticMap();
+  std::unordered_map<uint8_t, std::tuple<uint8_t, uint8_t, std::string>>::const_iterator lang_iter =
+      linguistics.find(0);
+  ASSERT_NE(lang_iter, linguistics.end());
   ASSERT_EQ(names_and_types.at(0).first, "Rue Lebeau");
-  ASSERT_EQ(to_string(static_cast<Language>(lang_iter->second)), "fr");
+  ASSERT_EQ(to_string(
+                static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(lang_iter->second))),
+            "fr");
+  EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(lang_iter->second)),
+            static_cast<int>(PronunciationAlphabet::kNone));
+  EXPECT_EQ(std::get<kLinguisticMapTuplePronunciationIndex>(lang_iter->second), "");
 
-  lang_iter = languages.find(1);
-  ASSERT_NE(lang_iter, languages.end());
+  lang_iter = linguistics.find(1);
+  ASSERT_NE(lang_iter, linguistics.end());
   ASSERT_EQ(names_and_types.at(1).first, "Lebeaustraat");
-  ASSERT_EQ(to_string(static_cast<Language>(lang_iter->second)), "nl");
+  ASSERT_EQ(to_string(
+                static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(lang_iter->second))),
+            "nl");
+  EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(lang_iter->second)),
+            static_cast<int>(PronunciationAlphabet::kNone));
+  EXPECT_EQ(std::get<kLinguisticMapTuplePronunciationIndex>(lang_iter->second), "");
 
   // No junction should exist here.  Named junctions are not allowed in Belgium
   EXPECT_EQ(result.directions()
@@ -1344,6 +1433,9 @@ TEST_F(RouteWithStreetnameAndSign_ru_be_MinskBelarus, CheckStreetNamesAndSigns1)
   ASSERT_EQ(to_string(
                 static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(iter->second))),
             "be");
+  EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(iter->second)),
+            static_cast<int>(PronunciationAlphabet::kNone));
+  EXPECT_EQ(std::get<kLinguisticMapTuplePronunciationIndex>(iter->second), "");
 
   ASSERT_EQ(edge_signs.at(3).text(), "МКАД, 1-й километр");
   iter = linguistics.find(3);
@@ -1351,6 +1443,9 @@ TEST_F(RouteWithStreetnameAndSign_ru_be_MinskBelarus, CheckStreetNamesAndSigns1)
   ASSERT_EQ(to_string(
                 static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(iter->second))),
             "ru");
+  EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(iter->second)),
+            static_cast<int>(PronunciationAlphabet::kNone));
+  EXPECT_EQ(std::get<kLinguisticMapTuplePronunciationIndex>(iter->second), "");
 
   ASSERT_EQ(edge_signs.at(4).text(), "Гомель");
   iter = linguistics.find(4);
@@ -1365,23 +1460,34 @@ TEST_F(RouteWithStreetnameAndSign_ru_be_MinskBelarus, CheckStreetNamesAndSigns1)
   edgeinfo = tile->edgeinfo(JICDMN_edge);
   types.clear();
   names_and_types = edgeinfo.GetNamesAndTypes(types, true);
-  std::unordered_map<uint8_t, uint8_t> languages = edgeinfo.GetLanguageMap();
+  linguistics = edgeinfo.GetLinguisticMap();
 
   ASSERT_EQ(names_and_types.size(), 3);
 
   ASSERT_EQ(names_and_types.at(0).first, "МКАД, 1-й километр");
-  std::unordered_map<uint8_t, uint8_t>::const_iterator lang_iter = languages.find(0);
-  ASSERT_NE(lang_iter, languages.end());
-  ASSERT_EQ(to_string(static_cast<Language>(lang_iter->second)), "ru");
+  std::unordered_map<uint8_t, std::tuple<uint8_t, uint8_t, std::string>>::const_iterator lang_iter =
+      linguistics.find(0);
+  ASSERT_NE(lang_iter, linguistics.end());
+  ASSERT_EQ(to_string(
+                static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(lang_iter->second))),
+            "ru");
+  EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(lang_iter->second)),
+            static_cast<int>(PronunciationAlphabet::kNone));
+  EXPECT_EQ(std::get<kLinguisticMapTuplePronunciationIndex>(lang_iter->second), "");
 
   ASSERT_EQ(names_and_types.at(1).first, "1-ы кіламетр МКАД");
-  lang_iter = languages.find(1);
-  ASSERT_NE(lang_iter, languages.end());
-  ASSERT_EQ(to_string(static_cast<Language>(lang_iter->second)), "be");
+  lang_iter = linguistics.find(1);
+  ASSERT_NE(lang_iter, linguistics.end());
+  ASSERT_EQ(to_string(
+                static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(lang_iter->second))),
+            "be");
+  EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(lang_iter->second)),
+            static_cast<int>(PronunciationAlphabet::kNone));
+  EXPECT_EQ(std::get<kLinguisticMapTuplePronunciationIndex>(lang_iter->second), "");
 
   ASSERT_EQ(names_and_types.at(2).first, "M9");
-  lang_iter = languages.find(2);
-  ASSERT_EQ(lang_iter, languages.end());
+  lang_iter = linguistics.find(2);
+  ASSERT_EQ(lang_iter, linguistics.end());
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1470,6 +1576,9 @@ TEST_F(RouteWithStreetnameAndSign_ru_be_MinskBelarus, CheckStreetNamesAndSigns2)
   ASSERT_EQ(to_string(
                 static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(iter->second))),
             "ru");
+  EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(iter->second)),
+            static_cast<int>(PronunciationAlphabet::kNone));
+  EXPECT_EQ(std::get<kLinguisticMapTuplePronunciationIndex>(iter->second), "");
 
   ASSERT_EQ(edge_signs.at(3).text(), "Партызанскі праспект");
   iter = linguistics.find(3);
@@ -1477,6 +1586,9 @@ TEST_F(RouteWithStreetnameAndSign_ru_be_MinskBelarus, CheckStreetNamesAndSigns2)
   ASSERT_EQ(to_string(
                 static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(iter->second))),
             "be");
+  EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(iter->second)),
+            static_cast<int>(PronunciationAlphabet::kNone));
+  EXPECT_EQ(std::get<kLinguisticMapTuplePronunciationIndex>(iter->second), "");
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1572,6 +1684,9 @@ TEST_F(RouteWithStreetnameAndSign_ru_be_MinskBelarus, CheckGuideSigns) {
   ASSERT_EQ(to_string(
                 static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(iter->second))),
             "ru");
+  EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(iter->second)),
+            static_cast<int>(PronunciationAlphabet::kNone));
+  EXPECT_EQ(std::get<kLinguisticMapTuplePronunciationIndex>(iter->second), "");
 
   ASSERT_EQ(edge_signs.at(1).text(), "Дняпроўская вуліца");
   iter = linguistics.find(1);
@@ -1579,6 +1694,9 @@ TEST_F(RouteWithStreetnameAndSign_ru_be_MinskBelarus, CheckGuideSigns) {
   ASSERT_EQ(to_string(
                 static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(iter->second))),
             "be");
+  EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(iter->second)),
+            static_cast<int>(PronunciationAlphabet::kNone));
+  EXPECT_EQ(std::get<kLinguisticMapTuplePronunciationIndex>(iter->second), "");
 
   ASSERT_EQ(edge_signs.at(2).text(), "Гомель");
   iter = linguistics.find(2);
@@ -1622,16 +1740,28 @@ TEST_F(RouteWithStreetnameAndSign_ru_be_MinskBelarus, CheckNonJunctionName) {
   auto names_and_types = edgeinfo.GetNamesAndTypes(types, true);
   ASSERT_EQ(names_and_types.size(), 2);
 
-  std::unordered_map<uint8_t, uint8_t> languages = edgeinfo.GetLanguageMap();
-  std::unordered_map<uint8_t, uint8_t>::const_iterator lang_iter = languages.find(0);
-  ASSERT_NE(lang_iter, languages.end());
+  std::unordered_map<uint8_t, std::tuple<uint8_t, uint8_t, std::string>> linguistics =
+      edgeinfo.GetLinguisticMap();
+  std::unordered_map<uint8_t, std::tuple<uint8_t, uint8_t, std::string>>::const_iterator lang_iter =
+      linguistics.find(0);
+  ASSERT_NE(lang_iter, linguistics.end());
   ASSERT_EQ(names_and_types.at(0).first, "Днепровская улица");
-  ASSERT_EQ(to_string(static_cast<Language>(lang_iter->second)), "ru");
+  ASSERT_EQ(to_string(
+                static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(lang_iter->second))),
+            "ru");
+  EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(lang_iter->second)),
+            static_cast<int>(PronunciationAlphabet::kNone));
+  EXPECT_EQ(std::get<kLinguisticMapTuplePronunciationIndex>(lang_iter->second), "");
 
-  lang_iter = languages.find(1);
-  ASSERT_NE(lang_iter, languages.end());
+  lang_iter = linguistics.find(1);
+  ASSERT_NE(lang_iter, linguistics.end());
   ASSERT_EQ(names_and_types.at(1).first, "Дняпроўская вуліца");
-  ASSERT_EQ(to_string(static_cast<Language>(lang_iter->second)), "be");
+  ASSERT_EQ(to_string(
+                static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(lang_iter->second))),
+            "be");
+  EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(lang_iter->second)),
+            static_cast<int>(PronunciationAlphabet::kNone));
+  EXPECT_EQ(std::get<kLinguisticMapTuplePronunciationIndex>(lang_iter->second), "");
 
   // No junction should exist here.  Named junctions are not allowed in Belarus
   EXPECT_EQ(result.directions()
@@ -1913,6 +2043,9 @@ TEST_F(RouteWithStreetnameAndSign_cy_en_Wales, CheckStreetNamesAndSigns1) {
   ASSERT_EQ(to_string(
                 static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(iter->second))),
             "en");
+  EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(iter->second)),
+            static_cast<int>(PronunciationAlphabet::kNone));
+  EXPECT_EQ(std::get<kLinguisticMapTuplePronunciationIndex>(iter->second), "");
 
   ASSERT_EQ(edge_signs.at(3).text(), "Ffordd Caernarfon");
   iter = linguistics.find(3);
@@ -1920,6 +2053,9 @@ TEST_F(RouteWithStreetnameAndSign_cy_en_Wales, CheckStreetNamesAndSigns1) {
   ASSERT_EQ(to_string(
                 static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(iter->second))),
             "cy");
+  EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(iter->second)),
+            static_cast<int>(PronunciationAlphabet::kNone));
+  EXPECT_EQ(std::get<kLinguisticMapTuplePronunciationIndex>(iter->second), "");
 
   ASSERT_EQ(edge_signs.at(4).text(), "Newport");
   iter = linguistics.find(4);
@@ -1927,6 +2063,9 @@ TEST_F(RouteWithStreetnameAndSign_cy_en_Wales, CheckStreetNamesAndSigns1) {
   ASSERT_EQ(to_string(
                 static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(iter->second))),
             "en");
+  EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(iter->second)),
+            static_cast<int>(PronunciationAlphabet::kNone));
+  EXPECT_EQ(std::get<kLinguisticMapTuplePronunciationIndex>(iter->second), "");
 
   ASSERT_EQ(edge_signs.at(5).text(), "Casnewydd");
   iter = linguistics.find(5);
@@ -1934,29 +2073,43 @@ TEST_F(RouteWithStreetnameAndSign_cy_en_Wales, CheckStreetNamesAndSigns1) {
   ASSERT_EQ(to_string(
                 static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(iter->second))),
             "cy");
+  EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(iter->second)),
+            static_cast<int>(PronunciationAlphabet::kNone));
+  EXPECT_EQ(std::get<kLinguisticMapTuplePronunciationIndex>(iter->second), "");
 
   node_id = JICDMN_edge->endnode();
   tile = graph_reader.GetGraphTile(node_id);
   edgeinfo = tile->edgeinfo(JICDMN_edge);
   types.clear();
   names_and_types = edgeinfo.GetNamesAndTypes(types, true);
-  std::unordered_map<uint8_t, uint8_t> languages = edgeinfo.GetLanguageMap();
+  linguistics = edgeinfo.GetLinguisticMap();
 
   ASSERT_EQ(names_and_types.size(), 3);
 
   ASSERT_EQ(names_and_types.at(0).first, "Caernarfon Road");
-  std::unordered_map<uint8_t, uint8_t>::const_iterator lang_iter = languages.find(0);
-  ASSERT_NE(lang_iter, languages.end());
-  ASSERT_EQ(to_string(static_cast<Language>(lang_iter->second)), "en");
+  std::unordered_map<uint8_t, std::tuple<uint8_t, uint8_t, std::string>>::const_iterator lang_iter =
+      linguistics.find(0);
+  ASSERT_NE(lang_iter, linguistics.end());
+  ASSERT_EQ(to_string(
+                static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(lang_iter->second))),
+            "en");
+  EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(lang_iter->second)),
+            static_cast<int>(PronunciationAlphabet::kNone));
+  EXPECT_EQ(std::get<kLinguisticMapTuplePronunciationIndex>(lang_iter->second), "");
 
   ASSERT_EQ(names_and_types.at(1).first, "Ffordd Caernarfon");
-  lang_iter = languages.find(1);
-  ASSERT_NE(lang_iter, languages.end());
-  ASSERT_EQ(to_string(static_cast<Language>(lang_iter->second)), "cy");
+  lang_iter = linguistics.find(1);
+  ASSERT_NE(lang_iter, linguistics.end());
+  ASSERT_EQ(to_string(
+                static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(lang_iter->second))),
+            "cy");
+  EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(lang_iter->second)),
+            static_cast<int>(PronunciationAlphabet::kNone));
+  EXPECT_EQ(std::get<kLinguisticMapTuplePronunciationIndex>(lang_iter->second), "");
 
   ASSERT_EQ(names_and_types.at(2).first, "A4087");
-  lang_iter = languages.find(2);
-  ASSERT_EQ(lang_iter, languages.end());
+  lang_iter = linguistics.find(2);
+  ASSERT_EQ(lang_iter, linguistics.end());
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -2050,6 +2203,9 @@ TEST_F(RouteWithStreetnameAndSign_cy_en_Wales, CheckStreetNamesAndSigns2) {
   ASSERT_EQ(to_string(
                 static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(iter->second))),
             "en");
+  EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(iter->second)),
+            static_cast<int>(PronunciationAlphabet::kNone));
+  EXPECT_EQ(std::get<kLinguisticMapTuplePronunciationIndex>(iter->second), "");
 
   ASSERT_EQ(edge_signs.at(3).text(), "Ffordd Ainion");
   iter = linguistics.find(3);
@@ -2057,6 +2213,9 @@ TEST_F(RouteWithStreetnameAndSign_cy_en_Wales, CheckStreetNamesAndSigns2) {
   ASSERT_EQ(to_string(
                 static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(iter->second))),
             "cy");
+  EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(iter->second)),
+            static_cast<int>(PronunciationAlphabet::kNone));
+  EXPECT_EQ(std::get<kLinguisticMapTuplePronunciationIndex>(iter->second), "");
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -2152,6 +2311,9 @@ TEST_F(RouteWithStreetnameAndSign_cy_en_Wales, CheckGuideSigns) {
   ASSERT_EQ(to_string(
                 static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(iter->second))),
             "en");
+  EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(iter->second)),
+            static_cast<int>(PronunciationAlphabet::kNone));
+  EXPECT_EQ(std::get<kLinguisticMapTuplePronunciationIndex>(iter->second), "");
 
   ASSERT_EQ(edge_signs.at(1).text(), "Ffordd Penchwintan");
   iter = linguistics.find(1);
@@ -2159,6 +2321,9 @@ TEST_F(RouteWithStreetnameAndSign_cy_en_Wales, CheckGuideSigns) {
   ASSERT_EQ(to_string(
                 static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(iter->second))),
             "cy");
+  EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(iter->second)),
+            static_cast<int>(PronunciationAlphabet::kNone));
+  EXPECT_EQ(std::get<kLinguisticMapTuplePronunciationIndex>(iter->second), "");
 
   ASSERT_EQ(edge_signs.at(2).text(), "Newport");
   iter = linguistics.find(2);
@@ -2215,20 +2380,32 @@ TEST_F(RouteWithStreetnameAndSign_cy_en_Wales, CheckNonJunctionName) {
   auto names_and_types = edgeinfo.GetNamesAndTypes(types, true);
   ASSERT_EQ(names_and_types.size(), 3);
 
-  std::unordered_map<uint8_t, uint8_t> languages = edgeinfo.GetLanguageMap();
-  std::unordered_map<uint8_t, uint8_t>::const_iterator lang_iter = languages.find(0);
-  ASSERT_EQ(lang_iter, languages.end());
+  std::unordered_map<uint8_t, std::tuple<uint8_t, uint8_t, std::string>> linguistics =
+      edgeinfo.GetLinguisticMap();
+  std::unordered_map<uint8_t, std::tuple<uint8_t, uint8_t, std::string>>::const_iterator lang_iter =
+      linguistics.find(0);
+  ASSERT_EQ(lang_iter, linguistics.end());
   ASSERT_EQ(names_and_types.at(0).first, "North Street");
 
-  lang_iter = languages.find(1);
-  ASSERT_NE(lang_iter, languages.end());
+  lang_iter = linguistics.find(1);
+  ASSERT_NE(lang_iter, linguistics.end());
   ASSERT_EQ(names_and_types.at(1).first, "Ffordd Penchwintan");
-  ASSERT_EQ(to_string(static_cast<Language>(lang_iter->second)), "cy");
+  ASSERT_EQ(to_string(
+                static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(lang_iter->second))),
+            "cy");
+  EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(lang_iter->second)),
+            static_cast<int>(PronunciationAlphabet::kNone));
+  EXPECT_EQ(std::get<kLinguisticMapTuplePronunciationIndex>(lang_iter->second), "");
 
-  lang_iter = languages.find(2);
-  ASSERT_NE(lang_iter, languages.end());
+  lang_iter = linguistics.find(2);
+  ASSERT_NE(lang_iter, linguistics.end());
   ASSERT_EQ(names_and_types.at(2).first, "Penchwintan Road");
-  ASSERT_EQ(to_string(static_cast<Language>(lang_iter->second)), "en");
+  ASSERT_EQ(to_string(
+                static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(lang_iter->second))),
+            "en");
+  EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(lang_iter->second)),
+            static_cast<int>(PronunciationAlphabet::kNone));
+  EXPECT_EQ(std::get<kLinguisticMapTuplePronunciationIndex>(lang_iter->second), "");
 
   // No junction should exist here.  Named junctions are not allowed in UK
   EXPECT_EQ(result.directions()
@@ -2333,16 +2510,28 @@ TEST_F(RouteWithStreetnameAndSign_fr_nl_BrusselsBelgiumRightLeft, CheckRightName
   auto names_and_types = edgeinfo.GetNamesAndTypes(types, true);
   ASSERT_EQ(names_and_types.size(), 2);
 
-  std::unordered_map<uint8_t, uint8_t> languages = edgeinfo.GetLanguageMap();
-  std::unordered_map<uint8_t, uint8_t>::const_iterator lang_iter = languages.find(0);
-  ASSERT_NE(lang_iter, languages.end());
+  std::unordered_map<uint8_t, std::tuple<uint8_t, uint8_t, std::string>> linguistics =
+      edgeinfo.GetLinguisticMap();
+  std::unordered_map<uint8_t, std::tuple<uint8_t, uint8_t, std::string>>::const_iterator lang_iter =
+      linguistics.find(0);
+  ASSERT_NE(lang_iter, linguistics.end());
   ASSERT_EQ(names_and_types.at(0).first, "Chaussée de Gand");
-  ASSERT_EQ(to_string(static_cast<Language>(lang_iter->second)), "fr");
+  ASSERT_EQ(to_string(
+                static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(lang_iter->second))),
+            "fr");
+  EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(lang_iter->second)),
+            static_cast<int>(PronunciationAlphabet::kNone));
+  EXPECT_EQ(std::get<kLinguisticMapTuplePronunciationIndex>(lang_iter->second), "");
 
-  lang_iter = languages.find(1);
-  ASSERT_NE(lang_iter, languages.end());
+  lang_iter = linguistics.find(1);
+  ASSERT_NE(lang_iter, linguistics.end());
   ASSERT_EQ(names_and_types.at(1).first, "Steenweg op Gent");
-  ASSERT_EQ(to_string(static_cast<Language>(lang_iter->second)), "nl");
+  ASSERT_EQ(to_string(
+                static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(lang_iter->second))),
+            "nl");
+  EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(lang_iter->second)),
+            static_cast<int>(PronunciationAlphabet::kNone));
+  EXPECT_EQ(std::get<kLinguisticMapTuplePronunciationIndex>(lang_iter->second), "");
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -2377,16 +2566,28 @@ TEST_F(RouteWithStreetnameAndSign_fr_nl_BrusselsBelgiumRightLeft, CheckLeftNames
   auto names_and_types = edgeinfo.GetNamesAndTypes(types, true);
   ASSERT_EQ(names_and_types.size(), 2);
 
-  std::unordered_map<uint8_t, uint8_t> languages = edgeinfo.GetLanguageMap();
-  std::unordered_map<uint8_t, uint8_t>::const_iterator lang_iter = languages.find(0);
-  ASSERT_NE(lang_iter, languages.end());
+  std::unordered_map<uint8_t, std::tuple<uint8_t, uint8_t, std::string>> linguistics =
+      edgeinfo.GetLinguisticMap();
+  std::unordered_map<uint8_t, std::tuple<uint8_t, uint8_t, std::string>>::const_iterator lang_iter =
+      linguistics.find(0);
+  ASSERT_NE(lang_iter, linguistics.end());
   ASSERT_EQ(names_and_types.at(0).first, "Chaussée de Gand");
-  ASSERT_EQ(to_string(static_cast<Language>(lang_iter->second)), "fr");
+  ASSERT_EQ(to_string(
+                static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(lang_iter->second))),
+            "fr");
+  EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(lang_iter->second)),
+            static_cast<int>(PronunciationAlphabet::kNone));
+  EXPECT_EQ(std::get<kLinguisticMapTuplePronunciationIndex>(lang_iter->second), "");
 
-  lang_iter = languages.find(1);
-  ASSERT_NE(lang_iter, languages.end());
+  lang_iter = linguistics.find(1);
+  ASSERT_NE(lang_iter, linguistics.end());
   ASSERT_EQ(names_and_types.at(1).first, "Gentsesteenweg");
-  ASSERT_EQ(to_string(static_cast<Language>(lang_iter->second)), "nl");
+  ASSERT_EQ(to_string(
+                static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(lang_iter->second))),
+            "nl");
+  EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(lang_iter->second)),
+            static_cast<int>(PronunciationAlphabet::kNone));
+  EXPECT_EQ(std::get<kLinguisticMapTuplePronunciationIndex>(lang_iter->second), "");
 }
 
 class RouteWithStreetnameAndSign_en_USForwardBackwardWithName : public ::testing::Test {
@@ -2476,16 +2677,28 @@ TEST_F(RouteWithStreetnameAndSign_en_USForwardBackwardWithName, CheckForwardName
   auto names_and_types = edgeinfo.GetNamesAndTypes(types, true);
   ASSERT_EQ(names_and_types.size(), 2);
 
-  std::unordered_map<uint8_t, uint8_t> languages = edgeinfo.GetLanguageMap();
-  std::unordered_map<uint8_t, uint8_t>::const_iterator lang_iter = languages.find(0);
-  ASSERT_NE(lang_iter, languages.end());
+  std::unordered_map<uint8_t, std::tuple<uint8_t, uint8_t, std::string>> linguistics =
+      edgeinfo.GetLinguisticMap();
+  std::unordered_map<uint8_t, std::tuple<uint8_t, uint8_t, std::string>>::const_iterator lang_iter =
+      linguistics.find(0);
+  ASSERT_NE(lang_iter, linguistics.end());
   ASSERT_EQ(names_and_types.at(0).first, "Waltonville Road");
-  ASSERT_EQ(to_string(static_cast<Language>(lang_iter->second)), "en");
+  ASSERT_EQ(to_string(
+                static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(lang_iter->second))),
+            "en");
+  EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(lang_iter->second)),
+            static_cast<int>(PronunciationAlphabet::kNone));
+  EXPECT_EQ(std::get<kLinguisticMapTuplePronunciationIndex>(lang_iter->second), "");
 
-  lang_iter = languages.find(1);
-  ASSERT_NE(lang_iter, languages.end());
+  lang_iter = linguistics.find(1);
+  ASSERT_NE(lang_iter, linguistics.end());
   ASSERT_EQ(names_and_types.at(1).first, "C-1");
-  ASSERT_EQ(to_string(static_cast<Language>(lang_iter->second)), "en");
+  ASSERT_EQ(to_string(
+                static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(lang_iter->second))),
+            "en");
+  EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(lang_iter->second)),
+            static_cast<int>(PronunciationAlphabet::kNone));
+  EXPECT_EQ(std::get<kLinguisticMapTuplePronunciationIndex>(lang_iter->second), "");
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -2512,16 +2725,28 @@ TEST_F(RouteWithStreetnameAndSign_en_USForwardBackwardWithName, CheckBackwardNam
   auto names_and_types = edgeinfo.GetNamesAndTypes(types, true);
   ASSERT_EQ(names_and_types.size(), 2);
 
-  std::unordered_map<uint8_t, uint8_t> languages = edgeinfo.GetLanguageMap();
-  std::unordered_map<uint8_t, uint8_t>::const_iterator lang_iter = languages.find(0);
-  ASSERT_NE(lang_iter, languages.end());
+  std::unordered_map<uint8_t, std::tuple<uint8_t, uint8_t, std::string>> linguistics =
+      edgeinfo.GetLinguisticMap();
+  std::unordered_map<uint8_t, std::tuple<uint8_t, uint8_t, std::string>>::const_iterator lang_iter =
+      linguistics.find(0);
+  ASSERT_NE(lang_iter, linguistics.end());
   ASSERT_EQ(names_and_types.at(0).first, "Quarry Road");
-  ASSERT_EQ(to_string(static_cast<Language>(lang_iter->second)), "en");
+  ASSERT_EQ(to_string(
+                static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(lang_iter->second))),
+            "en");
+  EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(lang_iter->second)),
+            static_cast<int>(PronunciationAlphabet::kNone));
+  EXPECT_EQ(std::get<kLinguisticMapTuplePronunciationIndex>(lang_iter->second), "");
 
-  lang_iter = languages.find(1);
-  ASSERT_NE(lang_iter, languages.end());
+  lang_iter = linguistics.find(1);
+  ASSERT_NE(lang_iter, linguistics.end());
   ASSERT_EQ(names_and_types.at(1).first, "A");
-  ASSERT_EQ(to_string(static_cast<Language>(lang_iter->second)), "en");
+  ASSERT_EQ(to_string(
+                static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(lang_iter->second))),
+            "en");
+  EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(lang_iter->second)),
+            static_cast<int>(PronunciationAlphabet::kNone));
+  EXPECT_EQ(std::get<kLinguisticMapTuplePronunciationIndex>(lang_iter->second), "");
 }
 
 class RouteWithStreetnameAndSign_en_USForwardBackwardNoName : public ::testing::Test {
@@ -2606,11 +2831,18 @@ TEST_F(RouteWithStreetnameAndSign_en_USForwardBackwardNoName, CheckForwardNames)
   auto names_and_types = edgeinfo.GetNamesAndTypes(types, true);
   ASSERT_EQ(names_and_types.size(), 1);
 
-  std::unordered_map<uint8_t, uint8_t> languages = edgeinfo.GetLanguageMap();
-  std::unordered_map<uint8_t, uint8_t>::const_iterator lang_iter = languages.find(0);
-  ASSERT_NE(lang_iter, languages.end());
+  std::unordered_map<uint8_t, std::tuple<uint8_t, uint8_t, std::string>> linguistics =
+      edgeinfo.GetLinguisticMap();
+  std::unordered_map<uint8_t, std::tuple<uint8_t, uint8_t, std::string>>::const_iterator lang_iter =
+      linguistics.find(0);
+  ASSERT_NE(lang_iter, linguistics.end());
   ASSERT_EQ(names_and_types.at(0).first, "Waltonville Road");
-  ASSERT_EQ(to_string(static_cast<Language>(lang_iter->second)), "en");
+  ASSERT_EQ(to_string(
+                static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(lang_iter->second))),
+            "en");
+  EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(lang_iter->second)),
+            static_cast<int>(PronunciationAlphabet::kNone));
+  EXPECT_EQ(std::get<kLinguisticMapTuplePronunciationIndex>(lang_iter->second), "");
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -2637,11 +2869,18 @@ TEST_F(RouteWithStreetnameAndSign_en_USForwardBackwardNoName, CheckBackwardNames
   auto names_and_types = edgeinfo.GetNamesAndTypes(types, true);
   ASSERT_EQ(names_and_types.size(), 1);
 
-  std::unordered_map<uint8_t, uint8_t> languages = edgeinfo.GetLanguageMap();
-  std::unordered_map<uint8_t, uint8_t>::const_iterator lang_iter = languages.find(0);
-  ASSERT_NE(lang_iter, languages.end());
+  std::unordered_map<uint8_t, std::tuple<uint8_t, uint8_t, std::string>> linguistics =
+      edgeinfo.GetLinguisticMap();
+  std::unordered_map<uint8_t, std::tuple<uint8_t, uint8_t, std::string>>::const_iterator lang_iter =
+      linguistics.find(0);
+  ASSERT_NE(lang_iter, linguistics.end());
   ASSERT_EQ(names_and_types.at(0).first, "Quarry Road");
-  ASSERT_EQ(to_string(static_cast<Language>(lang_iter->second)), "en");
+  ASSERT_EQ(to_string(
+                static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(lang_iter->second))),
+            "en");
+  EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(lang_iter->second)),
+            static_cast<int>(PronunciationAlphabet::kNone));
+  EXPECT_EQ(std::get<kLinguisticMapTuplePronunciationIndex>(lang_iter->second), "");
 }
 
 /* TODO  Fix this edge case. This works while using degrees (boost) for points but it is too slow.
@@ -2741,10 +2980,10 @@ TEST_F(RouteWithStreetnameAndSign_fr_nl_MesenBelgiumRightLeft, CheckRightNames) 
   auto names_and_types = edgeinfo.GetNamesAndTypes(types, true);
   ASSERT_EQ(names_and_types.size(), 1);
 
-  std::unordered_map<uint8_t, uint8_t> languages = edgeinfo.GetLanguageMap();
-  std::unordered_map<uint8_t, uint8_t>::const_iterator lang_iter = languages.find(0);
-  ASSERT_EQ(lang_iter, languages.end());
-  ASSERT_EQ(names_and_types.at(0).first, "Komenstraat");
+  std::unordered_map<uint8_t, std::tuple<uint8_t, uint8_t, std::string>> linguistics =
+edgeinfo.GetLinguisticMap(); std::unordered_map<uint8_t, std::tuple<uint8_t, uint8_t,
+std::string>>::const_iterator lang_iter = linguistics.find(0); ASSERT_EQ(lang_iter,
+linguistics.end()); ASSERT_EQ(names_and_types.at(0).first, "Komenstraat");
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -2777,10 +3016,10 @@ TEST_F(RouteWithStreetnameAndSign_fr_nl_MesenBelgiumRightLeft, CheckLeftNames) {
   auto names_and_types = edgeinfo.GetNamesAndTypes(types, true);
   ASSERT_EQ(names_and_types.size(), 1);
 
-  std::unordered_map<uint8_t, uint8_t> languages = edgeinfo.GetLanguageMap();
-  std::unordered_map<uint8_t, uint8_t>::const_iterator lang_iter = languages.find(0);
-  ASSERT_EQ(lang_iter, languages.end());
-  ASSERT_EQ(names_and_types.at(0).first, "Chemin des Quatre Rois");
+  std::unordered_map<uint8_t, std::tuple<uint8_t, uint8_t, std::string>> linguistics =
+edgeinfo.GetLinguisticMap(); std::unordered_map<uint8_t, std::tuple<uint8_t, uint8_t,
+std::string>>::const_iterator lang_iter = linguistics.find(0); ASSERT_EQ(lang_iter,
+linguistics.end()); ASSERT_EQ(names_and_types.at(0).first, "Chemin des Quatre Rois");
 }
 */
 
@@ -2864,13 +3103,25 @@ TEST_F(RouteWithStreetnameAndSign_fr_de_FribourgSwitzerlandMulti, CheckForwardNa
   auto names_and_types = edgeinfo.GetNamesAndTypes(types, true);
   ASSERT_EQ(names_and_types.size(), 2);
 
-  std::unordered_map<uint8_t, uint8_t> languages = edgeinfo.GetLanguageMap();
-  std::unordered_map<uint8_t, uint8_t>::const_iterator lang_iter = languages.find(0);
-  ASSERT_EQ(to_string(static_cast<Language>(lang_iter->second)), "fr");
+  std::unordered_map<uint8_t, std::tuple<uint8_t, uint8_t, std::string>> linguistics =
+      edgeinfo.GetLinguisticMap();
+  std::unordered_map<uint8_t, std::tuple<uint8_t, uint8_t, std::string>>::const_iterator lang_iter =
+      linguistics.find(0);
+  ASSERT_EQ(to_string(
+                static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(lang_iter->second))),
+            "fr");
+  EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(lang_iter->second)),
+            static_cast<int>(PronunciationAlphabet::kNone));
+  EXPECT_EQ(std::get<kLinguisticMapTuplePronunciationIndex>(lang_iter->second), "");
   ASSERT_EQ(names_and_types.at(0).first, "Route des Alpes");
 
-  lang_iter = languages.find(1);
-  ASSERT_EQ(to_string(static_cast<Language>(lang_iter->second)), "de");
+  lang_iter = linguistics.find(1);
+  ASSERT_EQ(to_string(
+                static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(lang_iter->second))),
+            "de");
+  EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(lang_iter->second)),
+            static_cast<int>(PronunciationAlphabet::kNone));
+  EXPECT_EQ(std::get<kLinguisticMapTuplePronunciationIndex>(lang_iter->second), "");
   ASSERT_EQ(names_and_types.at(1).first, "Alpenstrasse");
 }
 
@@ -2897,13 +3148,25 @@ TEST_F(RouteWithStreetnameAndSign_fr_de_FribourgSwitzerlandMulti, CheckBackwardN
   auto names_and_types = edgeinfo.GetNamesAndTypes(types, true);
   ASSERT_EQ(names_and_types.size(), 2);
 
-  std::unordered_map<uint8_t, uint8_t> languages = edgeinfo.GetLanguageMap();
-  std::unordered_map<uint8_t, uint8_t>::const_iterator lang_iter = languages.find(0);
-  ASSERT_EQ(to_string(static_cast<Language>(lang_iter->second)), "fr");
+  std::unordered_map<uint8_t, std::tuple<uint8_t, uint8_t, std::string>> linguistics =
+      edgeinfo.GetLinguisticMap();
+  std::unordered_map<uint8_t, std::tuple<uint8_t, uint8_t, std::string>>::const_iterator lang_iter =
+      linguistics.find(0);
+  ASSERT_EQ(to_string(
+                static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(lang_iter->second))),
+            "fr");
+  EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(lang_iter->second)),
+            static_cast<int>(PronunciationAlphabet::kNone));
+  EXPECT_EQ(std::get<kLinguisticMapTuplePronunciationIndex>(lang_iter->second), "");
   ASSERT_EQ(names_and_types.at(0).first, "Route des Alpes");
 
-  lang_iter = languages.find(1);
-  ASSERT_EQ(to_string(static_cast<Language>(lang_iter->second)), "de");
+  lang_iter = linguistics.find(1);
+  ASSERT_EQ(to_string(
+                static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(lang_iter->second))),
+            "de");
+  EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(lang_iter->second)),
+            static_cast<int>(PronunciationAlphabet::kNone));
+  EXPECT_EQ(std::get<kLinguisticMapTuplePronunciationIndex>(lang_iter->second), "");
   ASSERT_EQ(names_and_types.at(1).first, "Alpenstrasse");
 }
 
@@ -2949,7 +3212,7 @@ protected:
 TEST_F(RouteWithStreetnameAndSign_rm_de_BivioSwitzerland, CheckForwardNames) {
 
   // language IT should be dropped, but since in name tag we don't toss.
-  // Lingustic polys/default languages in this area is rm and de.
+  // Lingustic polys/default linguistics in this area is rm and de.
   // actual hotel address:
   // Hotel Post, Julierstrasse 64 CH-7457 Bivio
   const std::string workdir =
@@ -2993,17 +3256,29 @@ TEST_F(RouteWithStreetnameAndSign_rm_de_BivioSwitzerland, CheckForwardNames) {
   auto names_and_types = edgeinfo.GetNamesAndTypes(types, true);
   ASSERT_EQ(names_and_types.size(), 3);
 
-  std::unordered_map<uint8_t, uint8_t> languages = edgeinfo.GetLanguageMap();
-  std::unordered_map<uint8_t, uint8_t>::const_iterator lang_iter = languages.find(0);
-  ASSERT_EQ(lang_iter, languages.end());
+  std::unordered_map<uint8_t, std::tuple<uint8_t, uint8_t, std::string>> linguistics =
+      edgeinfo.GetLinguisticMap();
+  std::unordered_map<uint8_t, std::tuple<uint8_t, uint8_t, std::string>>::const_iterator lang_iter =
+      linguistics.find(0);
+  ASSERT_EQ(lang_iter, linguistics.end());
   ASSERT_EQ(names_and_types.at(0).first, "Vea del Giulia");
 
-  lang_iter = languages.find(1);
-  ASSERT_EQ(to_string(static_cast<Language>(lang_iter->second)), "rm");
+  lang_iter = linguistics.find(1);
+  ASSERT_EQ(to_string(
+                static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(lang_iter->second))),
+            "rm");
+  EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(lang_iter->second)),
+            static_cast<int>(PronunciationAlphabet::kNone));
+  EXPECT_EQ(std::get<kLinguisticMapTuplePronunciationIndex>(lang_iter->second), "");
   ASSERT_EQ(names_and_types.at(1).first, "Via digl Gelgia");
 
-  lang_iter = languages.find(2);
-  ASSERT_EQ(to_string(static_cast<Language>(lang_iter->second)), "de");
+  lang_iter = linguistics.find(2);
+  ASSERT_EQ(to_string(
+                static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(lang_iter->second))),
+            "de");
+  EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(lang_iter->second)),
+            static_cast<int>(PronunciationAlphabet::kNone));
+  EXPECT_EQ(std::get<kLinguisticMapTuplePronunciationIndex>(lang_iter->second), "");
   ASSERT_EQ(names_and_types.at(2).first, "Julierstrasse");
 }
 
@@ -3030,17 +3305,29 @@ TEST_F(RouteWithStreetnameAndSign_rm_de_BivioSwitzerland, CheckBackwardNames) {
   auto names_and_types = edgeinfo.GetNamesAndTypes(types, true);
   ASSERT_EQ(names_and_types.size(), 3);
 
-  std::unordered_map<uint8_t, uint8_t> languages = edgeinfo.GetLanguageMap();
-  std::unordered_map<uint8_t, uint8_t>::const_iterator lang_iter = languages.find(0);
-  ASSERT_EQ(lang_iter, languages.end());
+  std::unordered_map<uint8_t, std::tuple<uint8_t, uint8_t, std::string>> linguistics =
+      edgeinfo.GetLinguisticMap();
+  std::unordered_map<uint8_t, std::tuple<uint8_t, uint8_t, std::string>>::const_iterator lang_iter =
+      linguistics.find(0);
+  ASSERT_EQ(lang_iter, linguistics.end());
   ASSERT_EQ(names_and_types.at(0).first, "Vea del Giulia");
 
-  lang_iter = languages.find(1);
-  ASSERT_EQ(to_string(static_cast<Language>(lang_iter->second)), "rm");
+  lang_iter = linguistics.find(1);
+  ASSERT_EQ(to_string(
+                static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(lang_iter->second))),
+            "rm");
+  EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(lang_iter->second)),
+            static_cast<int>(PronunciationAlphabet::kNone));
+  EXPECT_EQ(std::get<kLinguisticMapTuplePronunciationIndex>(lang_iter->second), "");
   ASSERT_EQ(names_and_types.at(1).first, "Via digl Gelgia");
 
-  lang_iter = languages.find(2);
-  ASSERT_EQ(to_string(static_cast<Language>(lang_iter->second)), "de");
+  lang_iter = linguistics.find(2);
+  ASSERT_EQ(to_string(
+                static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(lang_iter->second))),
+            "de");
+  EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(lang_iter->second)),
+            static_cast<int>(PronunciationAlphabet::kNone));
+  EXPECT_EQ(std::get<kLinguisticMapTuplePronunciationIndex>(lang_iter->second), "");
   ASSERT_EQ(names_and_types.at(2).first, "Julierstrasse");
 }
 
@@ -3120,9 +3407,16 @@ TEST_F(RouteWithStreetnameAndSign_de_ZurichSwitzerland, CheckForwardNames) {
   auto names_and_types = edgeinfo.GetNamesAndTypes(types, true);
   ASSERT_EQ(names_and_types.size(), 1);
 
-  std::unordered_map<uint8_t, uint8_t> languages = edgeinfo.GetLanguageMap();
-  std::unordered_map<uint8_t, uint8_t>::const_iterator lang_iter = languages.find(0);
-  ASSERT_EQ(to_string(static_cast<Language>(lang_iter->second)), "de");
+  std::unordered_map<uint8_t, std::tuple<uint8_t, uint8_t, std::string>> linguistics =
+      edgeinfo.GetLinguisticMap();
+  std::unordered_map<uint8_t, std::tuple<uint8_t, uint8_t, std::string>>::const_iterator lang_iter =
+      linguistics.find(0);
+  ASSERT_EQ(to_string(
+                static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(lang_iter->second))),
+            "de");
+  EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(lang_iter->second)),
+            static_cast<int>(PronunciationAlphabet::kNone));
+  EXPECT_EQ(std::get<kLinguisticMapTuplePronunciationIndex>(lang_iter->second), "");
   ASSERT_EQ(names_and_types.at(0).first, "Werdstrasse");
 }
 
@@ -3149,9 +3443,16 @@ TEST_F(RouteWithStreetnameAndSign_de_ZurichSwitzerland, CheckBackwardNames) {
   auto names_and_types = edgeinfo.GetNamesAndTypes(types, true);
   ASSERT_EQ(names_and_types.size(), 1);
 
-  std::unordered_map<uint8_t, uint8_t> languages = edgeinfo.GetLanguageMap();
-  std::unordered_map<uint8_t, uint8_t>::const_iterator lang_iter = languages.find(0);
-  ASSERT_EQ(to_string(static_cast<Language>(lang_iter->second)), "de");
+  std::unordered_map<uint8_t, std::tuple<uint8_t, uint8_t, std::string>> linguistics =
+      edgeinfo.GetLinguisticMap();
+  std::unordered_map<uint8_t, std::tuple<uint8_t, uint8_t, std::string>>::const_iterator lang_iter =
+      linguistics.find(0);
+  ASSERT_EQ(to_string(
+                static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(lang_iter->second))),
+            "de");
+  EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(lang_iter->second)),
+            static_cast<int>(PronunciationAlphabet::kNone));
+  EXPECT_EQ(std::get<kLinguisticMapTuplePronunciationIndex>(lang_iter->second), "");
   ASSERT_EQ(names_and_types.at(0).first, "Werdstrasse");
 }
 
@@ -3260,16 +3561,28 @@ TEST_F(RouteWithStreetnameAndSign_fr_nl_EupenBelgium, CheckLingusticPoly) {
   auto names_and_types = edgeinfo.GetNamesAndTypes(types, true);
   ASSERT_EQ(names_and_types.size(), 2);
 
-  std::unordered_map<uint8_t, uint8_t> languages = edgeinfo.GetLanguageMap();
-  std::unordered_map<uint8_t, uint8_t>::const_iterator lang_iter = languages.find(0);
-  ASSERT_NE(lang_iter, languages.end());
+  std::unordered_map<uint8_t, std::tuple<uint8_t, uint8_t, std::string>> linguistics =
+      edgeinfo.GetLinguisticMap();
+  std::unordered_map<uint8_t, std::tuple<uint8_t, uint8_t, std::string>>::const_iterator lang_iter =
+      linguistics.find(0);
+  ASSERT_NE(lang_iter, linguistics.end());
   ASSERT_EQ(names_and_types.at(0).first, "Bergstraße");
-  ASSERT_EQ(to_string(static_cast<Language>(lang_iter->second)), "de");
+  ASSERT_EQ(to_string(
+                static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(lang_iter->second))),
+            "de");
+  EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(lang_iter->second)),
+            static_cast<int>(PronunciationAlphabet::kNone));
+  EXPECT_EQ(std::get<kLinguisticMapTuplePronunciationIndex>(lang_iter->second), "");
 
-  lang_iter = languages.find(1);
-  ASSERT_NE(lang_iter, languages.end());
+  lang_iter = linguistics.find(1);
+  ASSERT_NE(lang_iter, linguistics.end());
   ASSERT_EQ(names_and_types.at(1).first, "Rue de la Montagne");
-  ASSERT_EQ(to_string(static_cast<Language>(lang_iter->second)), "fr");
+  ASSERT_EQ(to_string(
+                static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(lang_iter->second))),
+            "fr");
+  EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(lang_iter->second)),
+            static_cast<int>(PronunciationAlphabet::kNone));
+  EXPECT_EQ(std::get<kLinguisticMapTuplePronunciationIndex>(lang_iter->second), "");
 
   GraphId DP_edge_id;
   const DirectedEdge* DP_edge = nullptr;
@@ -3287,7 +3600,7 @@ TEST_F(RouteWithStreetnameAndSign_fr_nl_EupenBelgium, CheckLingusticPoly) {
   names_and_types = edgeinfo.GetNamesAndTypes(types, true);
   ASSERT_EQ(names_and_types.size(), 0);
 
-  std::unordered_map<uint8_t, std::tuple<uint8_t, uint8_t, std::string>> linguistics;
+  linguistics.clear();
   std::vector<SignInfo> edge_signs = tile->GetSigns(DP_edge_id.id(), linguistics);
 
   ASSERT_EQ(edge_signs.size(), 3);
@@ -3300,6 +3613,9 @@ TEST_F(RouteWithStreetnameAndSign_fr_nl_EupenBelgium, CheckLingusticPoly) {
   ASSERT_EQ(to_string(
                 static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(iter->second))),
             "de");
+  EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(iter->second)),
+            static_cast<int>(PronunciationAlphabet::kNone));
+  EXPECT_EQ(std::get<kLinguisticMapTuplePronunciationIndex>(iter->second), "");
 
   ASSERT_EQ(edge_signs.at(1).text(), "Rue de la Montagne");
   iter = linguistics.find(1);
@@ -3307,6 +3623,9 @@ TEST_F(RouteWithStreetnameAndSign_fr_nl_EupenBelgium, CheckLingusticPoly) {
   ASSERT_EQ(to_string(
                 static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(iter->second))),
             "fr");
+  EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(iter->second)),
+            static_cast<int>(PronunciationAlphabet::kNone));
+  EXPECT_EQ(std::get<kLinguisticMapTuplePronunciationIndex>(iter->second), "");
 
   ASSERT_EQ(edge_signs.at(2).text(), "Eupen");
   iter = linguistics.find(2);
@@ -3643,6 +3962,9 @@ TEST_F(RouteWithStreetnameAndSign_ja_en_Japan, CheckStreetNamesAndSigns1) {
   ASSERT_EQ(to_string(
                 static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(iter->second))),
             "ja");
+  EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(iter->second)),
+            static_cast<int>(PronunciationAlphabet::kNone));
+  EXPECT_EQ(std::get<kLinguisticMapTuplePronunciationIndex>(iter->second), "");
 
   ASSERT_EQ(edge_signs.at(4).text(), "Kiyosubashi-dori Avenue");
   iter = linguistics.find(4);
@@ -3650,6 +3972,9 @@ TEST_F(RouteWithStreetnameAndSign_ja_en_Japan, CheckStreetNamesAndSigns1) {
   ASSERT_EQ(to_string(
                 static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(iter->second))),
             "en");
+  EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(iter->second)),
+            static_cast<int>(PronunciationAlphabet::kNone));
+  EXPECT_EQ(std::get<kLinguisticMapTuplePronunciationIndex>(iter->second), "");
 
   ASSERT_EQ(edge_signs.at(5).text(), "常磐道");
   iter = linguistics.find(5);
@@ -3657,6 +3982,9 @@ TEST_F(RouteWithStreetnameAndSign_ja_en_Japan, CheckStreetNamesAndSigns1) {
   ASSERT_EQ(to_string(
                 static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(iter->second))),
             "ja");
+  EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(iter->second)),
+            static_cast<int>(PronunciationAlphabet::kNone));
+  EXPECT_EQ(std::get<kLinguisticMapTuplePronunciationIndex>(iter->second), "");
 
   ASSERT_EQ(edge_signs.at(6).text(), "東北道");
   iter = linguistics.find(6);
@@ -3664,6 +3992,9 @@ TEST_F(RouteWithStreetnameAndSign_ja_en_Japan, CheckStreetNamesAndSigns1) {
   ASSERT_EQ(to_string(
                 static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(iter->second))),
             "ja");
+  EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(iter->second)),
+            static_cast<int>(PronunciationAlphabet::kNone));
+  EXPECT_EQ(std::get<kLinguisticMapTuplePronunciationIndex>(iter->second), "");
 
   ASSERT_EQ(edge_signs.at(7).text(), "Joban Expressway");
   iter = linguistics.find(7);
@@ -3671,6 +4002,9 @@ TEST_F(RouteWithStreetnameAndSign_ja_en_Japan, CheckStreetNamesAndSigns1) {
   ASSERT_EQ(to_string(
                 static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(iter->second))),
             "en");
+  EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(iter->second)),
+            static_cast<int>(PronunciationAlphabet::kNone));
+  EXPECT_EQ(std::get<kLinguisticMapTuplePronunciationIndex>(iter->second), "");
 
   ASSERT_EQ(edge_signs.at(8).text(), "Tohoku Expressway");
   iter = linguistics.find(8);
@@ -3678,43 +4012,67 @@ TEST_F(RouteWithStreetnameAndSign_ja_en_Japan, CheckStreetNamesAndSigns1) {
   ASSERT_EQ(to_string(
                 static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(iter->second))),
             "en");
+  EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(iter->second)),
+            static_cast<int>(PronunciationAlphabet::kNone));
+  EXPECT_EQ(std::get<kLinguisticMapTuplePronunciationIndex>(iter->second), "");
 
   node_id = JICDMN_edge->endnode();
   tile = graph_reader.GetGraphTile(node_id);
   edgeinfo = tile->edgeinfo(JICDMN_edge);
   types.clear();
   names_and_types = edgeinfo.GetNamesAndTypes(types, true);
-  std::unordered_map<uint8_t, uint8_t> languages = edgeinfo.GetLanguageMap();
+  linguistics = edgeinfo.GetLinguisticMap();
 
   ASSERT_EQ(names_and_types.size(), 6);
 
   ASSERT_EQ(names_and_types.at(0).first, "常磐道");
-  std::unordered_map<uint8_t, uint8_t>::const_iterator lang_iter = languages.find(0);
-  ASSERT_NE(lang_iter, languages.end());
-  ASSERT_EQ(to_string(static_cast<Language>(lang_iter->second)), "ja");
+  std::unordered_map<uint8_t, std::tuple<uint8_t, uint8_t, std::string>>::const_iterator lang_iter =
+      linguistics.find(0);
+  ASSERT_NE(lang_iter, linguistics.end());
+  ASSERT_EQ(to_string(
+                static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(lang_iter->second))),
+            "ja");
+  EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(lang_iter->second)),
+            static_cast<int>(PronunciationAlphabet::kNone));
+  EXPECT_EQ(std::get<kLinguisticMapTuplePronunciationIndex>(lang_iter->second), "");
 
   ASSERT_EQ(names_and_types.at(1).first, "東北道");
-  lang_iter = languages.find(1);
-  ASSERT_NE(lang_iter, languages.end());
-  ASSERT_EQ(to_string(static_cast<Language>(lang_iter->second)), "ja");
+  lang_iter = linguistics.find(1);
+  ASSERT_NE(lang_iter, linguistics.end());
+  ASSERT_EQ(to_string(
+                static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(lang_iter->second))),
+            "ja");
+  EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(lang_iter->second)),
+            static_cast<int>(PronunciationAlphabet::kNone));
+  EXPECT_EQ(std::get<kLinguisticMapTuplePronunciationIndex>(lang_iter->second), "");
 
   ASSERT_EQ(names_and_types.at(2).first, "Joban Expressway");
-  lang_iter = languages.find(2);
-  ASSERT_NE(lang_iter, languages.end());
-  ASSERT_EQ(to_string(static_cast<Language>(lang_iter->second)), "en");
+  lang_iter = linguistics.find(2);
+  ASSERT_NE(lang_iter, linguistics.end());
+  ASSERT_EQ(to_string(
+                static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(lang_iter->second))),
+            "en");
+  EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(lang_iter->second)),
+            static_cast<int>(PronunciationAlphabet::kNone));
+  EXPECT_EQ(std::get<kLinguisticMapTuplePronunciationIndex>(lang_iter->second), "");
 
   ASSERT_EQ(names_and_types.at(3).first, "Tohoku Expressway");
-  lang_iter = languages.find(3);
-  ASSERT_NE(lang_iter, languages.end());
-  ASSERT_EQ(to_string(static_cast<Language>(lang_iter->second)), "en");
+  lang_iter = linguistics.find(3);
+  ASSERT_NE(lang_iter, linguistics.end());
+  ASSERT_EQ(to_string(
+                static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(lang_iter->second))),
+            "en");
+  EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(lang_iter->second)),
+            static_cast<int>(PronunciationAlphabet::kNone));
+  EXPECT_EQ(std::get<kLinguisticMapTuplePronunciationIndex>(lang_iter->second), "");
 
   ASSERT_EQ(names_and_types.at(4).first, "E6");
-  lang_iter = languages.find(4);
-  ASSERT_EQ(lang_iter, languages.end());
+  lang_iter = linguistics.find(4);
+  ASSERT_EQ(lang_iter, linguistics.end());
 
   ASSERT_EQ(names_and_types.at(5).first, "E4");
-  lang_iter = languages.find(5);
-  ASSERT_EQ(lang_iter, languages.end());
+  lang_iter = linguistics.find(5);
+  ASSERT_EQ(lang_iter, linguistics.end());
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -3809,6 +4167,9 @@ TEST_F(RouteWithStreetnameAndSign_ja_en_Japan, CheckStreetNamesAndSigns2) {
   ASSERT_EQ(to_string(
                 static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(iter->second))),
             "ja");
+  EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(iter->second)),
+            static_cast<int>(PronunciationAlphabet::kNone));
+  EXPECT_EQ(std::get<kLinguisticMapTuplePronunciationIndex>(iter->second), "");
 
   ASSERT_EQ(edge_signs.at(3).text(), "Kiyosumi-dori");
   iter = linguistics.find(3);
@@ -3816,6 +4177,9 @@ TEST_F(RouteWithStreetnameAndSign_ja_en_Japan, CheckStreetNamesAndSigns2) {
   ASSERT_EQ(to_string(
                 static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(iter->second))),
             "en");
+  EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(iter->second)),
+            static_cast<int>(PronunciationAlphabet::kNone));
+  EXPECT_EQ(std::get<kLinguisticMapTuplePronunciationIndex>(iter->second), "");
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -3917,6 +4281,9 @@ TEST_F(RouteWithStreetnameAndSign_ja_en_Japan, CheckGuideSigns) {
   ASSERT_EQ(to_string(
                 static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(iter->second))),
             "ja");
+  EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(iter->second)),
+            static_cast<int>(PronunciationAlphabet::kNone));
+  EXPECT_EQ(std::get<kLinguisticMapTuplePronunciationIndex>(iter->second), "");
 
   ASSERT_EQ(edge_signs.at(1).text(), "Kokugikan-dori");
   iter = linguistics.find(1);
@@ -3924,6 +4291,9 @@ TEST_F(RouteWithStreetnameAndSign_ja_en_Japan, CheckGuideSigns) {
   ASSERT_EQ(to_string(
                 static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(iter->second))),
             "en");
+  EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(iter->second)),
+            static_cast<int>(PronunciationAlphabet::kNone));
+  EXPECT_EQ(std::get<kLinguisticMapTuplePronunciationIndex>(iter->second), "");
 
   ASSERT_EQ(edge_signs.at(2).text(), "大和街道");
   iter = linguistics.find(2);
@@ -3983,16 +4353,28 @@ TEST_F(RouteWithStreetnameAndSign_ja_en_Japan, CheckNonJunctionName) {
   auto names_and_types = edgeinfo.GetNamesAndTypes(types, true);
   ASSERT_EQ(names_and_types.size(), 2);
 
-  std::unordered_map<uint8_t, uint8_t> languages = edgeinfo.GetLanguageMap();
-  std::unordered_map<uint8_t, uint8_t>::const_iterator lang_iter = languages.find(0);
-  ASSERT_NE(lang_iter, languages.end());
+  std::unordered_map<uint8_t, std::tuple<uint8_t, uint8_t, std::string>> linguistics =
+      edgeinfo.GetLinguisticMap();
+  std::unordered_map<uint8_t, std::tuple<uint8_t, uint8_t, std::string>>::const_iterator lang_iter =
+      linguistics.find(0);
+  ASSERT_NE(lang_iter, linguistics.end());
   ASSERT_EQ(names_and_types.at(0).first, "国技館通り");
-  ASSERT_EQ(to_string(static_cast<Language>(lang_iter->second)), "ja");
+  ASSERT_EQ(to_string(
+                static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(lang_iter->second))),
+            "ja");
+  EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(lang_iter->second)),
+            static_cast<int>(PronunciationAlphabet::kNone));
+  EXPECT_EQ(std::get<kLinguisticMapTuplePronunciationIndex>(lang_iter->second), "");
 
-  lang_iter = languages.find(1);
-  ASSERT_NE(lang_iter, languages.end());
+  lang_iter = linguistics.find(1);
+  ASSERT_NE(lang_iter, linguistics.end());
   ASSERT_EQ(names_and_types.at(1).first, "Kokugikan-dori");
-  ASSERT_EQ(to_string(static_cast<Language>(lang_iter->second)), "en");
+  ASSERT_EQ(to_string(
+                static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(lang_iter->second))),
+            "en");
+  EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(lang_iter->second)),
+            static_cast<int>(PronunciationAlphabet::kNone));
+  EXPECT_EQ(std::get<kLinguisticMapTuplePronunciationIndex>(lang_iter->second), "");
 
   // Junction should exist here.  Named junctions are allowed in JP
   EXPECT_EQ(result.directions()
@@ -4033,7 +4415,7 @@ TEST_F(RouteWithStreetnameAndSign_ja_en_Japan, CheckNonJunctionName) {
   node_id = DM_edge->endnode();
   tile = graph_reader.GetGraphTile(node_id);
 
-  std::unordered_map<uint8_t, std::tuple<uint8_t, uint8_t, std::string>> linguistics;
+  linguistics.clear();
   std::vector<SignInfo> edge_signs = tile->GetSigns(node_id.id(), linguistics, true);
 
   ASSERT_EQ(edge_signs.size(), 2);
@@ -4046,6 +4428,9 @@ TEST_F(RouteWithStreetnameAndSign_ja_en_Japan, CheckNonJunctionName) {
   ASSERT_EQ(to_string(
                 static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(iter->second))),
             "ja");
+  EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(iter->second)),
+            static_cast<int>(PronunciationAlphabet::kNone));
+  EXPECT_EQ(std::get<kLinguisticMapTuplePronunciationIndex>(iter->second), "");
 
   ASSERT_EQ(edge_signs.at(1).text(), "Ryogoku 2-chome");
   iter = linguistics.find(1);
@@ -4053,6 +4438,9 @@ TEST_F(RouteWithStreetnameAndSign_ja_en_Japan, CheckNonJunctionName) {
   ASSERT_EQ(to_string(
                 static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(iter->second))),
             "en");
+  EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(iter->second)),
+            static_cast<int>(PronunciationAlphabet::kNone));
+  EXPECT_EQ(std::get<kLinguisticMapTuplePronunciationIndex>(iter->second), "");
 }
 
 class RouteWithStreetnameAndSign_en_fr_OttawaCanada : public ::testing::Test {
@@ -4351,6 +4739,9 @@ TEST_F(RouteWithStreetnameAndSign_en_fr_OttawaCanada, CheckStreetNamesAndSigns1)
   ASSERT_EQ(to_string(
                 static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(iter->second))),
             "en");
+  EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(iter->second)),
+            static_cast<int>(PronunciationAlphabet::kNone));
+  EXPECT_EQ(std::get<kLinguisticMapTuplePronunciationIndex>(iter->second), "");
 
   ASSERT_EQ(edge_signs.at(3).text(), "Riverside Drive");
   iter = linguistics.find(3);
@@ -4358,6 +4749,9 @@ TEST_F(RouteWithStreetnameAndSign_en_fr_OttawaCanada, CheckStreetNamesAndSigns1)
   ASSERT_EQ(to_string(
                 static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(iter->second))),
             "en");
+  EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(iter->second)),
+            static_cast<int>(PronunciationAlphabet::kNone));
+  EXPECT_EQ(std::get<kLinguisticMapTuplePronunciationIndex>(iter->second), "");
 
   ASSERT_EQ(edge_signs.at(4).text(), "Promenade Vanier");
   iter = linguistics.find(4);
@@ -4365,6 +4759,9 @@ TEST_F(RouteWithStreetnameAndSign_en_fr_OttawaCanada, CheckStreetNamesAndSigns1)
   ASSERT_EQ(to_string(
                 static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(iter->second))),
             "fr");
+  EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(iter->second)),
+            static_cast<int>(PronunciationAlphabet::kNone));
+  EXPECT_EQ(std::get<kLinguisticMapTuplePronunciationIndex>(iter->second), "");
 
   ASSERT_EQ(edge_signs.at(5).text(), "Promenade Riverside");
   iter = linguistics.find(5);
@@ -4372,6 +4769,9 @@ TEST_F(RouteWithStreetnameAndSign_en_fr_OttawaCanada, CheckStreetNamesAndSigns1)
   ASSERT_EQ(to_string(
                 static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(iter->second))),
             "fr");
+  EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(iter->second)),
+            static_cast<int>(PronunciationAlphabet::kNone));
+  EXPECT_EQ(std::get<kLinguisticMapTuplePronunciationIndex>(iter->second), "");
 
   ASSERT_EQ(edge_signs.at(6).text(), "Sandy Hill");
   iter = linguistics.find(6);
@@ -4379,6 +4779,9 @@ TEST_F(RouteWithStreetnameAndSign_en_fr_OttawaCanada, CheckStreetNamesAndSigns1)
   ASSERT_EQ(to_string(
                 static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(iter->second))),
             "en");
+  EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(iter->second)),
+            static_cast<int>(PronunciationAlphabet::kNone));
+  EXPECT_EQ(std::get<kLinguisticMapTuplePronunciationIndex>(iter->second), "");
 
   ASSERT_EQ(edge_signs.at(7).text(), "Colline de sable");
   iter = linguistics.find(7);
@@ -4386,29 +4789,43 @@ TEST_F(RouteWithStreetnameAndSign_en_fr_OttawaCanada, CheckStreetNamesAndSigns1)
   ASSERT_EQ(to_string(
                 static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(iter->second))),
             "fr");
+  EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(iter->second)),
+            static_cast<int>(PronunciationAlphabet::kNone));
+  EXPECT_EQ(std::get<kLinguisticMapTuplePronunciationIndex>(iter->second), "");
 
   node_id = JICDMN_edge->endnode();
   tile = graph_reader.GetGraphTile(node_id);
   edgeinfo = tile->edgeinfo(JICDMN_edge);
   types.clear();
   names_and_types = edgeinfo.GetNamesAndTypes(types, true);
-  std::unordered_map<uint8_t, uint8_t> languages = edgeinfo.GetLanguageMap();
+  linguistics = edgeinfo.GetLinguisticMap();
 
   ASSERT_EQ(names_and_types.size(), 3);
 
   ASSERT_EQ(names_and_types.at(0).first, "Vanier Parkway");
-  std::unordered_map<uint8_t, uint8_t>::const_iterator lang_iter = languages.find(0);
-  ASSERT_NE(lang_iter, languages.end());
-  ASSERT_EQ(to_string(static_cast<Language>(lang_iter->second)), "en");
+  std::unordered_map<uint8_t, std::tuple<uint8_t, uint8_t, std::string>>::const_iterator lang_iter =
+      linguistics.find(0);
+  ASSERT_NE(lang_iter, linguistics.end());
+  ASSERT_EQ(to_string(
+                static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(lang_iter->second))),
+            "en");
+  EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(lang_iter->second)),
+            static_cast<int>(PronunciationAlphabet::kNone));
+  EXPECT_EQ(std::get<kLinguisticMapTuplePronunciationIndex>(lang_iter->second), "");
 
   ASSERT_EQ(names_and_types.at(1).first, "promenade Vanier");
-  lang_iter = languages.find(1);
-  ASSERT_NE(lang_iter, languages.end());
-  ASSERT_EQ(to_string(static_cast<Language>(lang_iter->second)), "fr");
+  lang_iter = linguistics.find(1);
+  ASSERT_NE(lang_iter, linguistics.end());
+  ASSERT_EQ(to_string(
+                static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(lang_iter->second))),
+            "fr");
+  EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(lang_iter->second)),
+            static_cast<int>(PronunciationAlphabet::kNone));
+  EXPECT_EQ(std::get<kLinguisticMapTuplePronunciationIndex>(lang_iter->second), "");
 
   ASSERT_EQ(names_and_types.at(2).first, "19");
-  lang_iter = languages.find(2);
-  ASSERT_EQ(lang_iter, languages.end());
+  lang_iter = linguistics.find(2);
+  ASSERT_EQ(lang_iter, linguistics.end());
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -4502,6 +4919,9 @@ TEST_F(RouteWithStreetnameAndSign_en_fr_OttawaCanada, CheckStreetNamesAndSigns2)
   ASSERT_EQ(to_string(
                 static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(iter->second))),
             "en");
+  EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(iter->second)),
+            static_cast<int>(PronunciationAlphabet::kNone));
+  EXPECT_EQ(std::get<kLinguisticMapTuplePronunciationIndex>(iter->second), "");
 
   ASSERT_EQ(edge_signs.at(3).text(), "rue Queen");
   iter = linguistics.find(3);
@@ -4509,6 +4929,9 @@ TEST_F(RouteWithStreetnameAndSign_en_fr_OttawaCanada, CheckStreetNamesAndSigns2)
   ASSERT_EQ(to_string(
                 static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(iter->second))),
             "fr");
+  EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(iter->second)),
+            static_cast<int>(PronunciationAlphabet::kNone));
+  EXPECT_EQ(std::get<kLinguisticMapTuplePronunciationIndex>(iter->second), "");
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -4605,6 +5028,9 @@ TEST_F(RouteWithStreetnameAndSign_en_fr_OttawaCanada, CheckGuideSigns) {
   ASSERT_EQ(to_string(
                 static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(iter->second))),
             "fr");
+  EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(iter->second)),
+            static_cast<int>(PronunciationAlphabet::kNone));
+  EXPECT_EQ(std::get<kLinguisticMapTuplePronunciationIndex>(iter->second), "");
 
   ASSERT_EQ(edge_signs.at(1).text(), "Albert Street");
   iter = linguistics.find(1);
@@ -4612,6 +5038,9 @@ TEST_F(RouteWithStreetnameAndSign_en_fr_OttawaCanada, CheckGuideSigns) {
   ASSERT_EQ(to_string(
                 static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(iter->second))),
             "en");
+  EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(iter->second)),
+            static_cast<int>(PronunciationAlphabet::kNone));
+  EXPECT_EQ(std::get<kLinguisticMapTuplePronunciationIndex>(iter->second), "");
 
   ASSERT_EQ(edge_signs.at(2).text(), "Centretown");
   iter = linguistics.find(2);
@@ -4665,17 +5094,29 @@ TEST_F(RouteWithStreetnameAndSign_en_fr_OttawaCanada, CheckNonJunctionName) {
   auto names_and_types = edgeinfo.GetNamesAndTypes(types, true);
   ASSERT_EQ(names_and_types.size(), 2);
 
-  std::unordered_map<uint8_t, uint8_t> languages = edgeinfo.GetLanguageMap();
-  std::unordered_map<uint8_t, uint8_t>::const_iterator lang_iter = languages.find(0);
+  std::unordered_map<uint8_t, std::tuple<uint8_t, uint8_t, std::string>> linguistics =
+      edgeinfo.GetLinguisticMap();
+  std::unordered_map<uint8_t, std::tuple<uint8_t, uint8_t, std::string>>::const_iterator lang_iter =
+      linguistics.find(0);
 
-  ASSERT_NE(lang_iter, languages.end());
+  ASSERT_NE(lang_iter, linguistics.end());
   ASSERT_EQ(names_and_types.at(0).first, "Albert Street");
-  ASSERT_EQ(to_string(static_cast<Language>(lang_iter->second)), "en");
+  ASSERT_EQ(to_string(
+                static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(lang_iter->second))),
+            "en");
+  EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(lang_iter->second)),
+            static_cast<int>(PronunciationAlphabet::kNone));
+  EXPECT_EQ(std::get<kLinguisticMapTuplePronunciationIndex>(lang_iter->second), "");
 
-  lang_iter = languages.find(1);
-  ASSERT_NE(lang_iter, languages.end());
+  lang_iter = linguistics.find(1);
+  ASSERT_NE(lang_iter, linguistics.end());
   ASSERT_EQ(names_and_types.at(1).first, "rue Albert");
-  ASSERT_EQ(to_string(static_cast<Language>(lang_iter->second)), "fr");
+  ASSERT_EQ(to_string(
+                static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(lang_iter->second))),
+            "fr");
+  EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(lang_iter->second)),
+            static_cast<int>(PronunciationAlphabet::kNone));
+  EXPECT_EQ(std::get<kLinguisticMapTuplePronunciationIndex>(lang_iter->second), "");
 
   // No junction should exist here.  Named junctions are not allowed in CA
   EXPECT_EQ(result.directions()
@@ -4983,6 +5424,9 @@ TEST_F(RouteWithStreetnameAndSign_en_fr_QuebecCanada, CheckStreetNamesAndSigns1)
   ASSERT_EQ(to_string(
                 static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(iter->second))),
             "en");
+  EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(iter->second)),
+            static_cast<int>(PronunciationAlphabet::kNone));
+  EXPECT_EQ(std::get<kLinguisticMapTuplePronunciationIndex>(iter->second), "");
 
   ASSERT_EQ(edge_signs.at(3).text(), "Riverside Drive");
   iter = linguistics.find(3);
@@ -4990,6 +5434,9 @@ TEST_F(RouteWithStreetnameAndSign_en_fr_QuebecCanada, CheckStreetNamesAndSigns1)
   ASSERT_EQ(to_string(
                 static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(iter->second))),
             "en");
+  EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(iter->second)),
+            static_cast<int>(PronunciationAlphabet::kNone));
+  EXPECT_EQ(std::get<kLinguisticMapTuplePronunciationIndex>(iter->second), "");
 
   ASSERT_EQ(edge_signs.at(4).text(), "Promenade Vanier");
   iter = linguistics.find(4);
@@ -4997,6 +5444,9 @@ TEST_F(RouteWithStreetnameAndSign_en_fr_QuebecCanada, CheckStreetNamesAndSigns1)
   ASSERT_EQ(to_string(
                 static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(iter->second))),
             "fr");
+  EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(iter->second)),
+            static_cast<int>(PronunciationAlphabet::kNone));
+  EXPECT_EQ(std::get<kLinguisticMapTuplePronunciationIndex>(iter->second), "");
 
   ASSERT_EQ(edge_signs.at(5).text(), "Promenade Riverside");
   iter = linguistics.find(5);
@@ -5004,6 +5454,9 @@ TEST_F(RouteWithStreetnameAndSign_en_fr_QuebecCanada, CheckStreetNamesAndSigns1)
   ASSERT_EQ(to_string(
                 static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(iter->second))),
             "fr");
+  EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(iter->second)),
+            static_cast<int>(PronunciationAlphabet::kNone));
+  EXPECT_EQ(std::get<kLinguisticMapTuplePronunciationIndex>(iter->second), "");
 
   ASSERT_EQ(edge_signs.at(6).text(), "Sandy Hill");
   iter = linguistics.find(6);
@@ -5011,6 +5464,9 @@ TEST_F(RouteWithStreetnameAndSign_en_fr_QuebecCanada, CheckStreetNamesAndSigns1)
   ASSERT_EQ(to_string(
                 static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(iter->second))),
             "en");
+  EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(iter->second)),
+            static_cast<int>(PronunciationAlphabet::kNone));
+  EXPECT_EQ(std::get<kLinguisticMapTuplePronunciationIndex>(iter->second), "");
 
   ASSERT_EQ(edge_signs.at(7).text(), "Colline de sable");
   iter = linguistics.find(7);
@@ -5018,29 +5474,43 @@ TEST_F(RouteWithStreetnameAndSign_en_fr_QuebecCanada, CheckStreetNamesAndSigns1)
   ASSERT_EQ(to_string(
                 static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(iter->second))),
             "fr");
+  EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(iter->second)),
+            static_cast<int>(PronunciationAlphabet::kNone));
+  EXPECT_EQ(std::get<kLinguisticMapTuplePronunciationIndex>(iter->second), "");
 
   node_id = JICDMN_edge->endnode();
   tile = graph_reader.GetGraphTile(node_id);
   edgeinfo = tile->edgeinfo(JICDMN_edge);
   types.clear();
   names_and_types = edgeinfo.GetNamesAndTypes(types, true);
-  std::unordered_map<uint8_t, uint8_t> languages = edgeinfo.GetLanguageMap();
+  linguistics = edgeinfo.GetLinguisticMap();
 
   ASSERT_EQ(names_and_types.size(), 3);
 
   ASSERT_EQ(names_and_types.at(0).first, "promenade Vanier");
-  std::unordered_map<uint8_t, uint8_t>::const_iterator lang_iter = languages.find(0);
-  ASSERT_NE(lang_iter, languages.end());
-  ASSERT_EQ(to_string(static_cast<Language>(lang_iter->second)), "fr");
+  std::unordered_map<uint8_t, std::tuple<uint8_t, uint8_t, std::string>>::const_iterator lang_iter =
+      linguistics.find(0);
+  ASSERT_NE(lang_iter, linguistics.end());
+  ASSERT_EQ(to_string(
+                static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(lang_iter->second))),
+            "fr");
+  EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(lang_iter->second)),
+            static_cast<int>(PronunciationAlphabet::kNone));
+  EXPECT_EQ(std::get<kLinguisticMapTuplePronunciationIndex>(lang_iter->second), "");
 
   ASSERT_EQ(names_and_types.at(1).first, "Vanier Parkway");
-  lang_iter = languages.find(1);
-  ASSERT_NE(lang_iter, languages.end());
-  ASSERT_EQ(to_string(static_cast<Language>(lang_iter->second)), "en");
+  lang_iter = linguistics.find(1);
+  ASSERT_NE(lang_iter, linguistics.end());
+  ASSERT_EQ(to_string(
+                static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(lang_iter->second))),
+            "en");
+  EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(lang_iter->second)),
+            static_cast<int>(PronunciationAlphabet::kNone));
+  EXPECT_EQ(std::get<kLinguisticMapTuplePronunciationIndex>(lang_iter->second), "");
 
   ASSERT_EQ(names_and_types.at(2).first, "19");
-  lang_iter = languages.find(2);
-  ASSERT_EQ(lang_iter, languages.end());
+  lang_iter = linguistics.find(2);
+  ASSERT_EQ(lang_iter, linguistics.end());
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -5134,6 +5604,9 @@ TEST_F(RouteWithStreetnameAndSign_en_fr_QuebecCanada, CheckStreetNamesAndSigns2)
   ASSERT_EQ(to_string(
                 static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(iter->second))),
             "en");
+  EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(iter->second)),
+            static_cast<int>(PronunciationAlphabet::kNone));
+  EXPECT_EQ(std::get<kLinguisticMapTuplePronunciationIndex>(iter->second), "");
 
   ASSERT_EQ(edge_signs.at(3).text(), "rue Queen");
   iter = linguistics.find(3);
@@ -5141,6 +5614,9 @@ TEST_F(RouteWithStreetnameAndSign_en_fr_QuebecCanada, CheckStreetNamesAndSigns2)
   ASSERT_EQ(to_string(
                 static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(iter->second))),
             "fr");
+  EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(iter->second)),
+            static_cast<int>(PronunciationAlphabet::kNone));
+  EXPECT_EQ(std::get<kLinguisticMapTuplePronunciationIndex>(iter->second), "");
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -5237,6 +5713,9 @@ TEST_F(RouteWithStreetnameAndSign_en_fr_QuebecCanada, CheckGuideSigns) {
   ASSERT_EQ(to_string(
                 static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(iter->second))),
             "fr");
+  EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(iter->second)),
+            static_cast<int>(PronunciationAlphabet::kNone));
+  EXPECT_EQ(std::get<kLinguisticMapTuplePronunciationIndex>(iter->second), "");
 
   ASSERT_EQ(edge_signs.at(1).text(), "Albert Street");
   iter = linguistics.find(1);
@@ -5244,6 +5723,9 @@ TEST_F(RouteWithStreetnameAndSign_en_fr_QuebecCanada, CheckGuideSigns) {
   ASSERT_EQ(to_string(
                 static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(iter->second))),
             "en");
+  EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(iter->second)),
+            static_cast<int>(PronunciationAlphabet::kNone));
+  EXPECT_EQ(std::get<kLinguisticMapTuplePronunciationIndex>(iter->second), "");
 
   ASSERT_EQ(edge_signs.at(2).text(), "Centretown");
   iter = linguistics.find(2);
@@ -5297,16 +5779,28 @@ TEST_F(RouteWithStreetnameAndSign_en_fr_QuebecCanada, CheckNonJunctionName) {
   auto names_and_types = edgeinfo.GetNamesAndTypes(types, true);
   ASSERT_EQ(names_and_types.size(), 2);
 
-  std::unordered_map<uint8_t, uint8_t> languages = edgeinfo.GetLanguageMap();
-  std::unordered_map<uint8_t, uint8_t>::const_iterator lang_iter = languages.find(0);
-  ASSERT_NE(lang_iter, languages.end());
+  std::unordered_map<uint8_t, std::tuple<uint8_t, uint8_t, std::string>> linguistics =
+      edgeinfo.GetLinguisticMap();
+  std::unordered_map<uint8_t, std::tuple<uint8_t, uint8_t, std::string>>::const_iterator lang_iter =
+      linguistics.find(0);
+  ASSERT_NE(lang_iter, linguistics.end());
   ASSERT_EQ(names_and_types.at(0).first, "Albert Street");
-  ASSERT_EQ(to_string(static_cast<Language>(lang_iter->second)), "en");
+  ASSERT_EQ(to_string(
+                static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(lang_iter->second))),
+            "en");
+  EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(lang_iter->second)),
+            static_cast<int>(PronunciationAlphabet::kNone));
+  EXPECT_EQ(std::get<kLinguisticMapTuplePronunciationIndex>(lang_iter->second), "");
 
-  lang_iter = languages.find(1);
-  ASSERT_NE(lang_iter, languages.end());
+  lang_iter = linguistics.find(1);
+  ASSERT_NE(lang_iter, linguistics.end());
   ASSERT_EQ(names_and_types.at(1).first, "rue Albert");
-  ASSERT_EQ(to_string(static_cast<Language>(lang_iter->second)), "fr");
+  ASSERT_EQ(to_string(
+                static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(lang_iter->second))),
+            "fr");
+  EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(lang_iter->second)),
+            static_cast<int>(PronunciationAlphabet::kNone));
+  EXPECT_EQ(std::get<kLinguisticMapTuplePronunciationIndex>(lang_iter->second), "");
 
   // No junction should exist here.  Named junctions are not allowed in CA
   EXPECT_EQ(result.directions()
@@ -5403,26 +5897,45 @@ TEST_F(RouteWithStreetnameAndSign_en_ms_ta_zh_Singapore, CheckForwardNames) {
   auto names_and_types = edgeinfo.GetNamesAndTypes(types, true);
   ASSERT_EQ(names_and_types.size(), 4);
 
-  std::unordered_map<uint8_t, uint8_t> languages = edgeinfo.GetLanguageMap();
-  std::unordered_map<uint8_t, uint8_t>::const_iterator lang_iter = languages.find(0);
-  ASSERT_EQ(to_string(static_cast<Language>(lang_iter->second)), "en");
+  std::unordered_map<uint8_t, std::tuple<uint8_t, uint8_t, std::string>> linguistics =
+      edgeinfo.GetLinguisticMap();
+  ASSERT_EQ(linguistics.size(), 4);
+  std::unordered_map<uint8_t, std::tuple<uint8_t, uint8_t, std::string>>::const_iterator lang_iter =
+      linguistics.find(0);
+  ASSERT_EQ(to_string(
+                static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(lang_iter->second))),
+            "en");
+  EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(lang_iter->second)),
+            static_cast<int>(PronunciationAlphabet::kNone));
+  EXPECT_EQ(std::get<kLinguisticMapTuplePronunciationIndex>(lang_iter->second), "");
   ASSERT_EQ(names_and_types.at(0).first, "Rochor");
 
-  lang_iter = languages.find(1);
-  ASSERT_EQ(to_string(static_cast<Language>(lang_iter->second)), "zh");
+  lang_iter = linguistics.find(1);
+  ASSERT_EQ(to_string(
+                static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(lang_iter->second))),
+            "zh");
+  EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(lang_iter->second)),
+            static_cast<int>(PronunciationAlphabet::kNone));
+  EXPECT_EQ(std::get<kLinguisticMapTuplePronunciationIndex>(lang_iter->second), "");
   ASSERT_EQ(names_and_types.at(1).first, "梧槽");
 
-  lang_iter = languages.find(2);
-  ASSERT_EQ(to_string(static_cast<Language>(lang_iter->second)), "ms");
+  lang_iter = linguistics.find(2);
+  ASSERT_EQ(to_string(
+                static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(lang_iter->second))),
+            "ms");
+  EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(lang_iter->second)),
+            static_cast<int>(PronunciationAlphabet::kNone));
+  EXPECT_EQ(std::get<kLinguisticMapTuplePronunciationIndex>(lang_iter->second), "");
   ASSERT_EQ(names_and_types.at(2).first, "Rochor");
 
-  lang_iter = languages.find(3);
-  ASSERT_EQ(to_string(static_cast<Language>(lang_iter->second)), "ta");
+  lang_iter = linguistics.find(3);
+  ASSERT_EQ(to_string(
+                static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(lang_iter->second))),
+            "ta");
+  EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(lang_iter->second)),
+            static_cast<int>(PronunciationAlphabet::kNone));
+  EXPECT_EQ(std::get<kLinguisticMapTuplePronunciationIndex>(lang_iter->second), "");
   ASSERT_EQ(names_and_types.at(3).first, "ரோச்சோர்");
-
-  std::unordered_map<uint8_t, std::pair<uint8_t, std::string>> pronunciations =
-      edgeinfo.GetPronunciationsMap();
-  ASSERT_EQ(pronunciations.size(), 0);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -5448,26 +5961,45 @@ TEST_F(RouteWithStreetnameAndSign_en_ms_ta_zh_Singapore, CheckBackwardNames) {
   auto names_and_types = edgeinfo.GetNamesAndTypes(types, true);
   ASSERT_EQ(names_and_types.size(), 4);
 
-  std::unordered_map<uint8_t, uint8_t> languages = edgeinfo.GetLanguageMap();
-  std::unordered_map<uint8_t, uint8_t>::const_iterator lang_iter = languages.find(0);
-  ASSERT_EQ(to_string(static_cast<Language>(lang_iter->second)), "en");
+  std::unordered_map<uint8_t, std::tuple<uint8_t, uint8_t, std::string>> linguistics =
+      edgeinfo.GetLinguisticMap();
+  ASSERT_EQ(linguistics.size(), 4);
+  std::unordered_map<uint8_t, std::tuple<uint8_t, uint8_t, std::string>>::const_iterator lang_iter =
+      linguistics.find(0);
+  ASSERT_EQ(to_string(
+                static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(lang_iter->second))),
+            "en");
+  EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(lang_iter->second)),
+            static_cast<int>(PronunciationAlphabet::kNone));
+  EXPECT_EQ(std::get<kLinguisticMapTuplePronunciationIndex>(lang_iter->second), "");
   ASSERT_EQ(names_and_types.at(0).first, "Rochor");
 
-  lang_iter = languages.find(1);
-  ASSERT_EQ(to_string(static_cast<Language>(lang_iter->second)), "zh");
+  lang_iter = linguistics.find(1);
+  ASSERT_EQ(to_string(
+                static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(lang_iter->second))),
+            "zh");
+  EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(lang_iter->second)),
+            static_cast<int>(PronunciationAlphabet::kNone));
+  EXPECT_EQ(std::get<kLinguisticMapTuplePronunciationIndex>(lang_iter->second), "");
   ASSERT_EQ(names_and_types.at(1).first, "梧槽");
 
-  lang_iter = languages.find(2);
-  ASSERT_EQ(to_string(static_cast<Language>(lang_iter->second)), "ms");
+  lang_iter = linguistics.find(2);
+  ASSERT_EQ(to_string(
+                static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(lang_iter->second))),
+            "ms");
+  EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(lang_iter->second)),
+            static_cast<int>(PronunciationAlphabet::kNone));
+  EXPECT_EQ(std::get<kLinguisticMapTuplePronunciationIndex>(lang_iter->second), "");
   ASSERT_EQ(names_and_types.at(2).first, "Rochor");
 
-  lang_iter = languages.find(3);
-  ASSERT_EQ(to_string(static_cast<Language>(lang_iter->second)), "ta");
+  lang_iter = linguistics.find(3);
+  ASSERT_EQ(to_string(
+                static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(lang_iter->second))),
+            "ta");
+  EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(lang_iter->second)),
+            static_cast<int>(PronunciationAlphabet::kNone));
+  EXPECT_EQ(std::get<kLinguisticMapTuplePronunciationIndex>(lang_iter->second), "");
   ASSERT_EQ(names_and_types.at(3).first, "ரோச்சோர்");
-
-  std::unordered_map<uint8_t, std::pair<uint8_t, std::string>> pronunciations =
-      edgeinfo.GetPronunciationsMap();
-  ASSERT_EQ(pronunciations.size(), 0);
 }
 
 class RouteWithStreetnameAndSign_ja_en_JapanPronunciations : public ::testing::Test {
@@ -5508,7 +6040,7 @@ protected:
           {"osm_id", "98"},
           {"name", "首都高速6号向島線"},
           {"name:pronunciation", "ja_name_pronunciation"},
-          // TODO:  When multiple languages are supported, make sure pronunciations reference the
+          // TODO:  When multiple linguistics are supported, make sure pronunciations reference the
           // correct name in the list.  For now these are tossed.
           //{"name:en", "Shuto Expressway Route 6 Mukojima Line"},
           {"name:es", "Ruta 6 Mukojima de la Autopista Shuto"},
@@ -5541,11 +6073,11 @@ protected:
           {"junction:ref", "26B"},
           {"destination", "常磐道;東北道"},
           {"destination:lang:ja", "常磐道;東北道"},
-          // TODO:  For now, pronunciations win over languages.  We need to update the language in
+          // TODO:  For now, pronunciations win over linguistics.  We need to update the language in
           // graphbuilder for pronunciations.
           {"destination:pronunciation",
            "ja_destination_pronunciation_1;ja_destination_pronunciation_2"},
-          // TODO:  When multiple languages are supported, make sure pronunciations reference the
+          // TODO:  When multiple linguistics are supported, make sure pronunciations reference the
           // correct sign in the list.  For now these are tossed.
           //{"destination:lang:en", "Joban Expressway;Tohoku Expressway"},
           {"destination:street", "清洲橋通り"},
@@ -5680,23 +6212,26 @@ TEST_F(RouteWithStreetnameAndSign_ja_en_JapanPronunciations, CheckStreetNamesAnd
   auto edgeinfo = tile->edgeinfo(ABEF_edge);
   std::vector<uint8_t> types;
   auto names_and_types = edgeinfo.GetNamesAndTypes(types, true);
-  std::unordered_map<uint8_t, uint8_t> languages = edgeinfo.GetLanguageMap();
-  std::unordered_map<uint8_t, std::pair<uint8_t, std::string>> pronunciations =
-      edgeinfo.GetPronunciationsMap();
+  std::unordered_map<uint8_t, std::tuple<uint8_t, uint8_t, std::string>> linguistics =
+      edgeinfo.GetLinguisticMap();
 
   ASSERT_EQ(names_and_types.size(), 2);
-  ASSERT_EQ(languages.size(), 1);
-  ASSERT_EQ(pronunciations.size(), 1);
+  ASSERT_EQ(linguistics.size(), 1);
 
   ASSERT_EQ(names_and_types.at(0).first, "6");
-  std::unordered_map<uint8_t, std::pair<uint8_t, std::string>>::const_iterator pronunciations_iter =
-      pronunciations.find(0);
-  ASSERT_EQ(pronunciations_iter, pronunciations.end());
+  std::unordered_map<uint8_t, std::tuple<uint8_t, uint8_t, std::string>>::const_iterator iter =
+      linguistics.find(0);
+  ASSERT_EQ(iter, linguistics.end());
 
   ASSERT_EQ(names_and_types.at(1).first, "首都高速6号向島線");
-  pronunciations_iter = pronunciations.find(1);
-  ASSERT_NE(pronunciations_iter, pronunciations.end());
-  ASSERT_EQ((pronunciations_iter->second).second, "ja_name_pronunciation");
+  iter = linguistics.find(1);
+  ASSERT_NE(iter, linguistics.end());
+  ASSERT_EQ(to_string(
+                static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(iter->second))),
+            "none");
+  ASSERT_EQ(std::get<kLinguisticMapTuplePronunciationIndex>(iter->second), "ja_name_pronunciation");
+  EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(iter->second)),
+            static_cast<int>(PronunciationAlphabet::kIpa));
 
   node_id = BC_edge->endnode();
   tile = graph_reader.GetGraphTile(node_id);
@@ -5705,15 +6240,14 @@ TEST_F(RouteWithStreetnameAndSign_ja_en_JapanPronunciations, CheckStreetNamesAnd
   names_and_types = edgeinfo.GetNamesAndTypes(types, true);
   ASSERT_EQ(names_and_types.size(), 0);
 
-  std::unordered_map<uint8_t, std::tuple<uint8_t, uint8_t, std::string>> linguistics;
+  linguistics.clear();
   std::vector<SignInfo> edge_signs = tile->GetSigns(BC_edge_id.id(), linguistics);
 
   ASSERT_EQ(edge_signs.size(), 7);
   ASSERT_EQ(linguistics.size(), 4);
 
   ASSERT_EQ(edge_signs.at(0).text(), "26B");
-  std::unordered_map<uint8_t, std::tuple<uint8_t, uint8_t, std::string>>::const_iterator iter =
-      linguistics.find(0);
+  iter = linguistics.find(0);
   ASSERT_EQ(iter, linguistics.end());
 
   ASSERT_EQ(edge_signs.at(1).text(), "E6");
@@ -5730,6 +6264,9 @@ TEST_F(RouteWithStreetnameAndSign_ja_en_JapanPronunciations, CheckStreetNamesAnd
   ASSERT_EQ(to_string(
                 static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(iter->second))),
             "ja");
+  EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(iter->second)),
+            static_cast<int>(PronunciationAlphabet::kNone));
+  EXPECT_EQ(std::get<kLinguisticMapTuplePronunciationIndex>(iter->second), "");
 
   ASSERT_EQ(edge_signs.at(4).text(), "Kiyosubashi-dori Avenue");
   iter = linguistics.find(4);
@@ -5737,6 +6274,9 @@ TEST_F(RouteWithStreetnameAndSign_ja_en_JapanPronunciations, CheckStreetNamesAnd
   ASSERT_EQ(to_string(
                 static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(iter->second))),
             "en");
+  EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(iter->second)),
+            static_cast<int>(PronunciationAlphabet::kNone));
+  EXPECT_EQ(std::get<kLinguisticMapTuplePronunciationIndex>(iter->second), "");
 
   ASSERT_EQ(edge_signs.at(5).text(), "常磐道");
   iter = linguistics.find(5);
@@ -5746,6 +6286,8 @@ TEST_F(RouteWithStreetnameAndSign_ja_en_JapanPronunciations, CheckStreetNamesAnd
             "none");
   ASSERT_EQ(std::get<kLinguisticMapTuplePronunciationIndex>(iter->second),
             "ja_destination_pronunciation_1");
+  EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(iter->second)),
+            static_cast<int>(PronunciationAlphabet::kIpa));
 
   ASSERT_EQ(edge_signs.at(6).text(), "東北道");
   iter = linguistics.find(6);
@@ -5755,43 +6297,66 @@ TEST_F(RouteWithStreetnameAndSign_ja_en_JapanPronunciations, CheckStreetNamesAnd
             "none");
   ASSERT_EQ(std::get<kLinguisticMapTuplePronunciationIndex>(iter->second),
             "ja_destination_pronunciation_2");
+  EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(iter->second)),
+            static_cast<int>(PronunciationAlphabet::kIpa));
 
   node_id = JICDMN_edge->endnode();
   tile = graph_reader.GetGraphTile(node_id);
   edgeinfo = tile->edgeinfo(JICDMN_edge);
   types.clear();
   names_and_types = edgeinfo.GetNamesAndTypes(types, true);
-  languages = edgeinfo.GetLanguageMap();
+  linguistics = edgeinfo.GetLinguisticMap();
 
   ASSERT_EQ(names_and_types.size(), 6);
 
   ASSERT_EQ(names_and_types.at(0).first, "常磐道");
-  std::unordered_map<uint8_t, uint8_t>::const_iterator lang_iter = languages.find(0);
-  ASSERT_NE(lang_iter, languages.end());
-  ASSERT_EQ(to_string(static_cast<Language>(lang_iter->second)), "ja");
+  std::unordered_map<uint8_t, std::tuple<uint8_t, uint8_t, std::string>>::const_iterator lang_iter =
+      linguistics.find(0);
+  ASSERT_NE(lang_iter, linguistics.end());
+  ASSERT_EQ(to_string(
+                static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(lang_iter->second))),
+            "ja");
+  EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(lang_iter->second)),
+            static_cast<int>(PronunciationAlphabet::kNone));
+  EXPECT_EQ(std::get<kLinguisticMapTuplePronunciationIndex>(lang_iter->second), "");
 
   ASSERT_EQ(names_and_types.at(1).first, "東北道");
-  lang_iter = languages.find(1);
-  ASSERT_NE(lang_iter, languages.end());
-  ASSERT_EQ(to_string(static_cast<Language>(lang_iter->second)), "ja");
+  lang_iter = linguistics.find(1);
+  ASSERT_NE(lang_iter, linguistics.end());
+  ASSERT_EQ(to_string(
+                static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(lang_iter->second))),
+            "ja");
+  EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(lang_iter->second)),
+            static_cast<int>(PronunciationAlphabet::kNone));
+  EXPECT_EQ(std::get<kLinguisticMapTuplePronunciationIndex>(lang_iter->second), "");
 
   ASSERT_EQ(names_and_types.at(2).first, "Joban Expressway");
-  lang_iter = languages.find(2);
-  ASSERT_NE(lang_iter, languages.end());
-  ASSERT_EQ(to_string(static_cast<Language>(lang_iter->second)), "en");
+  lang_iter = linguistics.find(2);
+  ASSERT_NE(lang_iter, linguistics.end());
+  ASSERT_EQ(to_string(
+                static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(lang_iter->second))),
+            "en");
+  EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(lang_iter->second)),
+            static_cast<int>(PronunciationAlphabet::kNone));
+  EXPECT_EQ(std::get<kLinguisticMapTuplePronunciationIndex>(lang_iter->second), "");
 
   ASSERT_EQ(names_and_types.at(3).first, "Tohoku Expressway");
-  lang_iter = languages.find(3);
-  ASSERT_NE(lang_iter, languages.end());
-  ASSERT_EQ(to_string(static_cast<Language>(lang_iter->second)), "en");
+  lang_iter = linguistics.find(3);
+  ASSERT_NE(lang_iter, linguistics.end());
+  ASSERT_EQ(to_string(
+                static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(lang_iter->second))),
+            "en");
+  EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(lang_iter->second)),
+            static_cast<int>(PronunciationAlphabet::kNone));
+  EXPECT_EQ(std::get<kLinguisticMapTuplePronunciationIndex>(lang_iter->second), "");
 
   ASSERT_EQ(names_and_types.at(4).first, "E6");
-  lang_iter = languages.find(4);
-  ASSERT_EQ(lang_iter, languages.end());
+  lang_iter = linguistics.find(4);
+  ASSERT_EQ(lang_iter, linguistics.end());
 
   ASSERT_EQ(names_and_types.at(5).first, "E4");
-  lang_iter = languages.find(5);
-  ASSERT_EQ(lang_iter, languages.end());
+  lang_iter = linguistics.find(5);
+  ASSERT_EQ(lang_iter, linguistics.end());
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -5839,6 +6404,9 @@ TEST_F(RouteWithStreetnameAndSign_ja_en_JapanPronunciations, CheckStreetNamesAnd
   ASSERT_EQ(to_string(
                 static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(iter->second))),
             "ja");
+  EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(iter->second)),
+            static_cast<int>(PronunciationAlphabet::kNone));
+  EXPECT_EQ(std::get<kLinguisticMapTuplePronunciationIndex>(iter->second), "");
 
   ASSERT_EQ(edge_signs.at(3).text(), "Kiyosumi-dori");
   iter = linguistics.find(3);
@@ -5846,6 +6414,9 @@ TEST_F(RouteWithStreetnameAndSign_ja_en_JapanPronunciations, CheckStreetNamesAnd
   ASSERT_EQ(to_string(
                 static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(iter->second))),
             "en");
+  EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(iter->second)),
+            static_cast<int>(PronunciationAlphabet::kNone));
+  EXPECT_EQ(std::get<kLinguisticMapTuplePronunciationIndex>(iter->second), "");
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -5887,6 +6458,9 @@ TEST_F(RouteWithStreetnameAndSign_ja_en_JapanPronunciations, CheckGuideSigns) {
   ASSERT_EQ(to_string(
                 static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(iter->second))),
             "ja");
+  EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(iter->second)),
+            static_cast<int>(PronunciationAlphabet::kNone));
+  EXPECT_EQ(std::get<kLinguisticMapTuplePronunciationIndex>(iter->second), "");
 
   ASSERT_EQ(edge_signs.at(1).text(), "Kokugikan-dori");
   iter = linguistics.find(1);
@@ -5894,6 +6468,9 @@ TEST_F(RouteWithStreetnameAndSign_ja_en_JapanPronunciations, CheckGuideSigns) {
   ASSERT_EQ(to_string(
                 static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(iter->second))),
             "en");
+  EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(iter->second)),
+            static_cast<int>(PronunciationAlphabet::kNone));
+  EXPECT_EQ(std::get<kLinguisticMapTuplePronunciationIndex>(iter->second), "");
 
   ASSERT_EQ(edge_signs.at(2).text(), "大和街道");
   iter = linguistics.find(2);
@@ -5927,16 +6504,28 @@ TEST_F(RouteWithStreetnameAndSign_ja_en_JapanPronunciations, CheckNonJunctionNam
   auto names_and_types = edgeinfo.GetNamesAndTypes(types, true);
   ASSERT_EQ(names_and_types.size(), 2);
 
-  std::unordered_map<uint8_t, uint8_t> languages = edgeinfo.GetLanguageMap();
-  std::unordered_map<uint8_t, uint8_t>::const_iterator lang_iter = languages.find(0);
-  ASSERT_NE(lang_iter, languages.end());
+  std::unordered_map<uint8_t, std::tuple<uint8_t, uint8_t, std::string>> linguistics =
+      edgeinfo.GetLinguisticMap();
+  std::unordered_map<uint8_t, std::tuple<uint8_t, uint8_t, std::string>>::const_iterator lang_iter =
+      linguistics.find(0);
+  ASSERT_NE(lang_iter, linguistics.end());
   ASSERT_EQ(names_and_types.at(0).first, "国技館通り");
-  ASSERT_EQ(to_string(static_cast<Language>(lang_iter->second)), "ja");
+  ASSERT_EQ(to_string(
+                static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(lang_iter->second))),
+            "ja");
+  EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(lang_iter->second)),
+            static_cast<int>(PronunciationAlphabet::kNone));
+  EXPECT_EQ(std::get<kLinguisticMapTuplePronunciationIndex>(lang_iter->second), "");
 
-  lang_iter = languages.find(1);
-  ASSERT_NE(lang_iter, languages.end());
+  lang_iter = linguistics.find(1);
+  ASSERT_NE(lang_iter, linguistics.end());
   ASSERT_EQ(names_and_types.at(1).first, "Kokugikan-dori");
-  ASSERT_EQ(to_string(static_cast<Language>(lang_iter->second)), "en");
+  ASSERT_EQ(to_string(
+                static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(lang_iter->second))),
+            "en");
+  EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(lang_iter->second)),
+            static_cast<int>(PronunciationAlphabet::kNone));
+  EXPECT_EQ(std::get<kLinguisticMapTuplePronunciationIndex>(lang_iter->second), "");
 
   GraphId DM_edge_id;
   const DirectedEdge* DM_edge = nullptr;
@@ -5950,7 +6539,7 @@ TEST_F(RouteWithStreetnameAndSign_ja_en_JapanPronunciations, CheckNonJunctionNam
   node_id = DM_edge->endnode();
   tile = graph_reader.GetGraphTile(node_id);
 
-  std::unordered_map<uint8_t, std::tuple<uint8_t, uint8_t, std::string>> linguistics;
+  linguistics.clear();
   std::vector<SignInfo> edge_signs = tile->GetSigns(node_id.id(), linguistics, true);
 
   ASSERT_EQ(edge_signs.size(), 2);
@@ -5963,6 +6552,9 @@ TEST_F(RouteWithStreetnameAndSign_ja_en_JapanPronunciations, CheckNonJunctionNam
   ASSERT_EQ(to_string(
                 static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(iter->second))),
             "ja");
+  EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(lang_iter->second)),
+            static_cast<int>(PronunciationAlphabet::kNone));
+  EXPECT_EQ(std::get<kLinguisticMapTuplePronunciationIndex>(lang_iter->second), "");
 
   ASSERT_EQ(edge_signs.at(1).text(), "Ryogoku 2-chome");
   iter = linguistics.find(1);
@@ -5970,6 +6562,9 @@ TEST_F(RouteWithStreetnameAndSign_ja_en_JapanPronunciations, CheckNonJunctionNam
   ASSERT_EQ(to_string(
                 static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(iter->second))),
             "en");
+  EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(lang_iter->second)),
+            static_cast<int>(PronunciationAlphabet::kNone));
+  EXPECT_EQ(std::get<kLinguisticMapTuplePronunciationIndex>(lang_iter->second), "");
 }
 
 class RouteWithStreetnameAndSign_en_USMultiWithNameDash : public ::testing::Test {
@@ -6053,16 +6648,28 @@ TEST_F(RouteWithStreetnameAndSign_en_USMultiWithNameDash, CheckForwardNames) {
   auto names_and_types = edgeinfo.GetNamesAndTypes(types, true);
   ASSERT_EQ(names_and_types.size(), 2);
 
-  std::unordered_map<uint8_t, uint8_t> languages = edgeinfo.GetLanguageMap();
-  std::unordered_map<uint8_t, uint8_t>::const_iterator lang_iter = languages.find(0);
-  ASSERT_NE(lang_iter, languages.end());
+  std::unordered_map<uint8_t, std::tuple<uint8_t, uint8_t, std::string>> linguistics =
+      edgeinfo.GetLinguisticMap();
+  std::unordered_map<uint8_t, std::tuple<uint8_t, uint8_t, std::string>>::const_iterator lang_iter =
+      linguistics.find(0);
+  ASSERT_NE(lang_iter, linguistics.end());
   ASSERT_EQ(names_and_types.at(0).first, "Pamplona South");
-  ASSERT_EQ(to_string(static_cast<Language>(lang_iter->second)), "en");
+  ASSERT_EQ(to_string(
+                static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(lang_iter->second))),
+            "en");
+  EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(lang_iter->second)),
+            static_cast<int>(PronunciationAlphabet::kNone));
+  EXPECT_EQ(std::get<kLinguisticMapTuplePronunciationIndex>(lang_iter->second), "");
 
-  lang_iter = languages.find(1);
-  ASSERT_NE(lang_iter, languages.end());
+  lang_iter = linguistics.find(1);
+  ASSERT_NE(lang_iter, linguistics.end());
   ASSERT_EQ(names_and_types.at(1).first, "Airport");
-  ASSERT_EQ(to_string(static_cast<Language>(lang_iter->second)), "en");
+  ASSERT_EQ(to_string(
+                static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(lang_iter->second))),
+            "en");
+  EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(lang_iter->second)),
+            static_cast<int>(PronunciationAlphabet::kNone));
+  EXPECT_EQ(std::get<kLinguisticMapTuplePronunciationIndex>(lang_iter->second), "");
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -6089,16 +6696,28 @@ TEST_F(RouteWithStreetnameAndSign_en_USMultiWithNameDash, CheckBackwardNames) {
   auto names_and_types = edgeinfo.GetNamesAndTypes(types, true);
   ASSERT_EQ(names_and_types.size(), 2);
 
-  std::unordered_map<uint8_t, uint8_t> languages = edgeinfo.GetLanguageMap();
-  std::unordered_map<uint8_t, uint8_t>::const_iterator lang_iter = languages.find(0);
-  ASSERT_NE(lang_iter, languages.end());
+  std::unordered_map<uint8_t, std::tuple<uint8_t, uint8_t, std::string>> linguistics =
+      edgeinfo.GetLinguisticMap();
+  std::unordered_map<uint8_t, std::tuple<uint8_t, uint8_t, std::string>>::const_iterator lang_iter =
+      linguistics.find(0);
+  ASSERT_NE(lang_iter, linguistics.end());
   ASSERT_EQ(names_and_types.at(0).first, "Pamplona South");
-  ASSERT_EQ(to_string(static_cast<Language>(lang_iter->second)), "en");
+  ASSERT_EQ(to_string(
+                static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(lang_iter->second))),
+            "en");
+  EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(lang_iter->second)),
+            static_cast<int>(PronunciationAlphabet::kNone));
+  EXPECT_EQ(std::get<kLinguisticMapTuplePronunciationIndex>(lang_iter->second), "");
 
-  lang_iter = languages.find(1);
-  ASSERT_NE(lang_iter, languages.end());
+  lang_iter = linguistics.find(1);
+  ASSERT_NE(lang_iter, linguistics.end());
   ASSERT_EQ(names_and_types.at(1).first, "Airport");
-  ASSERT_EQ(to_string(static_cast<Language>(lang_iter->second)), "en");
+  ASSERT_EQ(to_string(
+                static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(lang_iter->second))),
+            "en");
+  EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(lang_iter->second)),
+            static_cast<int>(PronunciationAlphabet::kNone));
+  EXPECT_EQ(std::get<kLinguisticMapTuplePronunciationIndex>(lang_iter->second), "");
 }
 
 class RouteWithStreetnameAndSign_en_USMultiWithNameSlash : public ::testing::Test {
@@ -6182,16 +6801,28 @@ TEST_F(RouteWithStreetnameAndSign_en_USMultiWithNameSlash, CheckForwardNames) {
   auto names_and_types = edgeinfo.GetNamesAndTypes(types, true);
   ASSERT_EQ(names_and_types.size(), 2);
 
-  std::unordered_map<uint8_t, uint8_t> languages = edgeinfo.GetLanguageMap();
-  std::unordered_map<uint8_t, uint8_t>::const_iterator lang_iter = languages.find(0);
-  ASSERT_NE(lang_iter, languages.end());
+  std::unordered_map<uint8_t, std::tuple<uint8_t, uint8_t, std::string>> linguistics =
+      edgeinfo.GetLinguisticMap();
+  std::unordered_map<uint8_t, std::tuple<uint8_t, uint8_t, std::string>>::const_iterator lang_iter =
+      linguistics.find(0);
+  ASSERT_NE(lang_iter, linguistics.end());
   ASSERT_EQ(names_and_types.at(0).first, "Pamplona South");
-  ASSERT_EQ(to_string(static_cast<Language>(lang_iter->second)), "en");
+  ASSERT_EQ(to_string(
+                static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(lang_iter->second))),
+            "en");
+  EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(lang_iter->second)),
+            static_cast<int>(PronunciationAlphabet::kNone));
+  EXPECT_EQ(std::get<kLinguisticMapTuplePronunciationIndex>(lang_iter->second), "");
 
-  lang_iter = languages.find(1);
-  ASSERT_NE(lang_iter, languages.end());
+  lang_iter = linguistics.find(1);
+  ASSERT_NE(lang_iter, linguistics.end());
   ASSERT_EQ(names_and_types.at(1).first, "Airport");
-  ASSERT_EQ(to_string(static_cast<Language>(lang_iter->second)), "en");
+  ASSERT_EQ(to_string(
+                static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(lang_iter->second))),
+            "en");
+  EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(lang_iter->second)),
+            static_cast<int>(PronunciationAlphabet::kNone));
+  EXPECT_EQ(std::get<kLinguisticMapTuplePronunciationIndex>(lang_iter->second), "");
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -6218,14 +6849,26 @@ TEST_F(RouteWithStreetnameAndSign_en_USMultiWithNameSlash, CheckBackwardNames) {
   auto names_and_types = edgeinfo.GetNamesAndTypes(types, true);
   ASSERT_EQ(names_and_types.size(), 2);
 
-  std::unordered_map<uint8_t, uint8_t> languages = edgeinfo.GetLanguageMap();
-  std::unordered_map<uint8_t, uint8_t>::const_iterator lang_iter = languages.find(0);
-  ASSERT_NE(lang_iter, languages.end());
+  std::unordered_map<uint8_t, std::tuple<uint8_t, uint8_t, std::string>> linguistics =
+      edgeinfo.GetLinguisticMap();
+  std::unordered_map<uint8_t, std::tuple<uint8_t, uint8_t, std::string>>::const_iterator lang_iter =
+      linguistics.find(0);
+  ASSERT_NE(lang_iter, linguistics.end());
   ASSERT_EQ(names_and_types.at(0).first, "Pamplona South");
-  ASSERT_EQ(to_string(static_cast<Language>(lang_iter->second)), "en");
+  ASSERT_EQ(to_string(
+                static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(lang_iter->second))),
+            "en");
+  EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(lang_iter->second)),
+            static_cast<int>(PronunciationAlphabet::kNone));
+  EXPECT_EQ(std::get<kLinguisticMapTuplePronunciationIndex>(lang_iter->second), "");
 
-  lang_iter = languages.find(1);
-  ASSERT_NE(lang_iter, languages.end());
+  lang_iter = linguistics.find(1);
+  ASSERT_NE(lang_iter, linguistics.end());
   ASSERT_EQ(names_and_types.at(1).first, "Airport");
-  ASSERT_EQ(to_string(static_cast<Language>(lang_iter->second)), "en");
+  ASSERT_EQ(to_string(
+                static_cast<Language>(std::get<kLinguisticMapTupleLanguageIndex>(lang_iter->second))),
+            "en");
+  EXPECT_EQ(static_cast<int>(std::get<kLinguisticMapTuplePhoneticAlphabetIndex>(lang_iter->second)),
+            static_cast<int>(PronunciationAlphabet::kNone));
+  EXPECT_EQ(std::get<kLinguisticMapTuplePronunciationIndex>(lang_iter->second), "");
 }

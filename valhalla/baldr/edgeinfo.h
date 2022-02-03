@@ -54,8 +54,8 @@ struct NameInfo {
 };
 
 // indexes of linguistic attributes in the linguistic map value-tuple
-constexpr size_t kLinguisticMapTuplePhoneticAlphabetIndex = 0;
-constexpr size_t kLinguisticMapTupleLanguageIndex = 1;
+constexpr size_t kLinguisticMapTupleLanguageIndex = 0;
+constexpr size_t kLinguisticMapTuplePhoneticAlphabetIndex = 1;
 constexpr size_t kLinguisticMapTuplePronunciationIndex = 2;
 
 struct linguistic_text_header_t {
@@ -187,18 +187,12 @@ public:
   const std::multimap<TaggedValue, std::string>& GetTags() const;
 
   /**
-   * Convenience method to get a pronunciation map for an edge.
-   * @return   Returns a unordered_map of type/name pairs with a key that references the name
-   * index from GetNamesAndTypes
+   * Convenience method to get a Linguistic map for an edge.
+   * @return   Returns a unordered_map in which the key is a index into the name list from
+   * GetNamesAndTypes and the tuple contains a pronunciation (w/wo a language) or no pronunciation and
+   * just a language
    */
-  std::unordered_map<uint8_t, std::pair<uint8_t, std::string>> GetPronunciationsMap() const;
-
-  /**
-   * Convenience method to get a language map for an edge.
-   * @return   Returns a unordered_map of languages with a key that references the name
-   * index from GetNamesAndTypes
-   */
-  std::unordered_map<uint8_t, uint8_t> GetLanguageMap() const;
+  std::unordered_map<uint8_t, std::tuple<uint8_t, uint8_t, std::string>> GetLinguisticMap() const;
 
   /**
    * Convenience method to get the types for the names.
