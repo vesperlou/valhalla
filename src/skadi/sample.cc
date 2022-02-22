@@ -22,6 +22,8 @@
 #include "midgard/sequence.h"
 #include "valhalla/baldr/curl_tilegetter.h"
 
+#include <chrono>
+
 namespace {
 // srtmgl1 holds 1x1 degree tiles but oversamples the egde of the tile
 // by .5 seconds on all sides. that means that the center of pixel 0 is
@@ -65,7 +67,9 @@ private:
   const char* unpacked;
 
 public:
-  cache_item_t() : format(format_t::UNKNOWN), usages(0), unpacked(nullptr) {
+  bool failed_to_fetch;
+
+  cache_item_t() : format(format_t::UNKNOWN), usages(0), unpacked(nullptr), failed_to_fetch(false) {
   }
   cache_item_t(cache_item_t&&) = default;
   ~cache_item_t() {
@@ -195,7 +199,16 @@ private:
   bool reusable;
 
 public:
-  tile_data() : c(nullptr), index(TILE_COUNT), reusable(false), data(nullptr) {
+  bool failed_to_fetch;
+
+  tile_data()
+      : c(nullptr), index(TILE_COUNT), reusable(false), data(nullptr), failed_to_fetch(false) {
+  }
+
+  tile_data(bool failed)
+      : c(nullptr), index(TILE_COUNT), reusable(false), data(nullptr),
+        failed_to_fetch(failed) {
+//    std::cout << "Createdd failed tiledata " << failed_to_fetch << std::endl;
   }
 
   tile_data(const tile_data& other) : c(nullptr) {
@@ -211,6 +224,7 @@ public:
     std::swap(data, other.data);
     std::swap(index, other.index);
     std::swap(reusable, other.reusable);
+    std::swap(failed_to_fetch, other.failed_to_fetch);
 
     return *this;
   }
@@ -310,6 +324,8 @@ struct cache_t {
 
   bool insert(int pos, const std::string& path, format_t format);
 
+  void mark_failed(int pos);
+
   tile_data source(uint16_t index);
 };
 
@@ -319,6 +335,14 @@ bool cache_t::insert(int pos, const std::string& path, format_t format) {
 
   std::lock_guard<std::recursive_mutex> lock(mutex);
   return cache[pos].init(path, format);
+}
+
+void cache_t::mark_failed(int pos) {
+  if (pos >= cache.size())
+    return;
+
+  std::lock_guard<std::recursive_mutex> lock(mutex);
+  cache[pos].failed_to_fetch = true;
 }
 
 tile_data cache_t::source(uint16_t index) {
@@ -336,7 +360,8 @@ tile_data cache_t::source(uint16_t index) {
 
   // it wasn't in cache and when we tried to load it the file was of unknown type
   if (item.get_format() == format_t::UNKNOWN) {
-    return {};
+//    std::cout << item.failed_to_fetch << std::endl;
+    return tile_data(item.failed_to_fetch);
   }
 
   // we have it raw or we don't
@@ -449,9 +474,13 @@ template <class coord_t> double sample::get(const coord_t& coord, tile_data& til
   if (index != tile.get_index()) {
     {
       std::lock_guard<std::mutex> _(cache_lck);
+//      std::cout << "Source\n";
       tile = cache_->source(index);
+//      std::cout << tile.failed_to_fetch << std::endl;
     }
     if (!tile) {
+      if (tile.failed_to_fetch)
+        return get_no_data_value();
       if (!fetch(index))
         return get_no_data_value();
 
@@ -509,18 +538,40 @@ bool sample::store(const std::string& elev, const std::vector<char>& raw_data) {
   return cache_->insert(data->first, fpath, data->second);
 }
 
+struct Timer {
+  using Clock = std::chrono::high_resolution_clock;
+  Timer() {
+    start_ = Clock::now();
+  }
+
+  void Stop(const std::string& message) {
+    LOG_INFO(message + std::to_string((Clock::now() - start_).count()));
+    start_ = Clock::now();
+  }
+
+  std::chrono::time_point<Clock> start_;
+};
+
 bool sample::fetch(uint16_t index) {
-  if (url_.empty() || !remote_loader_)
+  if (url_.empty() || !remote_loader_) {
+    LOG_INFO("Aborting early");
     return false;
+  }
+  //  Timer timer;
 
   auto elev = get_hgt_file_name(index);
+  // drop leading '/'
+  elev.erase(elev.begin());
   auto uri = baldr::make_single_point_url(url_, elev, remote_path_);
+  //  timer.Stop("uri preparation: ");
 
   LOG_INFO("Start loading data from remote server address: " + uri);
   auto result = remote_loader_->get(uri);
+  //  timer.Stop("remote loader: ");
 
   if (result.status_ != baldr::tile_getter_t::status_code_t::SUCCESS) {
-    LOG_WARN("Fail to load data from remote server address: " + uri);
+    LOG_INFO("Fail to load data from remote server address: " + uri);
+    cache_->mark_failed(index);
     return false;
   }
 
