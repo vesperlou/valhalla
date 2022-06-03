@@ -34,7 +34,11 @@ DirectedEdgeBuilder::DirectedEdgeBuilder(const OSMWay& way,
   set_truck_speed(truck_speed); // KPH
 
   // Protect against 0 length edges
-  set_length(std::max(length, kMinimumEdgeLength), true);
+  try {
+    set_length(std::max(length, kMinimumEdgeLength), true);
+  } catch (const std::exception& e) {
+    std::cerr << "Exceeded max length on way " << std::to_string(way.way_id()) << '\n';
+  }
 
   // Override use for ferries/rail ferries. TODO - set this in lua
   if (way.ferry() && way.use() != Use::kConstruction) {

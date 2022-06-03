@@ -511,9 +511,17 @@ uint32_t AddShortcutEdges(GraphReader& reader,
       newedge.set_restrictions(rst);
 
       // Update the length, curvature, and end node
-      newedge.set_length(length);
+      try {
+        newedge.set_length(length);
+      } catch (const std::exception& e) {
+        std::cerr << "Exceeded max length on way " << std::to_string(edgeinfo.wayid()) << '\n';
+        throw e;
+      }
+
       newedge.set_curvature(compute_curvature(shape));
       newedge.set_endnode(end_node);
+
+      edgeinfo.wayid();
 
       // Set the default weighted grade for the edge. No edge elevation is added.
       newedge.set_weighted_grade(6);
