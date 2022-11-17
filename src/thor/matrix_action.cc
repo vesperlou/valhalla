@@ -38,6 +38,9 @@ std::string thor_worker_t::matrix(Api& request) {
   // lambdas to do the real work
   std::vector<TimeDistance> time_distances;
   auto costmatrix = [&]() {
+    if (options.matrix_locations() == std::numeric_limits<uint32_t>::max()) {
+      add_warning(request, 203);
+    }
     return costmatrix_.SourceToTarget(options.sources(), options.targets(), *reader, mode_costing,
                                       mode, max_matrix_distance.find(costing)->second);
   };

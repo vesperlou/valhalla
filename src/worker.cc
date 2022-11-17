@@ -145,17 +145,21 @@ const std::unordered_map<int, std::string> warning_codes = {
   {101,
     R"(hov costing is deprecated, use "include_hov2" costing option instead)"},
   {102, R"(auto_data_fix is deprecated, use the "ignore_*" costing options instead)"},
-  {103, R"(best_paths has been deprecated, use "alternates" instead)"}
+  {103, R"(best_paths has been deprecated, use "alternates" instead)"},
+  // 2xx is used for ineffective parameters, i.e. we ignore them because of reasons
+  {203, R"(many:many matrix is using CostMatrix algorithm, ignoring "matrix_locations")"},
+  {}
 };
 
 // function to add warnings to proto info object
-void add_warning(valhalla::Api& api, int code) {
+void add_warning(valhalla::Api& api, int code, const std::string& extra = "") {
   auto message = warning_codes.find(code);
-  if (message != warning_codes.end()) {
-    auto* warning = api.mutable_info()->mutable_warnings()->Add();
-    warning->set_description(message->second);
-    warning->set_code(message->first);
+  if (message == warning_codes.end()) {
+    return;
   }
+  auto* warning = api.mutable_info()->mutable_warnings()->Add();
+  warning->set_description(message->second + extra);
+  warning->set_code(message->first);
 }
 
 // clang-format on
@@ -910,14 +914,9 @@ void from_json(rapidjson::Document& doc, Options::Action action, Api& api) {
   else
     parse_locations(doc, options, "exclude_locations", 133, ignore_closures);
 
-  // Get the matrix_loctions option and set if sources or targets size is one
-  // (option is only supported with one to many or many to one matrix requests)
-  auto matrix_locations = rapidjson::get_optional<int>(doc, "/matrix_locations");
-  if (matrix_locations && (options.sources_size() == 1 || options.targets_size() == 1)) {
-    options.set_matrix_locations(*matrix_locations);
-  } else {
-    options.set_matrix_locations(std::numeric_limits<uint32_t>::max());
-  }
+  // Get the matrix_loctions option
+  options.set_matrix_locations(
+      rapidjson::get<int>(doc, "/matrix_locations", std::numeric_limits<uint32_t>::max()));
 
   // get the avoid polygons in there
   auto rings_req =
