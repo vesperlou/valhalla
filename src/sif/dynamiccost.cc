@@ -382,6 +382,9 @@ void ParseBaseCostOptions(const rapidjson::Value& json,
   // shortest
   JSON_PBF_DEFAULT(co, false, json, "/shortest", shortest);
 
+  // TODO: need to check all ranges if they were clamped or not and add a warning if so
+  // thing is, many costing models have another host of custom default ranges
+
   // top speed
   JSON_PBF_RANGED_DEFAULT(co, kVehicleSpeedRange, json, "/top_speed", top_speed);
 
